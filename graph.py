@@ -199,7 +199,12 @@ class graph() :
 
   def psdraw(self) :    # draw graph
     """Return PostScript code to draw graph centered at (0,0) with nodes on unit circle"""
-    return """/c {/n exch def [ 0 1 n 1 sub {360 mul n div dup sin exch cos [0 0] astore} for ] /nodes exch def} bind def\n/d {nodes exch get aload pop moveto closepath stroke} bind def\n/e {nodes exch get aload pop moveto nodes exch get aload pop lineto stroke} bind def\n/a {gsave currentlinewidth 2 mul setlinewidth 0 1 n 1 sub /d load for grestore} bind def\n%d c a %s\n"""%(
+    return """/c {/n exch def [ 0 1 n 1 sub {360 mul n div dup sin exch cos [0 0] astore} for ] /nodes exch def} bind def
+/d {nodes exch get aload pop moveto closepath stroke} bind def
+/e {nodes exch get aload pop moveto nodes exch get aload pop lineto stroke} bind def
+/a {gsave currentlinewidth 2 mul setlinewidth 0 1 n 1 sub /d load for grestore} bind def
+%d c a %s
+"""%(
       self.__n,' '.join(['%d %d e'%(min(e),max(e)) for e in self.edges]));
 
   def __ior__(self,other) :
