@@ -7,7 +7,9 @@ from itertools import permutations,product
 if sys.version_info>(3,) :
   xrange = range;
   range = lambda *x: list(xrange(*x));
-  
+  long = int;  
+  xmap = map;
+  map = lambda *x: list(xmap(*x));
 
 class graph() :
   """Undirected graph
@@ -123,7 +125,7 @@ class graph() :
   def __eq__(self,other) :
     """Return True if self and other are the same graph, False otherwise"""
     return isinstance(other,graph) and self.__n == other.__n and self.__e == other.__e;
-    
+
   def isomorphism(self,other) :
     """Return an isomorphism from self to other, if any, else None"""
     if not isinstance(other,self.__class__) : return None;
