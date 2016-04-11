@@ -155,8 +155,29 @@ class graph() :
         if 1 & (f >> (i+j*(j-1)//2)) :
           ond[i].append(od[j]);
           ond[j].append(od[i]);
-    for x in snd : x.sort();
-    for x in ond : x.sort();
+    # nodes with 0 or n-1 neighbors can each have their own equivalence class
+    cp = cm = 0;    # init numbering for such s[elf] equivalence classes
+    for x in snd :
+      if not x :
+        cp += 1;
+        x[0:2] = 0,cp;
+      elif len(x) == n-1 :
+        del x[2:];
+        cm -= 1;
+        x[0:2] = 0,cm;
+      else :
+        x.sort();
+    cp = cm = 0;    # init numbering for matching o[ther] equivalence classes
+    for x in ond :
+      if not x :
+        cp += 1;
+        x[0:2] = 0,cp;
+      elif len(x) == n-1 :
+        del x[2:];
+        cm -= 1;
+        x[0:2] = 0,cm;
+      else :
+        x.sort();
     if sorted(snd) != sorted(ond) : return None
     # create equivalence classes for nodes, then try permutations
     sdc = defaultdict(set);
