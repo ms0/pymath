@@ -1,13 +1,13 @@
 # matlab-style arrays    PYTHON 3
 
+from __future__ import division
+
 import sys
 import types
 import math
 from fractions import gcd as gcd
 
 if sys.version_info[0] < 3 :
-
-  one = 1.;
 
   def isint(x) :
     return isinstance(x,(int,long));
@@ -16,8 +16,6 @@ if sys.version_info[0] < 3 :
     return isinstance(x,(int,long,float));
 
 else :
-
-  one = 1;
 
   def isint(x) :
     return isinstance(x,int);
@@ -603,7 +601,7 @@ class matrix :    # multidimensional array
     if name == 'inverse' :
       if len(self.__v) == 1 :
         s = matrix(self);
-        s.__v[0] = one/s.__v[0];
+        s.__v[0] = 1/s.__v[0];
         return s;
       n = self.__dims[0];
       if len(self.__dims) != 2 or n != self.__dims[1] :
@@ -623,7 +621,7 @@ class matrix :    # multidimensional array
         if pr != c : v[c::n],v[pr::n] = v[pr::n],v[c::n];
         x = v[n2+c*(n+1)];
         if x != 1 :
-          for cc in range(2*n) : v[c+n*cc] /= one*x;
+          for cc in range(2*n) : v[c+n*cc] /= x;
         for r in range(c+1,n) :
           x = v[n2+r+n*c];
           for cc in range(2*n) :
@@ -686,7 +684,7 @@ class matrix :    # multidimensional array
 
   def mean(self,*d) :
     if d : raise NotImplemented;
-    return one * sum(self.__v) / len(self.__v);
+    return sum(self.__v) / len(self.__v);
 
   def mapply(self,map,*d) :
     # with no additional args, apply map to each element
