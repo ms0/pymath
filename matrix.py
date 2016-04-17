@@ -699,7 +699,7 @@ class matrix :    # multidimensional array
     raise NotImplemented;
 
 def Identity(n,m=1) :
-  v = [0]*(n*n);
+  v = [m*0]*(n*n);    # coerce 0 to same type as m
   v[0::(n+1)] = (m,)*n;
   I = matrix(n,n,v);
   return I;
