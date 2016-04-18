@@ -1,4 +1,6 @@
-# matlab-style arrays    PYTHON 3
+#matlab-style multidimensional arrays
+#matrix elements can be any sort of interoperable numbers
+#for example, matrices over a finite field can use elements from ffield.py
 
 from __future__ import division
 
@@ -10,17 +12,21 @@ from fractions import gcd as gcd
 if sys.version_info[0] < 3 :
 
   def isint(x) :
+    """Return True iff an integer"""
     return isinstance(x,(int,long));
 
   def isreal(x) :
+    """Return True iff a real number"""
     return isinstance(x,(int,long,float));
 
 else :
 
   def isint(x) :
+    """Return True iff an integer"""
     return isinstance(x,int);
 
   def isreal(x) :
+    """Return True iff a real number"""
     return isinstance(x,(int,float));
 
 class ParameterError(Exception) :
@@ -30,14 +36,17 @@ class Unimplemented(Exception) :
   pass
 
 def islistlike(a) :
+  """Return True iff a list or tuple"""
   return isinstance(a,(list,tuple));
 
 def product(iterable,start=1) :
+  """Return the product of start and the elements of the iterable"""
   for i in iterable :
     start *= i;
   return start;
 
 def dot(v1,v2) :
+  """Return the dot product of two vectors"""
   if len(v1) != len(v2) : raise ParameterError('vectors must have same length');
   s = 0;
   for i in range(len(v1)) :
@@ -45,7 +54,7 @@ def dot(v1,v2) :
   return s;
 
 def matmul(p,q,r,v1,v2) :
-  # multiply pxq array of elements v1 by qxr array of elements v2, result is pxr
+  """Multiply pxq array of elements v1 by qxr array of elements v2, result is pxr"""
   v = [0]*(p*r);
   for i in range(p) :
     for k in range(r) :
@@ -53,36 +62,45 @@ def matmul(p,q,r,v1,v2) :
   return v;
 
 
-class matrix :    # multidimensional array
+class matrix() :    # multidimensional array
+  """Multidimensional array
+2-D: matrix(nrows,ncolumns)
+1-D (so nrows only), can be considered a column vector or a row vector
 
-  # 2-D: matrix(nrows,ncolumns)
-  # if only 1-D (so nrows only), considered a column vector? or treat as
-  #   row vector when that would work better?
+ An array is stored as a list v, so for dims = [A,B,C,D,...],
+ M[a,b,c,d,...] = v[a+A*(b+B*(c+C*(d+D*...)))]
+ so consecutive elements are down rows, then over columns, then ...
 
-  # for dims = [A,B,C,D,...]
-  # M[a,b,c,d,...] = v[a+A*(b+B*(c+C*(d+D*...)))]
-  # so consecutive elements are down rows, then over columns, then ...
+Instance variables:
+  dims: a tuple giving the dimensions of the array
+  tr or trace: the trace of the [square] matrix
+  squeeze: an array with the same elements but all length-1 dimensions removed
+  T or transpose: the transpose of the matrix [of dimension <= 2]
+  det or determinant: the determinant of the [square] matrix
+  inverse: the inverse of the [square] matrix
+Methods:
+  __init__, __repr__, __str__, __getitem__, __getattr__,
+  __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
+  __neg__, __iadd__, __add__, __radd__, __isub__, __sub__, __rsub__,
+  __imul__, __mul__, __rmul__, __itruediv__, __idiv__, __truediv__, __div__
 
-  # matrix(matrix arg) makes a copy of the matrix arg
-
-  # matrix(d1,d2,...,dk) or
-  # matrix(d1,d2,...,dk,[one or prod(di) elements, column by column, ...])
-  # Resulting matrix has dimension d1 x d2 x ... x dk, elements are 0 or as
-  # specified in last arg
-
-  # matrix([d1,d2,...dk]) same as matrix(d1,d2,...dk)
-  # matrix([d1,d2,...dk],[one or prod(di)...]) also legal
-  # matrix([d1,d2,...dk],one or prod(di) args to be elements) also legal
-
-  # specifically don't check for elements to be complex, to allow for other
-  # types for matrix elements!!!
-  # but, always use a list for specifying elements in this case,
-  # to handle elements that look like lists (e.g. quaternions)
-  # *** this implementation assumes addition is commutative!!! ***
-
-  # note: a 1x1x1x...1 matrix is treated as a scalar [could even be no 1s]
+NOTE: a 1x1x1x...1 matrix is treated as a scalar [could even be no 1s]
+NOTE: a list or tuple is coerced to a scalar or 1D matrix when multiplying with a matrix"""
 
   def __init__(self,*dims) :
+    """Create a matrix
+matrix(matrix_arg) makes a copy of matrix_arg
+matrix(d1,d2,...,dk) or
+matrix(d1,d2,...,dk,[one or prod(di) elements, column by column, ...])
+makes a matrix with dimension d1 x d2 x ... x dk having elements all 0 or
+all as specified in last arg
+matrix([d1,d2,...dk]) same as matrix(d1,d2,...dk)
+matrix([d1,d2,...dk],[one or prod(di)...]) also legal
+matrix([d1,d2,...dk],one or prod(di) args to be elements) also legal
+Elements are not checked for type, to allow for custom number types,
+but, always use a list for specifying elements in this case,
+to handle elements that look like lists (e.g., quaternions)
+*** this implementation assumes addition is commutative!!! ***"""
     if not dims : raise ParameterError('requires some arguments');
     self.__dict__['_matrix__v'] = [];
     self.__dict__['_matrix__dims'] = [];
@@ -114,6 +132,9 @@ class matrix :    # multidimensional array
     return 'matrix('+repr(self.__dims)+','+repr(self.__v)+')';
 
   def __str__(self) :
+    """Return a string showing the matrix in matrix format,
+with each line fixing all but one dimension (varying the second or the only dimension),
+with successive lines varying the remaining dimensions, earlier faster"""
     if len(self.__dims) <= 1 :
       return str(self.__v);
     else :
@@ -136,6 +157,7 @@ class matrix :    # multidimensional array
   #### comparison operators ####
 
   def __lt__(self,other) :
+    """Return True iff each element of first array < corresponding element of the other"""
     if len(self.__v) == 1 :    #scalar
       return self.__v[0] < other;
     if not isinstance(other,matrix) or self.__dims != other.__dims :
@@ -145,6 +167,7 @@ class matrix :    # multidimensional array
     return True;
 
   def __le__(self,other) :
+    """Return True iff each element of first array <= corresponding element of the other"""
     if len(self.__v) == 1 :    #scalar
       return self.__v[0] <= other;
     if not isinstance(other,matrix) or self.__dims != other.__dims :
@@ -154,6 +177,7 @@ class matrix :    # multidimensional array
     return True;
 
   def __eq__(self,other) :
+    """Return True iff each element of first array == corresponding element of the other"""
     if len(self.__v) == 1 :    #scalar
       return self.__v[0] == other;
     else :
@@ -161,9 +185,11 @@ class matrix :    # multidimensional array
              self.__v == other.__v;
 
   def __ne__(self,other) :
+    """Return False iff each element of first array == corresponding element of the other"""
     return not self == other;
 
   def __ge__(self,other) :
+    """Return True iff each element of first array >= corresponding element of the other"""
     if len(self.__v) == 1 :    # scalar
       return self.__v[0] >= other;
     if not isinstance(other,matrix) or self.__dims != other.__dims :
@@ -173,6 +199,7 @@ class matrix :    # multidimensional array
     return True;
 
   def __gt__(self,other) :    
+    """Return True iff each element of first array > corresponding element of the other"""
     if len(self.__v) == 1 :    # scalar
       return self.__v[0] > other;
     if not isinstance(other,matrix) or self.__dims != other.__dims :
@@ -183,6 +210,7 @@ class matrix :    # multidimensional array
 
 
   def __neg__(self) :
+    """Return the additive inverse of the array"""
     s = matrix(self);
     for i in range(len(s.__v)) :
       s.__v[i] = -s.__v[i];
@@ -190,6 +218,8 @@ class matrix :    # multidimensional array
 
 
   def __iadd__(self, other) :
+    """Add an array elementwise to this array, or,
+if other is a scalar, add the scalar to each element of this array"""
     if isinstance(other,matrix) :
       if len(other.__v) == 1 :
         for i in range(len(self.__v)) :
@@ -209,6 +239,8 @@ class matrix :    # multidimensional array
     return self;
 
   def __add__(self, other) :
+    """Return the elementwise sum of two arrays, or, if other is a scalar,
+return a copy of the first array with each element incremented by the scalar"""
     a = matrix(self);
     return a.__iadd__(other);
 
@@ -216,6 +248,8 @@ class matrix :    # multidimensional array
 
 
   def __isub__(self, other) :
+    """Subtract an array elementwise from this array, or,
+if other is a scalar, subtract the scalar from each element of this array"""
     if isinstance(other,matrix) :
       if len(other.__v) == 1 :
         for i in range(len(self.__v)) :
@@ -231,17 +265,21 @@ class matrix :    # multidimensional array
     return self;
 
   def __sub__(self, other) :
+    """Return the elementwise difference of two arrays, or, if other is a scalar,
+return a copy of the first array with each element decremented by the scalar"""
     a = matrix(self);
     return a.__isub__(other);
 
   def __rsub__(self, other) :
+    """Return -self+other"""
     return self.__neg__().__add__(other);
 
   def __imul__(self,other) :
-    # scalar x any  or  any x scalar :  scalar multiply
-    # 1D x 1D:  dot product
-    # 2D x 2D:  matrix multiply
-    # 2D x 1D  or  1D x 2D:  treat vector as row or column as appropriate
+    """Update self to be the product of self and other as follows:
+any * scalar :  scalar multiply
+1D * 1D:  dot product (sum of the elementwise products)
+2D * 2D:  matrix multiply
+2D * 1D  or  1D * 2D:  treat vector as row or column as appropriate"""
     if isinstance(other,matrix) :
       if len(other.__v) == 1 :           # other is scalar
         for i in range(len(self.__v)) :
@@ -282,9 +320,11 @@ class matrix :    # multidimensional array
     return self;
 
   def __mul__(self,other) :
+    """Return the product of the two args, as for __imul__"""
     return matrix(self).__imul__(other);
 
   def __rmul__(self,other) :    # can only be scalar*matrix or vector*matrix
+    """Return the product of the two args, as for __imul__"""
     if islistlike(other) :
       return matrix(len(other),other).__imul__(self);
     b = matrix(self);
@@ -293,21 +333,25 @@ class matrix :    # multidimensional array
     return b;
 
   def __itruediv__(self,b) :
+    """Multiply self by b**-1"""
     return self.__imul__(b**-1);
 
   __idiv__ = __itruediv__;
 
   def __truediv__(self,b) :
+    """Return the product self*b**-1"""
     return matrix(self).__itruediv__(b);
 
   __div__ = __truediv__;
 
   def __rtruediv__(self,b) :
+    """Return the product b*self**-1"""
     return b*self.inverse;
 
   __rdiv__ = __rtruediv__;
 
   def __ipow__(self,x) :
+    """Raise a scalar to a power or a square matrix to an integer power"""
     # compute self**x; self must be square matrix and x must be integer
     # if x < 0, self must be invertible
     if len(self.__v) == 1 :    # scalar
@@ -334,9 +378,11 @@ class matrix :    # multidimensional array
     return self;
 
   def __pow__(self,x) :
+    """Return the exponentiation of a scalar to a power or a square matrix to an integer power"""
     return matrix(self).__ipow__(x);
 
   def __rpow__(self,b) :
+    """Return a positive real number b to a scalar or square matrix power"""
     # base ** matrix
     if not isreal(b) or not b > 0 :
       return TypeError('base must be positive real');
@@ -358,18 +404,23 @@ class matrix :    # multidimensional array
     return S;
 
   def __abs__(self) :
+    """Return the square root of the sum of the squares of the array elements"""
     s = 0;
     for x in self.__v :
       s += x*x;
     return math.sqrt(s);
 
   def __len__(self) :
+    """Return the number of elements in the array"""
     return len(self.__v);
 
 # we have to be able to do multi-dimensional indexing
 # for slices, key is type slice, with attributes start stop step
 
   def __getitem__(self,key) :
+    """Return an item or slice of the array;
+if the specified slice or index is singly dimensioned, but the array isn't,
+treat the array is a list of its elements in storage order"""
     if not isinstance(key,tuple) :
       v = self.__v[key];    # linear indexing always allowed
       if isint(key) or not v or len(self.__dims) > 1 :
@@ -426,6 +477,8 @@ class matrix :    # multidimensional array
 
 
   def __setitem__(self,key,value) :
+    """Set an item or slice of the array, interpreting key as for __getitem__;
+when setting a slice, value must have length matching size of slice"""
     if not isinstance(key,tuple) :
       if isinstance(key,slice) :
         k = key.indices(len(self.__v));
@@ -487,6 +540,8 @@ class matrix :    # multidimensional array
     return;
 
   def __getattr__(self,name) :
+    """Return the specified attribute:
+dims, tr(ace), T or transpose, det(erminant), or inverse"""
 
     # in order of how hard they are to create :
     
@@ -639,6 +694,9 @@ class matrix :    # multidimensional array
     raise AttributeError('no matrix attributes can be set');
 
   def reshape(self,*dims) :
+    """Return a new array with the same elements but different dimensions,
+one dimension may be left unspecified (0 or None) and will be filled in,
+the product of the new dimensions must equal the product of the old dimensions"""
     if len(dims) == 1 and islistlike(dims[0]) : dims = dims[0];
     for d in dims :
       if not isint(d) or d < 0 :
@@ -664,42 +722,59 @@ class matrix :    # multidimensional array
     return matrix(dims,self.__v);
 
   def sum(self,*d) :
-    if d : raise NotImplemented;
+    """Return the sum of the array elements"""
+    if d : raise NotImplementedError;
     return sum(self.__v);
 
   def product(self,*d) :
-    if d : raise NotImplemented;
+    """Return the product of the array elements"""
+    if d : raise NotImplementedError;
     return product(self.__v);
 
   def max(self,*d) :
-    if d : raise NotImplemented;
+    """Return the max of the array elements"""
+    if d : raise NotImplementedError;
     return max(self.__v);
 
   def min(self,*d) :
-    if d : raise NotImplemented;
+    """Return the min of the array elements"""
+    if d : raise NotImplementedError;
     return min(self.__v);
 
   def median(self,*d) :
-    raise NotImplemented;
+    """Return the median of the array elements"""
+    if d : raise NotImplementedError;
+    s = sorted(self.__v);
+    z = len(s);
+    if not z : raise ZeroDivisionError;
+    return s[z//2] if z&1 else (s[z//2-1]+s[z//2])/2;
 
   def mean(self,*d) :
-    if d : raise NotImplemented;
+    """Return the mean of the array elements"""
+    if d : raise NotImplementedError;
     return sum(self.__v) / len(self.__v);
 
   def mapply(self,map,*d) :
+    """Apply map to each element of the array"""
     # with no additional args, apply map to each element
     if not d :
-      s = matrix(self);
-      for i in range(len(s.__v)) :
-        s.__v[i] = map(s.__v[i]);
-      return s;
-    # with one additional nonnegative integer arg, apply map to each vector
+      for i in range(len(self.__v)) :
+        self.__v[i] = map(self.__v[i]);
+      return;
+   # with one additional nonnegative integer arg, apply map to each vector
     #  along dimension d[0], and replace that vector with the result
     # with two ania, apply map to each 2D matrix along d[0] and d[1], ...
-    raise NotImplemented;
+    raise NotImplementedError;
 
 def Identity(n,m=1) :
+  """Return an nxn identity matrix multiplied by the scalar m"""
   v = [m*0]*(n*n);    # coerce 0 to same type as m
   v[0::(n+1)] = (m,)*n;
   I = matrix(n,n,v);
   return I;
+
+def mapplied(m,map,*d) :
+  """Return a copy of m with map applied to each element"""
+  m = matrix(m);
+  m.mapply(map,*d);
+  return m;
