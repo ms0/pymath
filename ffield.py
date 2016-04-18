@@ -147,19 +147,14 @@ Instance variables:
     return;
   p = self.p;
   n = self.n;
-  if isinstance(x,(str,unicode)) and p <= 36 :   # allow sequence of base-p chars if p <= 36
-    if len(x) > n : raise ValueError('string must be at most n zits long')
-    try:
-      s = x.strip().lower();
-      x = 0;
-      for c in s :
-        x = x*p + zits[:p].index(c);    # will raise ValueError if illegal
-    except ValueError :
-      raise ValueError('zits in string must be in "%s"'%(zits[:p]));
-    self.x = x;
+  if isinstance(x,(int,long)) :
+    pn = p**n;
+    if -pn < x < pn :
+      self.x = x%pn;
+    else : raise ValueError('absolute value must be < %d'%(pn));
   elif isinstance(x,(tuple,list)) :
-    if len(x) != n :
-      raise ValueError('tuple must have length %d'%(n)) ;
+    if len(x) > n :
+      raise ValueError('tuple must have length at most %d'%(n)) ;
     else :
       s = 0;
       for i in x :
@@ -170,11 +165,16 @@ Instance variables:
         s *= p
         s += i;
       self.x = s;
-  elif isinstance(x,(int,long)) :
-    pn = p**n;
-    if -pn < x < pn :
-      self.x = x%pn;
-    else : raise ValueError('absolute value must be < %d'%(pn));
+  elif isinstance(x,(str,unicode)) and p <= 36 : # allow sequence of base-p chars if p <= 36
+    if len(x) > n : raise ValueError('string must be at most n zits long')
+    try:
+      s = x.strip().lower();
+      x = 0;
+      for c in s :
+        x = x*p + zits[:p].index(c);    # will raise ValueError if illegal
+    except ValueError :
+      raise ValueError('zits in string must be in "%s"'%(zits[:p]));
+    self.x = x;
   else : raise TypeError;
 
 def __hash__(self) :
@@ -327,14 +327,23 @@ def __div__(self,y) :
     else : raise TypeError;
   yx = y.x;
   if yx < p : return self/yx;
-  return self*y**(p**n-2);
+  return self*self.__class__(pack(p,xmpgcd(p,(1,)+self.tupoly,unpack(p,yx))[2]));
+#  return self*y**(p**n-2);
 
-def __rdiv__(self,y) :
-  """Return the quotient of the swapped finite field elements; integers in (-p,p) are converted"""
+def __rdiv__(self,y) :    # y/self
+  """Return y/self; y must be an integer in (-p,p) and is interpreted mod p"""
   p = self.p;
   if not (isinstance(y,(int,long)) and -p < y < p) :
     raise TypeError;
-  return self.__class__(y)/self;
+  x = self.x;
+  if not x : raise ZeroDivisionError;
+  if x < p :
+    z = y*pow(x,p-2,p)%p;
+  else :
+    z = 0;
+    for i in xmpgcd(p,(1,)+self.tupoly,unpack(p,x))[2] :
+      z = p*z+i*y%p;
+  return self.__class__(z);
 
 def __mul__(self,y) :
   """Return the product of the two finite field elements; integers in (-p,p) are converted"""
@@ -385,7 +394,7 @@ def __pow__(self,e) :
     x = 1;
   elif e == 1 :
     return self;
-  elif n == 1 :
+  elif x < p :
     x = pow(x,e,p);
   else :
     x = pack(p,mppow(p,unpack(p,x),e,(1,)+self.tupoly));
@@ -478,7 +487,7 @@ Methods: __init__, __hash__, __repr__, __str__,
     # see https://docs.python.org/2/reference/datamodel.html
 
     name = ('GF%d'%(p) if n == 1 else
-            'GF%d_%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p > 36 else
+            'GF%d_%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p <= 36 else
             'GF%d_%d_%s'%(p,n,'_'.join(['%d'%(c) for c in tupoly])));
     return type.__new__(cls,name,(),d);
 
@@ -533,7 +542,7 @@ def gcd(a,b):
 #  un = u[n-2]-q*u[n-1]
 #  vn = v[n-2]-q*v[n-1]
   while b :
-    a,b = b, a - a//b*b;
+    a,b = b, a-a//b*b;
   return a;
 
 def xgcd(a,b) :
@@ -541,14 +550,13 @@ def xgcd(a,b) :
   u0,v0,u1,v1 = 1,0,0,1;
   while b :
     q = a//b;
-    r = a - a//b*b;
-    a,b = b,r;
+    a,b = b,a-q*b;
     u0,v0,u1,v1 = u1,v1,u0-q*u1,v0-q*v1;
   return a,u0,v0;
 
 # modular polynomial functions
 # polynomials represented as tuples of mod p integers, hi to lo
-# note 1/x = x**(p-1)
+# note 1/x = x**(p-2)
 
 def mpmul(p,f,g,m=None) :
   """Return the product of f and g, polynomials over GF(p), modulo polynomial m"""
