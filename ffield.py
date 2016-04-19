@@ -177,6 +177,11 @@ Instance variables:
     self.x = x;
   else : raise TypeError;
 
+def __getattr__(self,name) :
+  if name == 'tupoly' :
+    return self._tupoly[self._nzi:];
+  raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+
 def __hash__(self) :
   return hash(self.__class__) ^ hash(self.x);
 
@@ -327,7 +332,7 @@ def __div__(self,y) :
     else : raise TypeError;
   yx = y.x;
   if yx < p : return self/yx;
-  return self*self.__class__(pack(p,xmpgcd(p,(1,)+self.tupoly,unpack(p,yx))[2]));
+  return self*self.__class__(pack(p,xmpgcd(p,self._tupoly,unpack(p,yx))[2]));
 #  return self*y**(p**n-2);
 
 def __rdiv__(self,y) :    # y/self
@@ -341,7 +346,7 @@ def __rdiv__(self,y) :    # y/self
     z = y*pow(x,p-2,p)%p;
   else :
     z = 0;
-    for i in xmpgcd(p,(1,)+self.tupoly,unpack(p,x))[2] :
+    for i in xmpgcd(p,self._tupoly,unpack(p,x))[2] :
       z = p*z+i*y%p;
   return self.__class__(z);
 
@@ -379,7 +384,7 @@ def __mul__(self,y) :
       if y&m : xy ^= x;
       m >>= 1;
     return self.__class__(xy);
-  return self.__class__(pack(p,mpmul(p,unpack(p,x),unpack(p,y.x),(1,)+self.tupoly)));
+  return self.__class__(pack(p,mpmul(p,unpack(p,x),unpack(p,y.x),self._tupoly)));
 
 def __pow__(self,e) :
   """Raise the finite field element to the specified power mod p**n-1, 0**0=0"""
@@ -397,7 +402,7 @@ def __pow__(self,e) :
   elif x < p :
     x = pow(x,e,p);
   else :
-    x = pack(p,mppow(p,unpack(p,x),e,(1,)+self.tupoly));
+    x = pack(p,mppow(p,unpack(p,x),e,self._tupoly));
   return self.__class__(x);
 
 
@@ -405,16 +410,17 @@ class ffield(type) :
   """Class to create finite field class for GF(p**n)
 Field elements are represented as polynomials over GF(p) with degree < n.
 Arithmetic is done modulo a specified irreducible monic polynomial of degree n.
-That polynomial modulus is stored as a length n tuple of coefficients, constant term last;
-the coefficient of x**n is taken to be 1 and is elided.
+That polynomial modulus is represented as a tuple of coefficients, length <= n,
+constant term last; the coefficient of x**n is elided and assumed to be 1,
+immediately following zero coefficients may also be elided.
 The polynomial is also stored as its value at x=p, again without the x**n term.
-The polynomial can be specified in either of those ways.
+The polynomial modulus can be specified in either of those ways.
 Instance variables:
   p: characteristic (a prime)
   n: dimension (giving the field p**n elements)
-  tupoly: a length n tuple giving the coefficients of the polynomial modulus,
-    first term elided, constant term last
+  tupoly: the polynomial modulus's tuple representation
   poly: an integer giving the value of tupoly at x = p
+  _tupoly: the unelided polynomial modulus as a tuple with first element 1
 Methods: __new__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__
 
 Each instance of the created type is an element of the finite field:
@@ -435,9 +441,7 @@ Methods: __init__, __hash__, __repr__, __str__,
       raise ValueError('Bad power');
     if isinstance(poly,(int,long)) :
       if not 0 <= poly < p**n : raise ValueError('Bad poly');
-      tupoly = unpack(p,poly);
-      tupoly = (n-len(tupoly))*(0,)+tupoly;
-    elif isinstance(poly,tuple) and len(poly) == n :
+    elif isinstance(poly,tuple) and len(poly) <= n :
       tupoly = poly;
       poly = 0;
       for c in tupoly :
@@ -445,10 +449,14 @@ Methods: __init__, __hash__, __repr__, __str__,
           raise ValueError('Bad poly');
         poly = p*poly + c;
     else : raise ValueError('Bad poly');
-    if not isirreducible(tupoly,p) :
+    tupoly = unpack(p,poly);
+    _nzi = -len(tupoly);
+    _tupoly = (1,)+(n+_nzi)*(0,)+tupoly;
+    if not isirreducible(_tupoly[1:],p) :
       raise ValueError('Composite poly');
-    d = dict(p=p,n=n,poly=poly,tupoly=tupoly,
+    d = dict(p=p,n=n,poly=poly,_tupoly=_tupoly,_nzi=_nzi,
              __init__=__init__,
+             __getattr__=__getattr__,
              __repr__=__repr__,
              __str__=__str__,
              __hash__=__hash__,
@@ -490,6 +498,8 @@ Methods: __init__, __hash__, __repr__, __str__,
             'GF%d_%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p <= 36 else
             'GF%d_%d_%s'%(p,n,'_'.join(['%d'%(c) for c in tupoly])));
     return type.__new__(cls,name,(),d);
+
+  __getattr__ = __getattr__
 
   def __hash__(self) :
     return hash(self.__class__)^hash('%s:%s'%(self.p**self.n,self.poly));
