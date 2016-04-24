@@ -628,7 +628,8 @@ def mppow(p,b,e,m=None) :
   if not e : return (1,);
   n = 1 << int(floor(log(e,2)));
   while e >= n << 1 : n <<= 1;
-  x = (1,);
+  x = b;
+  n >>= 1;
   while n :
     x = mpmul(p,x,x,m);
     if e&n :
