@@ -41,9 +41,11 @@ Instance variables:
 Methods:
   __init__, __hash__, __repr__, __str__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-  __pos__, __neg__, __abs__, __int__, __float__,
+  __pos__, __neg__, __abs__,
+  __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
+  __divmod__, __rdivmod__, __lshift__, __rshift__
   __pow__, __rpow__, log, cf"""
 
   def __init__(self,a,b=1) :
@@ -246,6 +248,16 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the remainder from rfloordiv"""
     return other - other//self*self;
 
+  def __divmod__(self,other) :
+    """Return quotient and remainder"""
+    q = self//other;
+    return (q, self-q*other);
+
+  def __rdivmod__(self,other) :
+    """Return quotient and remainder"""
+    q = other//self;
+    return (q, other-q*self);
+
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
     if isinstance(other,float) :
@@ -290,6 +302,12 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __rpow__(self,other) :
     return rational(other)**self;
 
+  def __lshift__(self,other) :
+    return rational(self.a<<other,self.b) if other >= 0 else self>>-other;
+
+  def __rshift__(self,other) :
+    return rational(self.a,self.b<<other) if other >= 0 else self<<-other;
+
   def __float__(self) :
     """Return a floating point approximation to the number"""
     return self.a/self.b;
@@ -297,6 +315,24 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __int__(self) :
     """Return the integer part of the number"""
     return int(-(-self.a//self.b) if self.a < 0 else self.a//self.b);
+
+  __trunc__ = __int__
+
+  def __floor__(self) :
+    """Return the floor of the number"""
+    return int(self.a//self.b);
+
+  def __ceil__(self) :
+    """Return the ceil of the number"""
+    return int(-(-self.a//self.b));
+
+  def __round__(self,n) :
+    """Return the round of the number"""
+    ten2absn = 10**abs(n);
+    return ((int((self/ten2absn - half)*ten2absn) if self.a < 0 else
+             int(self/ten2absn + half)*ten2absn) if n < 0 else
+            -((half - self*ten2absn)//ten2absn) if self.a < 0 else
+            (half + self*ten2absn)//ten2absn);
 
   def log(self,*base) :
     """Return the log of the number as a float"""
@@ -329,3 +365,5 @@ If a is a nonempty list or tuple of integers (and b==1),
       l.append(q);
       a,b = b,int(a-q*b);
     return tuple(l);
+
+half = rational(1,2);
