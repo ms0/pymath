@@ -303,9 +303,11 @@ If a is a nonempty list or tuple of integers (and b==1),
     return rational(other)**self;
 
   def __lshift__(self,other) :
+    """Return the product of self and 2**other, for other an integer"""
     return rational(self.a<<other,self.b) if other >= 0 else self>>-other;
 
   def __rshift__(self,other) :
+    """Return the quotient of self and 2**other, for other an integer"""
     return rational(self.a,self.b<<other) if other >= 0 else self<<-other;
 
   def __float__(self) :
