@@ -1,17 +1,36 @@
 # class rational, implementing Q, the field of rational numbers
 
 from __future__ import division
-from math import floor
+from math import floor, log
+
+inf = float('inf');
 
 def sgn(x) :
   """Return the sign of x as an integer: -1, 0, or +1"""
-  return x/abs(x) if x else 0;
+  return -1 if x < 0 else 1 if x else 0;
 
 def gcd(x,y) :
   """Return the [nonnegative] greatest common divisor of x and y"""
   while y :
     x,y = y, x%y;
   return abs(x);
+
+def root(a,n) :
+  """Return the nth root of a, where a and n are positive integers"""
+  l = log(a,2)/n;
+  try :
+    r = int(round(2**l));
+  except :    # too big
+    il = int(l)-52;
+    fl = l - il;
+    r = int(round(2**fl))<<52;
+  while True :
+    if r**n == a : return r;
+    ro = r;
+    r = ((n-1)*r + a//r**(n-1))//n;
+    if -1 <= ro-r <= 1 :
+      return ro if abs(a-ro**n) < abs(a-r**n) else r;
+    
 
 class rational :
   """Rational number class
@@ -41,14 +60,14 @@ If a is a float (and b==1), return the simplest possible rational"""
           m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
           if fx == 0 or n0/n1 == a : break;
           x = 1/fx;
-        self.a,self.b = n0,n1;
+        self.a,self.b = int(n0),int(n1);
         return;
       raise TypeError('Numerator and Denominator must be integers');
     if b < 0 : a,b = -a,-b;
     if not b : raise ZeroDivisionError;
     g = gcd(a,b);
-    self.a = a//g;
-    self.b = b//g;
+    self.a = int(a//g);
+    self.b = int(b//g);
 
   def __str__(self) :
     """Return a string showing the rational number as a fraction or integer"""
@@ -217,13 +236,45 @@ If a is a float (and b==1), return the simplest possible rational"""
     return other - other//self*self;
 
   def __pow__(self,other) :
-    """Return the number raised to the (integer) power"""
-    if not isinstance(other,(int,long)) :
+    """Return a number raised to a power; integer powers give exact answer"""
+    if isinstance(other,float) :
+      other = rational(other);
+    if isinstance(other,rational) and other.b == 1 :
+      other = other.a;
+    if isinstance(other,(int,long)) :
+      if other < 0 :
+        if not self.a : raise ZeroDivisionError;
+        return rational(self.b**other,self.a**other);
+      return rational(self.a**other,self.b**other);
+    if not isinstance(other,rational) :
       raise TypeError('exponent must be an integer');
-    if other < 0 :
-      if not self.a : raise ZeroDivisionError;
-      return rational(self.b**other,self.a**other);
-    return rational(self.a**other,self.b**other);
+    # rational (but not integral) power
+    if other.a < 0 :
+      a,b = self.b**-other.a, self.a**-other.a;
+    else :
+      a,b = self.a**other.a, self.b**other.a;
+    # now, take the root
+    if a < 0 and not other.b&1 :
+      raise ValueError('complex result')    # even root of negative number
+    # first see if a and/or b has an integer root
+    ra = sgn(a)*root(abs(a),other.b);
+    rb = root(b,other.b);
+    pa = ra**other.b == a;  # a has an exact root?
+    pb = rb**other.b == b;  # b has an exact root
+    if pa and pb : return rational(ra,rb);
+    if pa and abs(b) > 1 << 28:    # exact result:
+      return ra*other.b/((other.b-1)*rb + rational(b,rb**(other.b-1)))
+    # return an inexact result :
+    if pb and abs(a) > 1 << 28 :
+      return ((other.b-1)*ra + rational(a,ra**(other.b-1)))/(rb*other.b);
+    logroot = rational(abs(a),b).log(2)/other.b;
+    alogroot = abs(logroot);
+    ilogroot = int(alogroot);
+    flogroot = alogroot-ilogroot;
+    r = rational(2**flogroot)*(sgn(a)<<ilogroot);
+    if logroot < 0 : r = 1/r;
+    x = rational(a,b);
+    return ((other.b-1)*r + x/r**(other.b-1))/other.b;
 
   def __float__(self) :
     """Return a floating point approximation to the number"""
@@ -232,3 +283,35 @@ If a is a float (and b==1), return the simplest possible rational"""
   def __int__(self) :
     """Return the integer part of the number"""
     return -(-self.a//self.b) if self.a < 0 else self.a//self.b;
+
+  def log(self,*base) :
+    """Return the log of the number as a float"""
+    if base and (base[0] <= 0 or base[0] == 1) : raise ValueError('bad base');
+    if not self.a : return inf if base and base[0] < 1 else -inf;
+    a = self.a;
+    b = self.b;
+    c = base and base[0];
+    if c and c < 1 : a,b,c=b,a,1/c;
+    if c and int(c) == c :
+      c = int(c);    # try for maximum precision
+      la = int(round(log(a,c)));
+      lb = int(round(log(b,c)));
+      a /= c**la;
+      b /= c**lb;
+      return (la-lb)+(log(a,c)-log(b,c));
+    else :    # non-integral base
+      try :
+        b/a;    # this might overflow (in which case a/b might be denormalized)
+        return log(a/b,*base);    # might overflow
+      except :
+        return log(a,*base)-log(b,*base); # less precise than the above
+
+  def cf(self) :
+    """Return a tuple giving the continued fraction for the number"""
+    l = [];
+    a,b = self.a,self.b;
+    while b :
+      q = int(a//b);    # turn long into int if possible
+      l.append(q);
+      a,b = b,int(a-q*b);
+    return tuple(l);
