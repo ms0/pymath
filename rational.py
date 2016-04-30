@@ -44,24 +44,35 @@ Methods:
   __pos__, __neg__, __abs__, __int__, __float__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
-  __pow__"""
+  __pow__, __rpow__, log, cf"""
 
   def __init__(self,a,b=1) :
     """Create a rational number equal to a/b; attempting b=0 raises ZeroDivisionError
-If a is a float (and b==1), return the simplest possible rational"""
+If a is a float (and b==1), return the simplest possible rational
+If a is a nonempty list or tuple of integers (and b==1),
+ they are interpreted as the terms of a regular continued fraction"""
     if not isinstance(a,(int,long)) or not isinstance(b,(int,long)) :
-      if b == 1 and isinstance(a,float) :
-        x = a;
-        m0,m1,n0,n1 = 0,1,1,0;
-        for i in range(64) :
-          ix = floor(x);
-          fx = x - ix;        
-          iix = int(ix);
-          m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
-          if fx == 0 or n0/n1 == a : break;
-          x = 1/fx;
-        self.a,self.b = int(n0),int(n1);
-        return;
+      if b == 1 :
+        if isinstance(a,float) :
+          x = a;
+          m0,m1,n0,n1 = 0,1,1,0;
+          for i in range(64) :
+            ix = floor(x);
+            fx = x - ix;        
+            iix = int(ix);
+            m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
+            if fx == 0 or n0/n1 == a : break;
+            x = 1/fx;
+          self.a,self.b = int(n0),int(n1);
+          return;
+        elif a and isinstance(a,(tuple,list)) :
+          m0,m1,n0,n1 = 0,1,1,0;
+          for i in a :
+            if not isinstance(i,(int,long)) : raise TypeError('cf must be integral');
+            if i <= 0 and n1 : raise TypeError('cf terms beyond first must be positive');
+            m0,m1,n0,n1 = n0,n1,m0+i*n0,m1+i*n1;
+          self.a,self.b = int(n0),int(n1);
+          return;
       raise TypeError('Numerator and Denominator must be integers');
     if b < 0 : a,b = -a,-b;
     if not b : raise ZeroDivisionError;
@@ -276,13 +287,16 @@ If a is a float (and b==1), return the simplest possible rational"""
     x = rational(a,b);
     return ((other.b-1)*r + x/r**(other.b-1))/other.b;
 
+  def __rpow__(self,other) :
+    return rational(other)**self;
+
   def __float__(self) :
     """Return a floating point approximation to the number"""
     return self.a/self.b;
 
   def __int__(self) :
     """Return the integer part of the number"""
-    return -(-self.a//self.b) if self.a < 0 else self.a//self.b;
+    return int(-(-self.a//self.b) if self.a < 0 else self.a//self.b);
 
   def log(self,*base) :
     """Return the log of the number as a float"""
@@ -307,7 +321,7 @@ If a is a float (and b==1), return the simplest possible rational"""
         return log(a,*base)-log(b,*base); # less precise than the above
 
   def cf(self) :
-    """Return a tuple giving the continued fraction for the number"""
+    """Return a tuple of the terms of the regular continued fraction for the number"""
     l = [];
     a,b = self.a,self.b;
     while b :
