@@ -88,7 +88,7 @@ If a is a nonempty list or tuple of integers (and b==1),
 
   def __repr__(self) :
     """Return a string showing the rational number as it could be input"""
-    return 'rational(%d,%d)'%(self.a,self.b) if self.b != 1 else '%d'%(self.a);
+    return 'rational(%d,%d)'%(self.a,self.b) if self.b != 1 else 'rational(%d)'%(self.a);
 
   def __hash__(self) :
     """Return a hash for the rational number; if an integer, use that integer's hash"""

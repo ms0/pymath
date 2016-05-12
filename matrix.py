@@ -61,6 +61,8 @@ def matmul(p,q,r,v1,v2) :
       v[i+k*p] = dot(v1[i::p],v2[k*q:(k+1)*q]);
   return v;
 
+def listr(v) :    # output string for list, using str rather than repr
+  return '[ '+', '.join(map(str,v))+' ]';
 
 class matrix() :    # multidimensional array
   """Multidimensional array
@@ -136,23 +138,23 @@ to handle elements that look like lists (e.g., quaternions)
 with each line fixing all but one dimension (varying the second or the only dimension),
 with successive lines varying the remaining dimensions, earlier faster"""
     if len(self.__dims) <= 1 :
-      return str(self.__v);
+      return listr(self.__v);
     else :
-      s = '';
+      s = [];
       # iterate across all dimensions > 2!
       d = self.__dims[2:];
       c = [0]*len(d);
       rc = product(self.__dims[0:2]);
       n = len(self.__v) // rc;
       for i in range(n) :
-        if n > 1 : s += str(tuple(c)) + ' :\n';
+        if n > 1 : s.append(str(tuple(c)) + ' :');
         m = self.__v[i*rc:(i+1)*rc];
         for r in range(self.__dims[0]) :
-          s += str(m[r::self.__dims[0]]) + '\n';
+          s.append(listr(m[r::self.__dims[0]]));
         for j in range(len(c)) :
           c[j] = (c[j]+1) % d[j];
           if c[j] : break;
-    return s[:-1];
+    return '\n'.join(s);
 
   #### comparison operators ####
 
