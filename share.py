@@ -16,9 +16,10 @@ def hexify(r) :
   r.__str__ = lambda self:'%x'%(self.x);
 
 def Vandermonde(xs,k=0) :
-  """Given a list of "numbers", and an optional degree (default: length of list),
-return a Vandermonde matrix with rows corresponding to the "numbers" and
-columns corresponding to powers from 0 to degree-1"""
+  """Given a list of "numbers"
+and an optional degree (default: length of list),
+return a Vandermonde matrix with rows corresponding to the "numbers"
+and columns corresponding to powers from 0 to degree-1"""
   n = len(xs);
   k = k or n;
   return matrix(n,k,[x**i for i in range(k) for x in xs]);
@@ -28,11 +29,19 @@ F = ffield(2,64,27);
 hexify(F);
 
 def shares(s,n,k) :
-  """Given a secret s in some finite field [default F=ffield(2,64,27)],
+  """Given a secret s in some finite field [default F=ffield(2,64,27)]
+(or other numeric class such as rational, int, float, or complex),
 a number of shares n, and the required number of shares k,
-return a list of n pairs (sharer,share) any k of which can recover the secret"""
+return a list of n pairs (sharer,share)
+any k of which can recover the secret.
+Note that built-in numeric classes might not recover the secret exactly."""
   sharers = map(s.__class__,range(1,n+1));
-  return zp(sharers,Vandermonde(sharers,k)*([s]+[s.__class__(randrange(s.p**s.n)) for i in range(k-1)]));
+  try :
+    pn = s.p**s.n;
+  except :
+    pn = 1;
+    while pn <= abs(s) : pn *= 2;
+  return zp(sharers,Vandermonde(sharers,k)*([s]+[s.__class__(randrange(pn)) for i in range(k-1)]));
 
 def secret(xs) :
   """Given a list of k (sharer,share) pairs, return the secret"""
