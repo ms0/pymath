@@ -98,6 +98,11 @@ class quaternion :
   def __ne__(self,other) :
     return not self == other;
 
+  def __lt__(self,other) :
+    raise TypeError('no ordering relation is defined for quaternions');
+
+  __le__ = __ge__ = __gt__ = __lt__;
+
   def __neg__(self) :
     return quaternion(-self.__v[0],-self.__v[1],-self.__v[2],-self.__v[3]);
 
