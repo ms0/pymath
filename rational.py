@@ -1,7 +1,22 @@
 # class rational, implementing Q, the field of rational numbers
 
 from __future__ import division
+
+import sys
+
 from math import floor, log
+
+if sys.version_info[0] < 3 :
+
+  def isint(x) :
+    """Return True iff an integer"""
+    return isinstance(x,(int,long));
+
+else :
+
+  def isint(x) :
+    """Return True iff an integer"""
+    return isinstance(x,int);
 
 inf = float('inf');
 
@@ -53,7 +68,7 @@ Methods:
 If a is a float (and b==1), return the simplest possible rational
 If a is a nonempty list or tuple of integers (and b==1),
  they are interpreted as the terms of a regular continued fraction"""
-    if not isinstance(a,(int,long)) or not isinstance(b,(int,long)) :
+    if not isint(a) or not isint(b) :
       if b == 1 :
         if isinstance(a,float) :
           x = a;
@@ -70,7 +85,7 @@ If a is a nonempty list or tuple of integers (and b==1),
         elif a and isinstance(a,(tuple,list)) :
           m0,m1,n0,n1 = 0,1,1,0;
           for i in a :
-            if not isinstance(i,(int,long)) : raise TypeError('cf must be integral');
+            if not isint(i) : raise TypeError('cf must be integral');
             if i <= 0 and n1 : raise TypeError('cf terms beyond first must be positive');
             m0,m1,n0,n1 = n0,n1,m0+i*n0,m1+i*n1;
           self.a,self.b = int(n0),int(n1);
@@ -98,7 +113,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __lt__(self,other) :
     """Return True iff self < other """
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return self.a < self.b*other;
       elif isinstance(other,float) :
         return self < rational(other);
@@ -109,7 +124,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __le__(self,other) :
     """Return True iff self <= other"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return self.a <= self.b*other;
       elif isinstance(other,float) :
         return self <= rational(other);
@@ -120,7 +135,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __eq__(self,other) :
     """Return True iff self == other"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return self.a == self.b*other;
       elif isinstance(other,float) :
         return self == rational(other);
@@ -131,7 +146,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __ne__(self,other) :
     """Return True iff self != other"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return self.a != self.b*other;
       elif isinstance(other,float) :
         return self != rational(other);
@@ -142,7 +157,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __ge__(self,other) :
     """Return True iff self >= other"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return self.a >= self.b*other;
       elif isinstance(other,float) :
         return self >= rational(other);
@@ -153,7 +168,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __gt__(self,other) :
     """Return True iff self > other"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return self.a > self.b*other;
       elif isinstance(other,float) :
         return self > rational(other);
@@ -198,7 +213,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __mul__(self,other) :
     """Return the product of the two numbers"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return rational(self.a*other,self.b);
       return self*rational(other);
     return rational(self.a*other.a,self.b*other.b);
@@ -208,7 +223,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __truediv__(self,other) :
     """Return the quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return rational(self.a,other*self.b);
       return self/rational(other);
     return rational(self.a*other.b,self.b*other.a);
@@ -216,7 +231,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __rtruediv__(self,other) :
     """Return the inverse quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return rational(other*self.b,self.a);
       return rational(other)/self;
     return rational(self.b*other.a,self.a*other.b);
@@ -227,7 +242,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __floordiv__(self,other) :
     """Return the floor of the quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return rational(self.a//(self.b*other));
       return self//rational(other);
     return rational((self.a*other.b)//(self.b*other.a));
@@ -235,7 +250,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __rfloordiv__(self,other) :
     """Return the floor of the inverse quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
-      if isinstance(other,(int,long)) :
+      if isint(other) :
         return rational((self.b*other)//self.a);
       return rational(other)//self;
     return rational((self.b*other.a)//(self.a*other.b));
@@ -264,7 +279,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       other = rational(other);
     if isinstance(other,rational) and other.b == 1 :
       other = other.a;
-    if isinstance(other,(int,long)) :
+    if isint(other) :
       if other < 0 :
         if not self.a : raise ZeroDivisionError;
         return rational(self.b**other,self.a**other);
