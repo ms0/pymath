@@ -190,8 +190,8 @@ with successive lines varying the remaining dimensions, earlier faster"""
     if len(self.__v) == 1 :    #scalar
       return self.__v[0] == other;
     else :
-      return isinstance(other,matrix) and self.__dims == other.__dims and \
-             self.__v == other.__v;
+      return isinstance(other,matrix) and \
+        self.__dims == other.__dims and self.__v == other.__v;
 
   def __ne__(self,other) :
     """Return False iff each element of first array == corresponding element of the other"""
@@ -402,8 +402,8 @@ any * scalar :  scalar multiply
       return TypeError('exponent must be square matrix');
     n2 = n*n;
     P = math.log(b)*self;
-    S = Identity(n);
-    M = Identity(n);
+    S = self.Identity(n);
+    M = self.Identity(n);
     for x in xrange(1,10001) :
       M *= P;
       M /= x;
@@ -763,7 +763,7 @@ the product of the new dimensions must equal the product of the old dimensions""
     if d : raise NotImplementedError;
     return sum(self.__v) / len(self.__v);
 
-  def mapply(self,map,*d) :
+  def map(self,map,*d) :
     """Apply map to each element of the array"""
     # with no additional args, apply map to each element
     if not d :
@@ -775,21 +775,26 @@ the product of the new dimensions must equal the product of the old dimensions""
     # with two ania, apply map to each 2D matrix along d[0] and d[1], ...
     raise NotImplementedError;
 
-def Identity(n,m=1) :
-  """Return an nxn identity matrix multiplied by the scalar m"""
-  v = [m*0]*(n*n);    # coerce 0 to same type as m
-  v[0::(n+1)] = (m,)*n;
-  I = matrix(n,n,v);
-  return I;
+  mapply = map    # for backward compatiblity
 
-def mapplied(m,map,*d) :
-  """Return a copy of matrix m with map applied to each element"""
-  m = matrix(m);
-  m.mapply(map,*d);
+  @staticmethod
+  def Identity(n,m=1) :
+    """Return an nxn identity matrix multiplied by the scalar m"""
+    v = [m*0]*(n*n);    # coerce 0 to same type as m
+    v[0::(n+1)] = (m,)*n;
+    I = matrix(n,n,v);
+    return I;
+
+def mapped(m,map,*d) :
+  """Return a copy of m with map applied to each element"""
+  m = m.__class__(m);
+  m.map(map,*d);
   return m;
 
+mapplied = mapped    # for backward compatibility
+
 ################################################################
-# Binary matrices
+# boolean [binary] matrices
 
 def parity(iterable,start=0) :
   """Return parity of an integer or xor of an iterable, xor'd with start"""
@@ -803,7 +808,7 @@ _v = '_bmatrix__v'
 
 class bmatrix() :
 
-  """Binary matrix"""
+  """boolean matrix"""
 
   def __init__(self,*dims) :
     """Create a boolean matrix
@@ -892,10 +897,13 @@ with successive lines varying the remaining dimensions, earlier faster"""
     return product(self.__dims);
 
   def __eq__(self,other) :
-    return self.__dims == other.__dims and self.__v == other.__v;
+    """Return True iff each element of first array == corresponding element of the other"""
+    return isinstance(other,bmatrix) and \
+      self.__dims == other.__dims and self.__v == other.__v;
 
   def __ne__(self,other) :
-    return self.__dims != other.__dims or self.__v != other.__v;
+    """Return False iff each element of first array == corresponding element of the other"""
+    return not self == other;
 
   def __lt__(self,other) :
     raise TypeError('no ordering relation is defined for bmatrices');
@@ -1094,7 +1102,7 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
       # else, raise exception
       if len(self.__dims) == 2 :
         rows,cols = self.__dims;
-        return bmatrix((cols,rows),bT(rows,cols,self.__v));
+        return bmatrix((cols,rows),self.bT(rows,cols,self.__v));
       if len(self.__dims) == 1 :
         return bmatrix(self);
       raise AttributeError('transpose not defined for >=3D bmatrices');
@@ -1233,7 +1241,7 @@ the product of the new dimensions must equal the product of the old dimensions""
     if d : raise NotImplementedError;
     return self.product();
 
-  def mapply(self,map,*d) :
+  def map(self,map,*d) :
     """Apply map to each element of the array"""
     # with no additional args, apply map to each element
     if not d :
@@ -1244,6 +1252,8 @@ the product of the new dimensions must equal the product of the old dimensions""
     #  along dimension d[0], and replace that vector with the result
     # with two ania, apply map to each 2D matrix along d[0] and d[1], ...
     raise NotImplementedError;
+
+  mapply = map    # for backward compatibility
 
   def __neg__(self) :
     """Return a copy of the array"""
@@ -1388,7 +1398,7 @@ any * scalar :  scalar multiply
         if len(other.__dims) <= 2 :        # 2D x 1D or 2D x 2D
           if js != other.__dims[0] :
             raise ParameterError('inner dimensions must agree');
-          t = bT(rows,js,self.__v);
+          t = self.bT(rows,js,self.__v);
           v = other.__v;
           self.__dims[1] = cols = 1 if len(other.__dims) < 2 else other.__dims[1];
           w = 0;
@@ -1469,29 +1479,25 @@ any * scalar :  scalar multiply
 
   # no rpow: can only work for real matrix exponents
 
-def bIdentity(n,m=1) :
-  """Return an nxn identity bmatrix multiplied by the scalar m (either 0 or 1)"""
-  if m not in (0,1) :
-    raise ParameterError('multiplier must be 0 or 1');
-  if m :
-    v = 1;
-    for i in xrange(n-1) :
-      v = (v<<(n+1))|1;
-  else :
-    v = 0;
-  return bmatrix((n,n),v);
+  @staticmethod
+  def Identity(n,m=1) :
+    """Return an nxn identity bmatrix multiplied by the scalar m (either 0 or 1)"""
+    if m not in (0,1) :
+      raise ParameterError('multiplier must be 0 or 1');
+    if m :
+      v = 1;
+      for i in xrange(n-1) :
+        v = (v<<(n+1))|1;
+    else :
+      v = 0;
+    return bmatrix((n,n),v);
 
-def bmapplied(m,map,*d) :
-  """Return a copy of bmatrix m with map applied to each element"""
-  m = bmatrix(m);
-  m.mapply(map,*d);
-  return m;
-
-def bT(rows,cols,v) :
-  """Assuming v represents a bmatrix with the specified number of rows and columns,
-columnwise and little-endian bit-by-bit, return the representation of the transpose"""
-  t = 0;
-  for r in reversed(xrange(rows)) :
-    for c in reversed(xrange(cols)) :
-      t = (t<<1)|(v>>(c*rows+r))&1;
-  return t;
+  @staticmethod
+  def bT(rows,cols,v) :
+    """Assuming v represents a bmatrix with the specified number of rows and columns,
+  columnwise and little-endian bit-by-bit, return the representation of the transpose"""
+    t = 0;
+    for r in reversed(xrange(rows)) :
+      for c in reversed(xrange(cols)) :
+        t = (t<<1)|(v>>(c*rows+r))&1;
+    return t;

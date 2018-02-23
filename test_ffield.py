@@ -60,10 +60,10 @@ def mtest(g) :    # matrix tests
   while True :    # find an invertible matrix and verify inverse works
     M = matrix((3,3),tuple(g(randrange(pn)) for i in range(9)));
     if M.det :
-      ceq('1/v[1]*v[1]==Identity(3,o)==v[1]*v[1].inverse',z,M);
+      ceq('1/v[1]*v[1]==matrix.Identity(3,o)==v[1]*v[1].inverse',z,M);
       break;
   d = min(pn-1,LIMITM);    # check Vandermonde matrix determinant
-  M = Identity(d,z);
+  M = matrix.Identity(d,z);
   p = o;
   for i,a in enumerate(sample(xrange(1,pn),d)) :
     a = g(a);
