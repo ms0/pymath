@@ -1382,15 +1382,16 @@ any * scalar :  scalar multiply
           self.__dims[:] = [];
           self.__dict__[_v] = parity(self.__v & other.__v);
         elif len(other.__dims) == 2 :      # 1D x 2D
-          if self.__dims[0] != other.__dims[0] :
+          n = self.__dims[0];
+          r,c = other.__dims;
+          if n != r :
             raise ParameterError('inner dimensions must agree');
           v = self.__v;
           w = other.__v;
           x = 0;
-          n = self.__dims[0];
-          for k in reversed(xrange(n)) :
+          for k in reversed(xrange(c)) :
             x = (x<<1)|parity(v&(w>>k*n));
-          self.__dims[:] = other.dims[1:];
+          self.__dims[:] = [c];
           self.__dict__[_v] = x;
         else : raise TypeError('only matrices can be multiplied');
       elif len(self.__dims) == 2 :       # self is 2D matrix
