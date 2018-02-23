@@ -1066,7 +1066,7 @@ when setting a slice, value must have length matching size of slice"""
 
   def __getattr__(self,name) :
     """Return the specified attribute:
-dims, tr(ace), T or transpose, det(erminant), or inverse"""
+dims, tr(ace), T or transpose, det(erminant), inverse, or _bits"""
 
     # in order of how hard they are to create :
     
@@ -1175,6 +1175,9 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
           if (v>>(n*c+r))&1 :
             w ^= rw<<n*c;
       return bmatrix((n,n),w);
+
+    if name == '_bits' :
+      return self.__v;
 
     raise AttributeError('bmatrix object has no attribute '+name);
 
