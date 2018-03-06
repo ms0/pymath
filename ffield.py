@@ -224,16 +224,17 @@ by an underscore and the __str__ representation"""
   return str(self.p)+'_'+str(self);
 
 def __add__(self,other) :
-  """Return the sum of the two finite field elements; integers in (-p,p) are converted"""
+  """Return the sum of the two finite field elements; integers are treated mod p"""
   p = self.p;
   n = self.n;
   x = self.x;
   if not isinstance(other,self.__class__) :
-    if isinstance(other,(int,long)) and -p < other < p :
+    if isinstance(other,(int,long)) :
+      other %= p;
       if not other : return self;
       return self.__class__(x-x%p+(x+other)%p);
     else :
-      raise TypeError;
+      raise TypeError('must be field element');
   y = other.x;
   if not y : return self;
   if p == 2 :
@@ -278,16 +279,17 @@ def __neg__(self) :
   return self.__class__(s);
 
 def __sub__(self,other) :
-  """Return the difference of the two finite field elements; integers in (-p,p) are converted"""
+  """Return the difference of the two finite field elements; integers are treated mod p"""
   p = self.p;
   n = self.n;
   x = self.x;
   if not isinstance(other,self.__class__) :
-    if isinstance(other,(int,long)) and -p < other < p :
+    if isinstance(other,(int,long)) :
+      other %= p;
       if not other : return self;
       return self.__class__(x-x%p+(x-other)%p);
     else :
-      raise TypeError;
+      raise TypeError('must be field element');
   y = other.x;
   if not y : return self;
   if p == 2 : return self.__class__(x^y);
@@ -304,19 +306,20 @@ def __sub__(self,other) :
   return self.__class__(s);
 
 def __rsub__(self,y) :
-  """Return the difference of the swapped finite field elements; integers in (-p,p) are converted"""
+  """Return the difference of the swapped finite field elements; integers  are treated mod p"""
   p = self.p;
-  if not (isinstance(y,(int,long)) and -p < y < p) :
-    raise TypeError;
-  return self.__class__(y)-self;
+  if not isinstance(y,(int,long)) :
+    raise TypeError('must be field element');
+  return self.__class__(y%p)-self;
 
 def __div__(self,y) :
-  """Return the quotient of the two finite field elements; integers in (-p,p) are converted"""
+  """Return the quotient of the two finite field elements; integers are treated mod p"""
   p = self.p;
   x = self.x;
   n = self.n;
   if not isinstance(y,self.__class__) :
-    if isinstance(y,(int,long)) and -p < y < p :
+    if isinstance(y,(int,long)) :
+      y %= p;
       if not y : raise ZeroDivisionError;
       if y == 1 : return self;
       d = pow(y,p-2,p);
@@ -336,12 +339,13 @@ def __div__(self,y) :
 #  return self*y**(p**n-2);
 
 def __rdiv__(self,y) :    # y/self
-  """Return y/self; y must be an integer in (-p,p) and is interpreted mod p"""
+  """Return y/self; y must be an integer and is interpreted mod p"""
   p = self.p;
-  if not (isinstance(y,(int,long)) and -p < y < p) :
-    raise TypeError;
+  if not isinstance(y,(int,long)) :
+    raise TypeError('must be field element');
   x = self.x;
   if not x : raise ZeroDivisionError;
+  y %= p;
   if x < p :
     z = y*pow(x,p-2,p)%p;
   else :
@@ -351,12 +355,12 @@ def __rdiv__(self,y) :    # y/self
   return self.__class__(z);
 
 def __mul__(self,y) :
-  """Return the product of the two finite field elements; integers in (-p,p) are converted"""
+  """Return the product of the two finite field elements; integers are treated mod p"""
   p = self.p;
   x = self.x;
   n = self.n;
   if not isinstance(y,self.__class__) :
-    if isinstance(y,(int,long)) and -p < y < p :
+    if isinstance(y,(int,long)) :
       d = y%p;
       if not d : return self.__class__(0);
       if d == 1 : return self;
@@ -369,7 +373,7 @@ def __mul__(self,y) :
         s *= p;
         s += c;
       return self.__class__(s);
-    else : raise TypeError;
+    else : raise TypeError('must be field element');
   if n == 1 :
     return self.__class__(x*y.x%p);
   if p == 2 :
