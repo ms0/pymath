@@ -180,6 +180,19 @@ Instance variables:
 def __getattr__(self,name) :
   if name == 'tupoly' :
     return self._tupoly[self._nzi:];
+  if name == 'order' :
+    o = self.p**self.n-1;
+    if isinstance(self,ffield) :
+      return o;
+    if self.x <= 1 :
+      return self.x;
+    while True :
+      q = factors(o);
+      for p in q :
+        if (self**(o//p)).x == 1 : break;    # order is divisor of o//p
+      else :
+        return o;
+      o //= p;
   raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
 
 def __hash__(self) :
