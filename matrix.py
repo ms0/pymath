@@ -82,6 +82,7 @@ Instance variables:
   T or transpose: the transpose of the matrix [of dimension <= 2]
   det or determinant: the determinant of the [square] matrix
   inverse: the inverse of the [square] matrix
+  rank: the rank of the [square] matrix (may be wrong if any float or complex elements)
 Methods:
   __init__, __repr__, __str__, __getitem__, __getattr__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
@@ -594,6 +595,65 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
       if len(s.__dims) == 1 :
         return s;
       raise AttributeError('transpose not defined for >=3D matrices');
+
+    # rank #
+
+    if name == 'rank' :
+      if len(self.__v) == 1 :
+        return 1 - (not self.__v[0]);
+      n = self.__dims[0];
+      if len(self.__dims) != 2 or n != self.__dims[1] :
+        raise TypeError('rank requires square matrix') ;
+      integral = 1;
+      v = self.__v[:];
+      for x in v :
+        if not isint(x) :
+          integral = 0;
+          break;
+      rank = n;
+      rows = list(xrange(n));
+      if integral :
+        for c in xrange(n) :    # for each column
+          x = float('inf');
+          for r in rows :    # find pivot row (smallest nonzero pivot element)
+            a = abs(v[r+n*c]);
+            if a and a < x :
+              x = a;
+              pr = r;
+          if isint(x) :
+            x = v[pr+n*c];
+            rx = rows.index(pr);
+            del rows[rx];
+            for r in rows :
+              a = v[r+n*c];
+              g = gcd(a,x);
+              mx = a//g;
+              ma = x//g;
+              for cc in xrange(c+1,n) :
+                v[r+n*cc] = ma*v[r+n*cc] - mx*v[pr+n*cc];
+          else :
+            rank -= 1;
+      else :
+        for c in xrange(n) :    # for each column
+          x = 0;
+          for r in rows :    # find pivot row (largest pivot element)
+            a = abs(v[r+n*c]);
+            if a > x :
+              x = a;
+              pr = r;
+          if x :
+            x = v[pr+n*c];
+            for pc in xrange(c+1,n) :
+              v[pr+n*pc] /= x;
+            rx = rows.index(pr);
+            del rows[rx];
+            for r in rows :
+              a = v[r+n*c];
+              for cc in xrange(c+1,n) :
+                v[r+n*cc] -= a*v[pr+n*cc];
+          else:
+            rank -= 1;
+      return rank;
 
     # determinant #
 
@@ -1133,6 +1193,34 @@ dims, tr(ace), T or transpose, det(erminant), inverse, or _bits"""
               rv = cv;
         if not rv : return 0;
       return 1;
+
+    # rank #
+
+    if name == 'rank' :
+      if len(self) == 1 :
+        return self[0];
+      n = self.__dims[0];
+      if len(self.__dims) != 2 or n != self.__dims[1] :
+        raise TypeError('determinant requires square bmatrix') ;
+      v = self.__v;
+      m = (1<<n)-1;    # mask of column
+      rank = n;
+      for r in range(n) :    # 
+        rv = 0;
+        b = 1<<r;    # row bit
+        for c in range(r,n) :    # find pivot column
+          cv = (v>>n*c)&m;
+          if b&cv :
+            if rv :
+              v ^= rv<<n*c;
+            else :
+              if r != c : 
+                # exchange this column with column r
+                x = cv ^ (v>>n*r)&m;
+                v ^= (x << n*r) ^ (x << n*c);
+              rv = cv;
+        if not rv : rank -= 1;
+      return rank;
 
     # inverse #
 
