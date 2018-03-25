@@ -154,7 +154,7 @@ Instance variables:
  p: the characterisitic of the field (inherited from the type)
  n: the degree of the polynomial modulus (inherited from the type)
  x: the polynomial representation, evaluated at x=p"""
-  if isinstance(x,self.__class__) :
+  if x.__class__ == self.__class__ :
     self.x = x.x;
     return;
   p = self.p;
@@ -258,7 +258,7 @@ def __add__(self,other) :
   p = self.p;
   n = self.n;
   x = self.x;
-  if not isinstance(other,self.__class__) :
+  if other.__class__ != self.__class__ :
     if isinstance(other,(int,long)) :
       other %= p;
       if not other : return self;
@@ -313,7 +313,7 @@ def __sub__(self,other) :
   p = self.p;
   n = self.n;
   x = self.x;
-  if not isinstance(other,self.__class__) :
+  if other.__class__ != self.__class__ :
     if isinstance(other,(int,long)) :
       other %= p;
       if not other : return self;
@@ -347,7 +347,7 @@ def __div__(self,y) :
   p = self.p;
   x = self.x;
   n = self.n;
-  if not isinstance(y,self.__class__) :
+  if y.__class__ != self.__class__ :
     if isinstance(y,(int,long)) :
       y %= p;
       if not y : raise ZeroDivisionError;
@@ -389,7 +389,7 @@ def __mul__(self,y) :
   p = self.p;
   x = self.x;
   n = self.n;
-  if not isinstance(y,self.__class__) :
+  if y.__class__ != self.__class__ :
     if isinstance(y,(int,long)) :
       d = y%p;
       if not d : return self.__class__(0);
