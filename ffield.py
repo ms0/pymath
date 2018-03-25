@@ -10,20 +10,32 @@ if sys.version_info>(3,) :
   xmap = map;
   map = lambda *x: list(xmap(*x));
 
-# finite field class
+try :
+  int.bit_length;
+  bit_length = lambda n : n.bit_length();
+except :
+  import math
+  def bit_length(n) :
+    if n :
+      n = abs(n);
+      l = int(math.log(n,2));
+      while n >> l : l += 1;
+      return l;
+    return 0;
 
-import pdb
+# finite field class
 
 import random
 random.seed();
-from math import floor,log
+
+from itertools import chain
+from matrix import matrix
 
 def modpow(b,x,p) :    # b**x mod p
   """Compute b**x%p"""
   if not x : return 1;
-  n = 1 << int(floor(log(x,2)));
-  while x >= n << 1 : n <<= 1;
-  e = 1;
+  n = (1 << (bit_length(x)-1)) >> 1;
+  e = b%p;
   while n :
     e *= e;
     e %= p;
@@ -211,6 +223,11 @@ __lt__ = __gt__ = lambda x,y:False;
 
 def __nonzero__(self) :
   return self.x != 0;
+
+def __int__(self) :
+  """Return the polynomial representation of the finite field element evaluated at x=p,
+a nonnegative integer < p**n; for n=1, it is just the obvious mod p integer"""
+  return self.x;
 
 def __str__(self) :
   """Return a string representing the polynomial representation of the finite field element
@@ -422,6 +439,49 @@ def __pow__(self,e) :
     x = pack(p,mppow(p,unpack(p,x),e,self._tupoly));
   return self.__class__(x);
 
+def _vector(x) :
+  p = x.p;
+  n = x.n;
+  x = x.x;
+  for i in xrange(n) :
+    yield x%p;
+    x //= p;
+
+
+def minpoly(self,m=1) :
+  """Return, as a tuple of elements of the subfield GF(self.p**m),
+the coefficients, constant term last, of the minimal polynomial of self
+over the subfield. Raise an exception if m does not divide self.n.
+"""
+  n = self.n;
+  if m <= 0 or n%m : raise ValueError('m must divide self.n');
+  G = self.__class__;
+  o = self.order;
+  p = self.p;
+  G1 = G(1);
+  if not (p**m-1)%(o or 1) :    # already in subfield
+    return (G1,-self);
+  if m > 1 : raise ValueError('not yet implemented');
+  # get minpoly over GF(p) ...
+  X = [];
+  x = G1;
+  for i in xrange(n) :
+    X.append(tuple(map(G,_vector(x))));
+    x *= self;
+  M = matrix(n,n,list(chain.from_iterable(X)));
+  for r in xrange(3,n+1) :
+    if M[:,:r].rank < r :
+      d = r-2;    # minpoly degree - 1
+      x = tuple(map(G,M[:,r-1]));
+      for s in reversed(xrange(n)) :
+        M[:,r-1] = map(G,(0 if i != s else 1 for i in xrange(n)));
+        if M[:,:r].rank == r :
+          if r == n : break;
+          r += 1;
+      return (G(1),)+tuple(-(M.inverse*x))[d::-1];
+  else :
+    return (G(1),)+tuple(-(M.inverse*map(G,_vector(x))))[::-1];
+
 
 class ffield(type) :
   """Class to create finite field class for GF(p**n)
@@ -438,17 +498,19 @@ Instance variables:
   tupoly: the polynomial modulus's tuple representation
   poly: an integer giving the value of tupoly at x = p
   _tupoly: the unelided polynomial modulus as a tuple with first element 1
+  order: p**n-1, the multiplicative order of the field
 Methods: __new__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__
 
 Each instance of the created type is an element of the finite field:
 Instance variables:
   x: the value at p of the polynomial representing the element
-Methods: __init__, __hash__, __repr__, __str__,
+  order: the multiplicative order of the element
+Methods: __init__, __hash__, __repr__, __str__, __int__,
          __abs__, __pos__, __neg__,
          __nonzero__, __eq__, __ne__,
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
-         __pow__
+         __pow__, minpoly
 """
 
   def __new__(cls,p,n=1,poly=0) :
@@ -476,6 +538,7 @@ Methods: __init__, __hash__, __repr__, __str__,
              __getattr__=__getattr__,
              __repr__=__repr__,
              __str__=__str__,
+             __int__=__int__,
              __hash__=__hash__,
              __eq__=__eq__,
              __ne__=__ne__,
@@ -498,6 +561,7 @@ Methods: __init__, __hash__, __repr__, __str__,
              __rtruediv__=__rdiv__,
              __pow__=__pow__,
              __abs__=__abs__,
+             minpoly = minpoly,
             );
     # need to define all the relevant operators:
     # comparisons: only == and !=
@@ -643,8 +707,7 @@ def mpdivrem(p,f,g) :
 def mppow(p,b,e,m=None) :
   """Raise b, a polynomial over GF(p), to the nonnegative integer power e, modulo polynomial m"""
   if not e : return (1,);
-  n = 1 << int(floor(log(e,2)));
-  while e >= n << 1 : n <<= 1;
+  n = 1 << (bit_length(e)-1);
   x = b;
   n >>= 1;
   while n :
