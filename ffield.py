@@ -154,7 +154,8 @@ Instance variables:
  p: the characterisitic of the field (inherited from the type)
  n: the degree of the polynomial modulus (inherited from the type)
  x: the polynomial representation, evaluated at x=p"""
-  if x.__class__ == self.__class__ :
+  if x.__class__ == self.__class__ or \
+     x.__class__.__class__ == ffield and x.n == 1 and x.p == self.p :
     self.x = x.x;
     return;
   p = self.p;
@@ -187,7 +188,7 @@ Instance variables:
     except ValueError :
       raise ValueError('zits in string must be in "%s"'%(zits[:p]));
     self.x = x;
-  else : raise TypeError;
+  else : raise TypeError('uninterpretable arg');
 
 def __getattr__(self,name) :
   if name == 'tupoly' :
@@ -259,6 +260,11 @@ def __add__(self,other) :
   n = self.n;
   x = self.x;
   if other.__class__ != self.__class__ :
+    if other.__class__.__class__ == ffield and other.p == p :
+      if n == 1 :
+        return other+x;
+      if other.n == 1 :
+        other = other.x;
     if isinstance(other,(int,long)) :
       other %= p;
       if not other : return self;
@@ -314,6 +320,11 @@ def __sub__(self,other) :
   n = self.n;
   x = self.x;
   if other.__class__ != self.__class__ :
+    if other.__class__.__class__ == ffield and other.p == p :
+      if n == 1 :
+        return x-other;
+      if other.n == 1 :
+        other = other.x;
     if isinstance(other,(int,long)) :
       other %= p;
       if not other : return self;
@@ -348,6 +359,11 @@ def __div__(self,y) :
   x = self.x;
   n = self.n;
   if y.__class__ != self.__class__ :
+    if y.__class__.__class__ == ffield and y.p == p :
+      if n == 1 :
+        return x/y;
+      if y.n == 1 :
+        y = y.x;
     if isinstance(y,(int,long)) :
       y %= p;
       if not y : raise ZeroDivisionError;
@@ -362,7 +378,7 @@ def __div__(self,y) :
         s *= p;
         s += c;
       return self.__class__(s);
-    else : raise TypeError;
+    else : raise TypeError('must be field element');
   yx = y.x;
   if yx < p : return self/yx;
   return self*self.__class__(pack(p,xmpgcd(p,self._tupoly,unpack(p,yx))[2]));
@@ -390,6 +406,11 @@ def __mul__(self,y) :
   x = self.x;
   n = self.n;
   if y.__class__ != self.__class__ :
+    if y.__class__.__class__ == ffield and y.p == p :
+      if n == 1 :
+        return y*x;
+      if y.n == 1 :
+        y = y.x;
     if isinstance(y,(int,long)) :
       d = y%p;
       if not d : return self.__class__(0);
@@ -446,7 +467,6 @@ def _vector(x) :
   for i in xrange(n) :
     yield x%p;
     x //= p;
-
 
 def minpoly(self,m=1) :
   """Return, as a tuple of elements of the subfield GF(self.p**m),
