@@ -76,6 +76,11 @@ class quaternion :
       return hash(complex(*self.__v[0:2])) if self.__v[1] else hash(self.__v[0]);
     return hash(tuple(self.__v));
 
+  def __bool__(self) :
+    return any(self.__v);
+
+  __nonzero__ = __bool__
+
   def __repr__(self) :
     return 'quaternion('+repr(self.__v)+')';
 

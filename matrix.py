@@ -85,7 +85,7 @@ Instance variables:
   rank: the rank of the matrix (may be wrong if any float or complex elements)
 Methods:
   __init__, __repr__, __str__, __getitem__, __getattr__,
-  __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
+  __bool__, __nonzero__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
   __neg__, __iadd__, __add__, __radd__, __isub__, __sub__, __rsub__,
   __imul__, __mul__, __rmul__, __itruediv__, __idiv__, __truediv__, __div__
 
@@ -165,6 +165,12 @@ with successive lines varying the remaining dimensions, earlier faster"""
     return '\n'.join(s);
 
   #### comparison operators ####
+
+  def __bool__(self) :
+    """Return True iff any element is nonzero"""
+    return any(self.__v);
+
+  __nonzero__ = __bool__
 
   def __lt__(self,other) :
     """Return True iff each element of first array < corresponding element of the other"""

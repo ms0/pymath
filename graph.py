@@ -22,7 +22,7 @@ class graph() :
   components: a list indexed by node number, giving the set of nodes comprising
     the connected component containing the node; connected nodes share their set
  Methods:  __init__,__hash__,__repr__,__eq__,__ne__,__getattr__,
-           __nonzero__,__len__,__invert__,__and__,__or__,__xor__,
+           __bool__, __nonzero__,__len__,__invert__,__and__,__or__,__xor__,
            complement,__iand__,__ior__,__ixor__
            remove, permute, isomorphism, degree, psdraw"""
 
@@ -57,9 +57,11 @@ class graph() :
   def __repr__(self) :
     return 'graph(%d,%s)'%(self.__n,str(tuple(sorted(self.edges))));
 
-  def __nonzero__(self) :
+  def __bool__(self) :
     """Return True"""
     return True;
+
+  __nonzero__ = __bool__
 
   def __len__(self) :
     """Return the number of edges"""

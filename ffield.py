@@ -222,8 +222,10 @@ def __ne__(self,other) :
 __le__ = __ge__ = __eq__;
 __lt__ = __gt__ = lambda x,y:False;
 
-def __nonzero__(self) :
+def __bool__(self) :
   return self.x != 0;
+
+__nonzero__ = __bool__
 
 def __int__(self) :
   """Return the polynomial representation of the finite field element evaluated at x=p,
@@ -479,9 +481,45 @@ over the subfield. Raise an exception if m does not divide self.n.
   o = self.order;
   p = self.p;
   G1 = G(1);
-  if not (p**m-1)%(o or 1) :    # already in subfield
+  O = p**m-1;    # order of subfield
+  if not O%(o or 1) :    # already in subfield
     return (G1,-self);
-  if m > 1 : raise ValueError('not yet implemented');
+  if m > 1 :
+    # brute force algorithm...
+    # ceil(ceil(log(o+1,p))/m) is min possible degree of minpoly
+    # n/m is the max possible degree
+    G0 = G(0);
+    P = [G0]*(n//m) + [G1];    # coeffs of 1, x, x**2, x**3, ... x**(n/m)
+    while True :    # find generator of superfield of subfield
+      g = G(random.randint(p,G.order));
+      if not g.order % O: break;
+    g **= g.order // O;   # generator of subfield
+    d = 1;    # calculate min possible degree of minpoly...
+    # (p**m)**d is size of subfield spanned by powers of self
+    while p**d < o+1 : d += 1;    # ceil(log(o+1,p)), floating point insufficient
+    d = (d+m-1)//m;    # make sure p**(md) is size of a sufficiently large subfield
+    while True :
+      P[d] = G1;
+      # evaluate P(self)
+      v = G0;
+      for i in xrange(d,0,-1) :
+        v = (v+P[i])*self;
+      if not O%(v.order or 1) :    # evaluates to element of subfield
+        P[0] = -v;
+        return tuple(P[d::-1]);
+      # try next
+      for i in xrange(1,d+1) :
+        if P[i] :
+          if P[i] == G1 :
+            P[i] = G0;
+          else :
+            P[i] *= g;
+            break;
+        else:
+          P[i] = g;
+          break;
+      else :
+        d += 1;
   # get minpoly over GF(p) ...
   X = [];
   x = G1;
@@ -527,7 +565,7 @@ Instance variables:
   order: the multiplicative order of the element
 Methods: __init__, __hash__, __repr__, __str__, __int__,
          __abs__, __pos__, __neg__,
-         __nonzero__, __eq__, __ne__,
+         __bool__, __nonzero__, __eq__, __ne__,
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
          __pow__, minpoly
@@ -566,6 +604,7 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
              __le__=__le__,
              __gt__=__gt__,
              __ge__=__ge__,
+             __bool__ = __bool__,
              __nonzero__=__nonzero__,
              __neg__=__neg__,
              __pos__=__pos__,

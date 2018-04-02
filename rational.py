@@ -54,7 +54,7 @@ Instance variables:
   b, the denominator, a positive integer
   Note that gcd(a,b) == 1.
 Methods:
-  __init__, __hash__, __repr__, __str__, __nonzero__,
+  __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
   __pos__, __neg__, __abs__,
   __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
@@ -176,9 +176,11 @@ If a is a nonempty list or tuple of integers (and b==1),
         return False;
     return self.a*other.b > self.b*other.a;
 
-  def __nonzero__(self) :
+  def __bool__(self) :
     """Return True iff self != 0"""
     return self.a != 0;
+
+  __nonzero__ = __bool__
 
   def __pos__(self) :
     """Return self"""
