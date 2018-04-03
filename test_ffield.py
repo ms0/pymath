@@ -1,16 +1,19 @@
 from random import randrange, sample
+from itertools import chain
 
 from ffield import *
 from matrix import *
+from poly import *
 
 MAXCHAR = 64;    # limit on characteristics to test
 LIMIT2 = 128;    # limit on ff size for full pair testing
 LIMIT3 = 64;     # limit on ff size for full triple testing
 LIMITM = 16;     # limit on size of vandermonde matrix
+LIMITP = 32;     # limit on number of minpoly test elements
 
 def ceq(c,*v) :
-  z = type(v[0])(0);
-  o = type(v[0])(1);
+  z = v[0].__class__(0);
+  o = v[0].__class__(1);
   if not eval(c) : print(c,v);
 
 def cvs(g) :
@@ -50,6 +53,7 @@ def test(p,n) :
         for k in xrange(LIMIT3) :
           test3(g,randrange(pn),randrange(pn),randrange(pn));
   mtest(g);
+  ptest(g);
 
 def mtest(g) :    # matrix tests
   p = g.p;
@@ -73,6 +77,19 @@ def mtest(g) :    # matrix tests
       M[i,j] = a**j;
   ceq('v[0]==v[1].det',p,M);
 
+def ptest(g) :    # polynomial tests
+  p = g.p;
+  n = g.n;
+  pn = p**n;
+  for i in range(min(pn,LIMITP)) :
+    x = g(randrange(pn));
+    for m in set(chain.from_iterable((a,n//a) for a in (1,)+factors(n))) :
+      P = polynomial(*x.minpoly(m));
+      o = p**m-1;
+      ceq('v[0].degree <= v[2]//v[1]',P,m,n);    # make sure degree is not too big
+      for c in P :
+        ceq('not v[2] % (v[1].order or 1)',P,c,o);    # make sure coeff in GF(p**m)
+      ceq('not v[0](v[1])',P,x);    # make sure element is a root
 
 def test1(g,i) :
   global generator
@@ -167,6 +184,8 @@ def isgenerator(x) :
   return True;
 
 if __name__=='__main__' :
+  test(2,6);
+  test(3,4);
   for p in xrange(MAXCHAR) :
     if isprime(p) :
       test(p,1);
