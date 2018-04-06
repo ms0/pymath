@@ -29,7 +29,7 @@ import random
 random.seed();
 
 from itertools import chain
-from matrix import matrix
+import matrix
 
 def modpow(b,x,p) :    # b**x mod p
   """Compute b**x%p"""
@@ -290,10 +290,6 @@ def __add__(self,other) :
     s += c;
   return self.__class__(s);
 
-def __abs__(self) :
-  """Return 0 if the element is 0, else 1"""
-  return 1 if self.x else 0;
-
 def __pos__(self) :
   """Return the element"""
   return self;
@@ -448,7 +444,10 @@ def __pow__(self,e) :
   if not isinstance(e,(int,long)) :
     raise TypeError('power must be integer');
   x = self.x;
-  if x <= 1 : return self;    # this differs from pow result for 0**0
+  if x <= 1 :
+    if x or e > 0 : return self;
+    if e : raise ZeroDivisionError;
+    return self+1;
   p = self.p;
   n = self.n;
   e %= p**n-1;
@@ -526,7 +525,7 @@ over the subfield. Raise an exception if m does not divide self.n.
   for i in xrange(n) :
     X.append(tuple(map(G,_vector(x))));
     x *= self;
-  M = matrix(n,n,list(chain.from_iterable(X)));
+  M = matrix.matrix(n,n,list(chain.from_iterable(X)));
   for r in xrange(3,n+1) :
     if M[:,:r].rank < r :
       d = r-2;    # minpoly degree - 1
@@ -564,7 +563,7 @@ Instance variables:
   x: the value at p of the polynomial representing the element
   order: the multiplicative order of the element
 Methods: __init__, __hash__, __repr__, __str__, __int__,
-         __abs__, __pos__, __neg__,
+         __pos__, __neg__,
          __bool__, __nonzero__, __eq__, __ne__,
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
@@ -619,14 +618,13 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
              __rdiv__=__rdiv__,
              __rtruediv__=__rdiv__,
              __pow__=__pow__,
-             __abs__=__abs__,
              minpoly = minpoly,
             );
     # need to define all the relevant operators:
     # comparisons: only == and !=
     # pow, with exponent being integer (int or long) or GF(p**n-1)
     # mul, div,
-    # neg[-], pos[+], abs, no invert [~]    
+    # neg[-], pos[+], no abs, no invert [~]    
     # add, sub, neg (only in same class)
     # no and, or, xor
     # repr, str

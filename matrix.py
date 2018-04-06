@@ -7,7 +7,7 @@ from __future__ import division
 import sys
 import types
 import math
-from fractions import gcd as gcd
+from fractions import gcd
 
 if sys.version_info[0] < 3 :
 
@@ -30,6 +30,12 @@ else :
     return isinstance(x,(int,float));
 
   xrange = range
+
+def altabs(x) :
+  try :
+    return abs(x);
+  except :
+    return 1 if x else 0;
 
 class ParameterError(Exception) :
   pass
@@ -647,7 +653,7 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
           if not rows : break;
           x = 0;
           for r in rows :    # find pivot row (largest pivot element)
-            a = abs(v[r+n*c]);
+            a = altabs(v[r+n*c]);
             if a > x :
               x = a;
               pr = r;
@@ -710,7 +716,7 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
       for c in xrange(n-1) :    # for each column
         x = 0;
         for r in rows :    # find pivot row (largest pivot element)
-          a = abs(v[r+n*c]);
+          a = altabs(v[r+n*c]);
           if a > x :
             x = a;
             pr = r;
@@ -746,7 +752,7 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
       for c in xrange(n) :
         x = 0;
         for r in xrange(c,n) :
-          a = abs(v[n2+r+n*c]);
+          a = altabs(v[n2+r+n*c]);
           if a > x :
             x = a;
             pr = r;
@@ -846,6 +852,14 @@ the product of the new dimensions must equal the product of the old dimensions""
 
   mapply = map    # for backward compatiblity
 
+  def mapped(m,map,*d) :
+    """Return a copy of m with map applied to each element"""
+    m = m.__class__(m);
+    m.map(map,*d);
+    return m;
+
+  mapplied = mapped    # for backward compatibility
+
   @staticmethod
   def Identity(n,m=1) :
     """Return an nxn identity matrix multiplied by the scalar m"""
@@ -853,14 +867,6 @@ the product of the new dimensions must equal the product of the old dimensions""
     v[0::(n+1)] = (m,)*n;
     I = matrix(n,n,v);
     return I;
-
-def mapped(m,map,*d) :
-  """Return a copy of m with map applied to each element"""
-  m = m.__class__(m);
-  m.map(map,*d);
-  return m;
-
-mapplied = mapped    # for backward compatibility
 
 ################################################################
 # boolean [binary] matrices

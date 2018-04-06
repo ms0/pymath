@@ -50,8 +50,8 @@ def root(a,n) :
 class rational :
   """Rational number class
 Instance variables:
-  a, the numerator, an integer
-  b, the denominator, a positive integer
+  a or numerator: the numerator, an integer
+  b or denominator: the denominator, a positive integer
   Note that gcd(a,b) == 1.
 Methods:
   __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
@@ -65,11 +65,14 @@ Methods:
 
   def __init__(self,a,b=1) :
     """Create a rational number equal to a/b; attempting b=0 raises ZeroDivisionError
-If a is a float (and b==1), return the simplest possible rational
+If a is a float or rational (and b==1), return the simplest possible rational
 If a is a nonempty list or tuple of integers (and b==1),
  they are interpreted as the terms of a regular continued fraction"""
     if not isint(a) or not isint(b) :
       if b == 1 :
+        if isinstance(a,rational) :
+          self._a,self._b=a._a,a._b;
+          return;
         if isinstance(a,float) :
           x = a;
           m0,m1,n0,n1 = 0,1,1,0;
@@ -80,105 +83,111 @@ If a is a nonempty list or tuple of integers (and b==1),
             m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
             if fx == 0 or n0/n1 == a : break;
             x = 1/fx;
-          self.a,self.b = int(n0),int(n1);
+          self._a,self._b = int(n0),int(n1);
           return;
-        elif a and isinstance(a,(tuple,list)) :
+        if a and isinstance(a,(tuple,list)) :
           m0,m1,n0,n1 = 0,1,1,0;
           for i in a :
             if not isint(i) : raise TypeError('cf must be integral');
             if i <= 0 and n1 : raise TypeError('cf terms beyond first must be positive');
             m0,m1,n0,n1 = n0,n1,m0+i*n0,m1+i*n1;
-          self.a,self.b = int(n0),int(n1);
+          self._a,self._b = int(n0),int(n1);
           return;
       raise TypeError('Numerator and Denominator must be integers');
     if b < 0 : a,b = -a,-b;
     if not b : raise ZeroDivisionError;
     g = gcd(a,b);
-    self.a = int(a//g);
-    self.b = int(b//g);
+    self._a = int(a//g);
+    self._b = int(b//g);
 
   def __str__(self) :
     """Return a string showing the rational number as a fraction or integer"""
-    return '%d/%d'%(self.a,self.b) if self.b != 1 else '%d'%(self.a);
+    return '%d/%d'%(self._a,self._b) if self._b != 1 else '%d'%(self._a);
 
   def __repr__(self) :
     """Return a string showing the rational number as it could be input"""
-    return 'rational(%d,%d)'%(self.a,self.b) if self.b != 1 else 'rational(%d)'%(self.a);
+    return 'rational(%d,%d)'%(self._a,self._b) if self._b != 1 else 'rational(%d)'%(self._a);
 
   def __hash__(self) :
     """Return a hash for the rational number; if an integer, use that integer's hash"""
-    if self.b == 1 : return hash(self.a);
-    return hash(self.__class__)^hash(str(self));
+    return hash(self._a) if self._b == 1 else hash(self._a/self._b);
+
+  def __getattr__(self,name) :
+    if name in ('a','numerator') :
+      return self._a;
+    if name in ('b','denominator') :
+      return self._b;
+    raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
 
   def __lt__(self,other) :
     """Return True iff self < other """
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.a < self.b*other;
+        return self._a < self._b*other;
       elif isinstance(other,float) :
         return self < rational(other);
       else :
         return False;
-    return self.a*other.b < self.b*other.a;
+    return self._a*other._b < self._b*other._a;
 
   def __le__(self,other) :
     """Return True iff self <= other"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.a <= self.b*other;
+        return self._a <= self._b*other;
       elif isinstance(other,float) :
         return self <= rational(other);
       else :
         return False;
-    return self.a*other.b <= self.b*other.a;
+    return self._a*other._b <= self._b*other._a;
 
   def __eq__(self,other) :
     """Return True iff self == other"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.a == self.b*other;
+        return self._a == self._b*other;
       elif isinstance(other,float) :
         return self == rational(other);
       else :
         return False;
-    return self.a*other.b == self.b*other.a;
+    return self._a*other._b == self._b*other._a;
 
   def __ne__(self,other) :
     """Return True iff self != other"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.a != self.b*other;
+        return self._a != self._b*other;
       elif isinstance(other,float) :
         return self != rational(other);
       else :
         return True;
-    return self.a*other.b != self.b*other.a;
+    return self._a*other._b != self._b*other._a;
 
   def __ge__(self,other) :
     """Return True iff self >= other"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.a >= self.b*other;
+        return self._a >= self._b*other;
       elif isinstance(other,float) :
         return self >= rational(other);
       else :
         return False;
-    return self.a*other.b >= self.b*other.a;
+    return self._a*other._b >= self._b*other._a;
 
   def __gt__(self,other) :
     """Return True iff self > other"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.a > self.b*other;
+        return self._a > self._b*other;
       elif isinstance(other,float) :
         return self > rational(other);
       else :
         return False;
-    return self.a*other.b > self.b*other.a;
+    return self._a*other._b > self._b*other._a;
 
   def __bool__(self) :
     """Return True iff self != 0"""
-    return self.a != 0;
+    return self._a != 0;
 
   __nonzero__ = __bool__
 
@@ -188,25 +197,31 @@ If a is a nonempty list or tuple of integers (and b==1),
 
   def __neg__(self) :
     """Return -self"""
-    return rational(-self.a,self.b) if self.a else self;
+    return rational(-self._a,self._b) if self._a else self;
 
   def __abs__(self) :
     """Return |self|"""
-    return rational(-self.a,self.b) if self.a < 0 else self;
+    return rational(-self._a,self._b) if self._a < 0 else self;
 
   def __add__(self,other) :
     """Return the sum of the two numbers"""
     if not isinstance(other,self.__class__) :
-      return self+rational(other);
-    return rational(self.a*other.b+other.a*self.b,self.b*other.b);
+      try :
+        return self+rational(other);
+      except :
+        return other+self;
+    return rational(self._a*other._b+other._a*self._b,self._b*other._b);
 
   __radd__ = __add__
 
   def __sub__(self,other) :
     """Return the difference of the two numbers"""
     if not isinstance(other,self.__class__) :
-      return self-rational(other);
-    return rational(self.a*other.b-other.a*self.b,self.b*other.b);
+      try :
+        return self-rational(other);
+      except :
+        return -other+self;
+    return rational(self._a*other._b-other._a*self._b,self._b*other._b);
 
   def __rsub__(self,other) :
     """Return the difference of the swapped two numbers"""
@@ -216,9 +231,12 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the product of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return rational(self.a*other,self.b);
-      return self*rational(other);
-    return rational(self.a*other.a,self.b*other.b);
+        return rational(self._a*other,self._b);
+      try :
+        return self*rational(other);
+      except :
+        return other*self;
+    return rational(self._a*other._a,self._b*other._b);
 
   __rmul__ = __mul__
 
@@ -226,17 +244,20 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return rational(self.a,other*self.b);
-      return self/rational(other);
-    return rational(self.a*other.b,self.b*other.a);
+        return rational(self._a,other*self._b);
+      try :
+        return self/rational(other);
+      except :
+        return other.__rtruediv__(self);
+    return rational(self._a*other._b,self._b*other._a);
 
   def __rtruediv__(self,other) :
     """Return the inverse quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return rational(other*self.b,self.a);
+        return rational(other*self._b,self._a);
       return rational(other)/self;
-    return rational(self.b*other.a,self.a*other.b);
+    return rational(self._b*other._a,self._a*other._b);
 
   __div__ = __truediv__
   __rdiv__ = __rtruediv__
@@ -245,17 +266,20 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the floor of the quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return rational(self.a//(self.b*other));
-      return self//rational(other);
-    return rational((self.a*other.b)//(self.b*other.a));
+        return rational(self._a//(self._b*other));
+      try :
+        return self//rational(other);
+      except :
+        return other.__rfloordiv__(self);
+    return rational((self._a*other._b)//(self._b*other._a));
 
   def __rfloordiv__(self,other) :
     """Return the floor of the inverse quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return rational((self.b*other)//self.a);
+        return rational((self._b*other)//self._a);
       return rational(other)//self;
-    return rational((self.b*other.a)//(self.a*other.b));
+    return rational((self._b*other._a)//(self._a*other._b));
 
   def __mod__(self,other) :
     """Return the remainder from floordiv"""
@@ -279,86 +303,86 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return a number raised to a power; integer powers give exact answer"""
     if isinstance(other,float) :
       other = rational(other);
-    if isinstance(other,rational) and other.b == 1 :
-      other = other.a;
+    if isinstance(other,rational) and other._b == 1 :
+      other = other._a;
     if isint(other) :
       if other < 0 :
-        if not self.a : raise ZeroDivisionError;
-        return rational(self.b**other,self.a**other);
-      return rational(self.a**other,self.b**other);
+        if not self._a : raise ZeroDivisionError;
+        return rational(self._b**other,self._a**other);
+      return rational(self._a**other,self._b**other);
     if not isinstance(other,rational) :
       raise TypeError('exponent must be an integer');
     # rational (but not integral) power
-    if other.a < 0 :
-      a,b = self.b**-other.a, self.a**-other.a;
+    if other._a < 0 :
+      a,b = self._b**-other._a, self._a**-other._a;
     else :
-      a,b = self.a**other.a, self.b**other.a;
+      a,b = self._a**other._a, self._b**other._a;
     # now, take the root
-    if a < 0 and not other.b&1 :
+    if a < 0 and not other._b&1 :
       raise ValueError('complex result')    # even root of negative number
     # first see if a and/or b has an integer root
-    ra = sgn(a)*root(abs(a),other.b);
-    rb = root(b,other.b);
-    pa = ra**other.b == a;  # a has an exact root?
-    pb = rb**other.b == b;  # b has an exact root
+    ra = sgn(a)*root(abs(a),other._b);
+    rb = root(b,other._b);
+    pa = ra**other._b == a;  # a has an exact root?
+    pb = rb**other._b == b;  # b has an exact root
     if pa and pb : return rational(ra,rb);
     if pa and abs(b) > 1 << 28:    # exact result:
-      return ra*other.b/((other.b-1)*rb + rational(b,rb**(other.b-1)))
+      return ra*other._b/((other._b-1)*rb + rational(b,rb**(other._b-1)))
     # return an inexact result :
     if pb and abs(a) > 1 << 28 :
-      return ((other.b-1)*ra + rational(a,ra**(other.b-1)))/(rb*other.b);
-    logroot = rational(abs(a),b).log(2)/other.b;
+      return ((other._b-1)*ra + rational(a,ra**(other._b-1)))/(rb*other._b);
+    logroot = rational(abs(a),b).log(2)/other._b;
     alogroot = abs(logroot);
     ilogroot = int(alogroot);
     flogroot = alogroot-ilogroot;
     r = rational(2**flogroot)*(sgn(a)<<ilogroot);
     if logroot < 0 : r = 1/r;
     x = rational(a,b);
-    return ((other.b-1)*r + x/r**(other.b-1))/other.b;
+    return ((other._b-1)*r + x/r**(other._b-1))/other._b;
 
   def __rpow__(self,other) :
     return rational(other)**self;
 
   def __lshift__(self,other) :
     """Return the product of self and 2**other, for other an integer"""
-    return rational(self.a<<other,self.b) if other >= 0 else self>>-other;
+    return rational(self._a<<other,self._b) if other >= 0 else self>>-other;
 
   def __rshift__(self,other) :
     """Return the quotient of self and 2**other, for other an integer"""
-    return rational(self.a,self.b<<other) if other >= 0 else self<<-other;
+    return rational(self._a,self._b<<other) if other >= 0 else self<<-other;
 
   def __float__(self) :
     """Return a floating point approximation to the number"""
-    return self.a/self.b;
+    return self._a/self._b;
 
   def __int__(self) :
     """Return the integer part of the number"""
-    return int(-(-self.a//self.b) if self.a < 0 else self.a//self.b);
+    return int(-(-self._a//self._b) if self._a < 0 else self._a//self._b);
 
   __trunc__ = __int__
 
   def __floor__(self) :
     """Return the floor of the number"""
-    return int(self.a//self.b);
+    return int(self._a//self._b);
 
   def __ceil__(self) :
     """Return the ceil of the number"""
-    return int(-(-self.a//self.b));
+    return int(-(-self._a//self._b));
 
   def __round__(self,n) :
     """Return the round of the number"""
     ten2absn = 10**abs(n);
-    return ((int((self/ten2absn - half)*ten2absn) if self.a < 0 else
+    return ((int((self/ten2absn - half)*ten2absn) if self._a < 0 else
              int(self/ten2absn + half)*ten2absn) if n < 0 else
-            -((half - self*ten2absn)//ten2absn) if self.a < 0 else
+            -((half - self*ten2absn)//ten2absn) if self._a < 0 else
             (half + self*ten2absn)//ten2absn);
 
   def log(self,*base) :
     """Return the log of the number as a float"""
     if base and (base[0] <= 0 or base[0] == 1) : raise ValueError('bad base');
-    if not self.a : return inf if base and base[0] < 1 else -inf;
-    a = self.a;
-    b = self.b;
+    if not self._a : return inf if base and base[0] < 1 else -inf;
+    a = self._a;
+    b = self._b;
     c = base and base[0];
     if c and c < 1 : a,b,c=b,a,1/c;
     if c and int(c) == c :
@@ -378,7 +402,7 @@ If a is a nonempty list or tuple of integers (and b==1),
   def cf(self) :
     """Return a tuple of the terms of the regular continued fraction for the number"""
     l = [];
-    a,b = self.a,self.b;
+    a,b = self._a,self._b;
     while b :
       q = int(a//b);    # turn long into int if possible
       l.append(q);
