@@ -140,9 +140,12 @@ indices larger than the degree give 0; indices < 0 raise exception;
     """Evaluate the polynomial at x"""
     return evaluate(self._p,x);
 
+  def __str__(self) :
+    return str(self[0]) if self.degree < 1 else 'polynomial('+','.join(map(str,self._p))+')'
+
   def __repr__(self) :
     """Return a string representation of the polynomial"""
-    return 'polynomial'+str(self._p);
+    return 'polynomial('+','.join(map(str,self._p))+')';
 
   def __bool__(self) :
     """Return True unless a zero polynomial"""
@@ -307,10 +310,7 @@ indices larger than the degree give 0; indices < 0 raise exception;
     if not isint(e) :
       raise TypeError('Exponent must be an integer');
     if f.degree <= 0 :
-      if f :
-        return polynomial(f[0]**e);
-      if e < 0 : raise ZeroDivisionError;
-      return polynomial();
+      return polynomial(f[0]**e);
     if e <= 0:
       if e :
         return rationalfunction(f[f.degree].__class__(1),polynomial(*nzpolypow(f._p,-e)));
@@ -457,7 +457,7 @@ class rationalfunction() :
     self._b = b//g;
 
   def __str__(self) :
-    return '%s/%s'%(self._a,self._b);
+    return '%s/%s'%(self._a,self._b) if self._b != 1 else str(self._a);
 
   def __repr__(self) :
     return 'rationalfunction(%s,%s)'%(self._a,self._b);
