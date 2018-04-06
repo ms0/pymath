@@ -476,24 +476,20 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
   def __eq__(self,other) :
     """Return True iff self == other"""
     if not isinstance(other,self.__class__) :
-      if isint(other) :
-        return self._a == self._b*other;
-      elif isinstance(other,float) :
-        return self == rational(other);
-      else :
+      try :
+        other = xrational(other);
+      except :
         return False;
-    return self._a*other._b == self._b*other._a;
+    return self._a == other._a and self._b == other._b;
 
   def __ne__(self,other) :
     """Return True iff self != other"""
     if not isinstance(other,self.__class__) :
-      if isint(other) :
-        return self._a != self._b*other;
-      elif isinstance(other,float) :
-        return self != rational(other);
-      else :
+      try :
+        other = xrational(other);
+      except :
         return True;
-    return self._a*other._b != self._b*other._a;
+    return self._a != other._a or self._b != other._b;
 
   def __bool__(self) :
     """Return True iff self != 0"""
