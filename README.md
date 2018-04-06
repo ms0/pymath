@@ -3,9 +3,9 @@ pymath
 
 Python code for mathematical classes
 
-Classes to implement finite fields (ffield.py), rationals (rational.py),
+Classes to implement finite fields (ffield.py), rationals and complex rationals (rational.py),
 quaternions (quaternion.py), matrices (matrix.py) over any ring, and
-single-variable polynomials (poly.py) with coefficients in any field.
+single-variable polynomials and rational functions (poly.py) with coefficients in any field.
 
 A test program for ffield.py (test_ffield.py) is included; it uses matrix.py
 
