@@ -206,6 +206,8 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __add__(self,other) :
     """Return the sum of the two numbers"""
     if not isinstance(other,self.__class__) :
+      if isinstance(other,complex) :
+        return xrational(self)+xrational(other);
       try :
         return self+rational(other);
       except :
@@ -217,6 +219,8 @@ If a is a nonempty list or tuple of integers (and b==1),
   def __sub__(self,other) :
     """Return the difference of the two numbers"""
     if not isinstance(other,self.__class__) :
+      if isinstance(other,complex) :
+        return xrational(self)-xrational(other);
       try :
         return self-rational(other);
       except :
@@ -225,6 +229,8 @@ If a is a nonempty list or tuple of integers (and b==1),
 
   def __rsub__(self,other) :
     """Return the difference of the swapped two numbers"""
+    if isinstance(other,complex) :
+      return xrational(other)-xrational(self);
     return rational(other)-self;
 
   def __mul__(self,other) :
@@ -232,6 +238,8 @@ If a is a nonempty list or tuple of integers (and b==1),
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return rational(self._a*other,self._b);
+      if isinstance(other,complex) :
+        return xrational(self)*xrational(other);
       try :
         return self*rational(other);
       except :
@@ -245,6 +253,8 @@ If a is a nonempty list or tuple of integers (and b==1),
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return rational(self._a,other*self._b);
+      if isinstance(other,complex) :
+        return xrational(self)/xrational(other);
       try :
         return self/rational(other);
       except :
@@ -256,6 +266,8 @@ If a is a nonempty list or tuple of integers (and b==1),
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return rational(other*self._b,self._a);
+      if isinstance(other,complex) :
+        return xrational(other)/xrational(self);
       return rational(other)/self;
     return rational(self._b*other._a,self._a*other._b);
 
@@ -267,6 +279,8 @@ If a is a nonempty list or tuple of integers (and b==1),
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return rational(self._a//(self._b*other));
+      if isinstance(other,complex) :
+        return xrational(self)//xrational(other);
       try :
         return self//rational(other);
       except :
@@ -278,6 +292,8 @@ If a is a nonempty list or tuple of integers (and b==1),
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return rational((self._b*other)//self._a);
+      if isinstance(other,complex) :
+        return xrational(other)//xrational(self);
       return rational(other)//self;
     return rational((self._b*other._a)//(self._a*other._b));
 
@@ -410,3 +426,233 @@ If a is a nonempty list or tuple of integers (and b==1),
     return tuple(l);
 
 half = rational(1,2);
+
+class xrational :
+  """Complex Rational number class
+Instance variables:
+  real: the real part, a rational
+  imag: the imaginary part, a rational
+Methods:
+  __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
+  __eq__, __ne__, __pos__, __neg__, __abs__,
+  __complex__, __round__, __ceil__, __floor__, __trunc__,
+  __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
+  __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
+  __divmod__, __rdivmod__, __lshift__, __rshift__
+  __pow__, __rpow__, log, cf"""
+
+  def __init__(self,real,imag=0) :
+    """Create a complex number equal to real+imag*i; real and imag are converted to rational
+If real is complex or xrational (and imag==0), return the corresponding xrational"""
+    if imag == 0 :
+      if isinstance(real,xrational) :
+        real,imag = real._a,real._b;
+      elif isinstance(real,complex) :
+        real,imag = real.real,real.imag;
+    self._a = rational(real);
+    self._b = rational(imag);
+  
+  def __str__(self) :
+    """Return a string showing the complex rational number"""
+    return '%s%s%si'%(self._a,
+                      '+' if self._b > 0 else '',
+                      self._b) if self._b else '%s'%(self._a);
+
+  def __repr__(self) :
+    """Return a string showing the rational number as it could be input"""
+    return 'xrational(%s)'%(str(self));
+
+  def __hash__(self) :
+    """Return a hash for the xrational number; if an integer, use that integer's hash"""
+    return hash(float(self._a) + 1j*float(self._b));
+
+  def __getattr__(self,name) :
+    if name == 'real' :
+      return self._a;
+    if name == 'imag' :
+      return self._b;
+    raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+
+  def __eq__(self,other) :
+    """Return True iff self == other"""
+    if not isinstance(other,self.__class__) :
+      if isint(other) :
+        return self._a == self._b*other;
+      elif isinstance(other,float) :
+        return self == rational(other);
+      else :
+        return False;
+    return self._a*other._b == self._b*other._a;
+
+  def __ne__(self,other) :
+    """Return True iff self != other"""
+    if not isinstance(other,self.__class__) :
+      if isint(other) :
+        return self._a != self._b*other;
+      elif isinstance(other,float) :
+        return self != rational(other);
+      else :
+        return True;
+    return self._a*other._b != self._b*other._a;
+
+  def __bool__(self) :
+    """Return True iff self != 0"""
+    return bool(self._a) or bool(self._b);
+
+  __nonzero__ = __bool__
+
+  def __pos__(self) :
+    """Return self"""
+    return self;
+
+  def __neg__(self) :
+    """Return -self"""
+    return xrational(-self._a,-self._b);
+
+  def __invert__(self) :
+    """Return complex conjugate of self"""
+    return xrational(self._a,-self._b);
+
+  conjugate = __invert__
+
+  def __abs__(self) :
+    """Return |self|"""
+    return (self._a**2+self._b**2)**half;
+
+  def __complex__(self) :
+    return complex(self.real,self.imag);
+
+  def __add__(self,other) :
+    """Return the sum of the two numbers"""
+    if not isinstance(other,self.__class__) :
+      try :
+        return self+xrational(other);
+      except :
+        return other+self;
+    return xrational(self._a+other._a,self._b+other._b);
+
+  __radd__ = __add__
+
+  def __sub__(self,other) :
+    """Return the difference of the two numbers"""
+    if not isinstance(other,self.__class__) :
+      try :
+        return self-xrational(other);
+      except :
+        return -other+self;
+    return xrational(self._a-other._a,self._b-other._b);
+
+  def __rsub__(self,other) :
+    """Return the difference of the swapped two numbers"""
+    return xrational(other)-self;
+
+  def __mul__(self,other) :
+    """Return the product of the two numbers"""
+    if not isinstance(other,self.__class__) :
+      try :
+        return self*xrational(other);
+      except :
+        return other*self;
+    return xrational(self._a*other._a-self._b*other._b,self._a*other._b+self._b*other._a);
+
+  __rmul__ = __mul__
+
+  def __div__(self,other) :
+    """Return the quotient of the two numbers"""
+    if not other :
+      raise ZeroDivisionError;
+    if not isinstance(other,self.__class__) :
+      try :
+        other = xrational(other);
+      except :
+        return other.__rdiv__(self);
+    d = other._a**2 + other._b**2;
+    return xrational((self._a*other._a+self._b*other._b)/d,(self._b*other._a-self._a*other._b)/d);
+
+  def __rdiv__(self,other) :
+    """Return the inverse quotient of the two numbers"""
+    if not isinstance(other,self.__class__) :
+      other = xrational(other);
+    return other/self;
+
+  __truediv__ = __floordiv__ = __div__
+  __rtruediv__ = __rfloordiv__ = __rdiv__
+
+  def __mod__(self,other) :
+    """Return the remainder from floordiv"""
+    return self - self//other*other;
+
+  def __rmod__(self,other) :
+    """Return the remainder from rfloordiv"""
+    return other - other//self*self;
+
+  def __divmod__(self,other) :
+    """Return quotient and remainder"""
+    q = self//other;
+    return (q, self-q*other);
+
+  def __rdivmod__(self,other) :
+    """Return quotient and remainder"""
+    q = other//self;
+    return (q, other-q*self);
+
+  def __pow__(self,other) :
+    """Return a number raised to a power; integer powers give exact answer"""
+    if isinstance(other,float) :
+      other = rational(other);
+    if isinstance(other,rational) and other._b == 1 :
+      other = other._a;
+    if isint(other) :
+      if other < 0 :
+        if not self._a : raise ZeroDivisionError;
+        return (1/self)**-other;
+      x = xrational(1);
+      s = self;
+      while other :
+        if other&1 : x*=s;
+        other >>= 1;
+        if not other : break;
+        s *= s;
+      return x;
+    if not isinstance(other,rational) :
+      raise TypeError('exponent must be an integer');
+    # rational (but not integral) power
+    raise ValueError('non-integer powers not implemented');
+  """
+    if other._a < 0 :
+      a,b = self._b**-other._a, self._a**-other._a;
+    else :
+      a,b = self._a**other._a, self._b**other._a;
+    # now, take the root
+    if a < 0 and not other._b&1 :
+      raise ValueError('complex result')    # even root of negative number
+    # first see if a and/or b has an integer root
+    ra = sgn(a)*root(abs(a),other._b);
+    rb = root(b,other._b);
+    pa = ra**other._b == a;  # a has an exact root?
+    pb = rb**other._b == b;  # b has an exact root
+    if pa and pb : return rational(ra,rb);
+    if pa and abs(b) > 1 << 28:    # exact result:
+      return ra*other._b/((other._b-1)*rb + rational(b,rb**(other._b-1)))
+    # return an inexact result :
+    if pb and abs(a) > 1 << 28 :
+      return ((other._b-1)*ra + rational(a,ra**(other._b-1)))/(rb*other._b);
+    logroot = rational(abs(a),b).log(2)/other._b;
+    alogroot = abs(logroot);
+    ilogroot = int(alogroot);
+    flogroot = alogroot-ilogroot;
+    r = rational(2**flogroot)*(sgn(a)<<ilogroot);
+    if logroot < 0 : r = 1/r;
+    x = rational(a,b);
+    return ((other._b-1)*r + x/r**(other._b-1))/other._b;
+"""
+  def __rpow__(self,other) :
+    return xrational(other)**self;
+
+  def __lshift__(self,other) :
+    """Return the product of self and 2**other, for other an integer"""
+    return xrational(self._a<<other,self._b<<other) if other >= 0 else self>>-other;
+
+  def __rshift__(self,other) :
+    """Return the quotient of self and 2**other, for other an integer"""
+    return xrational(self._a>>other,self._b>>other) if other >= 0 else self<<-other;

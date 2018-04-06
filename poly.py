@@ -7,7 +7,7 @@ import sys
 from itertools import chain
 from collections import defaultdict
 from matrix import product
-from rational import rational
+from rational import rational,xrational
 
 if sys.version_info>(3,) :
   NONE = (None,);
@@ -22,6 +22,8 @@ else :
   REAL = set((int,long,float,rational));
 
 RATIONAL = set((rational,));
+COMPLEX = REAL | set((complex,xrational));
+XRATIONAL = set((rational,xrational));
 
 try :
   int.bit_length;
@@ -38,6 +40,7 @@ except :
 
 inf = float('inf');
 floatall = lambda x: x.mapcoeffs(float);
+complexall = lambda x: x.mapcoeffs(complex);
 identity = lambda x: x;
 
 # danger: division converts to floating point (unless we use rational coeffs)
@@ -246,7 +249,7 @@ indices larger than the degree give 0; indices < 0 raise exception;
       other = other._a;
     if isinstance(other,polynomial) and other.degree <= 0 :
       other = other[0] if other else 0;
-    if other.__class__ in REAL :
+    if other.__class__ in COMPLEX :
       if other :
         return self.mapcoeffs(lambda x:x/other);
       raise ZeroDivisionError;
@@ -332,6 +335,10 @@ indices larger than the degree give 0; indices < 0 raise exception;
       p = p.mapcoeffs(rational);
       q = q.mapcoeffs(rational);
       mapping = floatall;
+    elif types <= COMPLEX and not types <= XRATIONAL :
+      p = p.mapcoeffs(xrational);
+      q = q.mapcoeffs(xrational);
+      mapping = complexall;
     else :
       mapping = identity;
     while q :
@@ -349,6 +356,10 @@ indices larger than the degree give 0; indices < 0 raise exception;
       p = p.mapcoeffs(rational);
       q = q.mapcoeffs(rational);
       mapping = floatall;
+    elif types <= COMPLEX and not types <= XRATIONAL :
+      p = p.mapcoeffs(xrational);
+      q = q.mapcoeffs(xrational);
+      mapping = complexall;
     else :
       mapping = identity;
     u,v,u1,v1 = _one,_zero,_zero,_one;
@@ -368,12 +379,18 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
     if not isinstance(factors,defaultdict) : factors = defaultdict(int);
     if self.degree < 1 :
       if not self or self._p[0]**2 != self._p[0] :
-        factors[self] += 1;
-        return factors;
-    c = self._p[0].__class__;
-    if c in REAL :
+        factors[self] += e;
+      return factors;
+    types = set();
+    for x in self :
+      types.add(x.__class__);
+    if set() < types <= REAL and not types <= RATIONAL :
       for k,v in iteritems(self.mapcoeffs(rational).factor()) :
         factors[k.mapcoeffs(float)] += v;
+      return factors;
+    elif types <= COMPLEX and not types <= XRATIONAL :
+      for k,v in iteritems(self.mapcoeffs(xrational).factor()) :
+        factors[k.mapcoeffs(complex)] += v;
       return factors;
     if self._p[0]**2 != self._p[0] :
       factors[polynomial(self._p[0])] += e;
@@ -433,8 +450,8 @@ multiplied by p if specified"""
 class rationalfunction() :
   def __init__(self,a,b=1) :
     if not b : raise ZeroDivisionError;
-    a = a.mapcoeffs(rational) if isinstance(a,polynomial) else polynomial(rational(a));
-    b = b.mapcoeffs(rational) if isinstance(b,polynomial) else polynomial(rational(b));
+    a = rationalize(a);
+    b = rationalize(b);
     g = a.gcd(b)*b[b.degree];    # make denominator monic
     self._a = a//g;
     self._b = b//g;
@@ -541,6 +558,20 @@ class rationalfunction() :
       return rationalfunction(self._b**-other,self.__a**-other);
     return rationalfunction(self.a**other,self.b**other);
   
+def rationalize(p) :
+  if isinstance(p,polynomial) :
+    types = set();
+    for x in p :
+      types.add(x.__class__);
+    if set() < types <= REAL and not types <= RATIONAL :
+      return p.mapcoeffs(rational);
+    elif types <= COMPLEX and not types <= XRATIONAL :
+      return p.mapcoeffs(xrational);
+  elif p.__class__ in REAL :
+    return polynomial(rational(p));
+  elif p.__class__ in COMPLEX :
+    return polynomial(xrational(p));
+  return p;
 
 _zero = polynomial();
 _one = polynomial(1);
