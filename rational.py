@@ -4,7 +4,8 @@ from __future__ import division
 
 import sys
 
-from math import floor, log
+from math import floor, log, atan2, exp, sin, cos
+from itertools import chain
 
 if sys.version_info[0] < 3 :
 
@@ -70,9 +71,15 @@ If a is a nonempty list or tuple of integers (and b==1),
  they are interpreted as the terms of a regular continued fraction"""
     if not isint(a) or not isint(b) :
       if b == 1 :
+        if isinstance(a,xrational) :
+          if a._b : raise TypeError('arg must not be complex')
+          a = a._a;
         if isinstance(a,rational) :
           self._a,self._b=a._a,a._b;
           return;
+        if isinstance(a,complex) :
+          if a.imag : raise TypeError('arg must not be complex')
+          a = a.real;
         if isinstance(a,float) :
           x = a;
           m0,m1,n0,n1 = 0,1,1,0;
@@ -435,11 +442,11 @@ Instance variables:
 Methods:
   __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
   __eq__, __ne__, __pos__, __neg__, __abs__,
-  __complex__, __round__, __ceil__, __floor__, __trunc__,
+  __float__, __complex__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__
-  __pow__, __rpow__, log, cf"""
+  __pow__, __rpow__, log, arg"""
 
   def __init__(self,real,imag=0) :
     """Create a complex number equal to real+imag*i; real and imag are converted to rational
@@ -515,7 +522,13 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     """Return |self|"""
     return (self._a**2+self._b**2)**half;
 
+  def __float__(self) :
+    """Return a floating point approximation to the number if real"""
+    if self.imag : raise TypeError('complex');
+    return float(self.real);
+
   def __complex__(self) :
+    """Return a floating point [i.e., complex] approximation to the number"""
     return complex(self.real,self.imag);
 
   def __add__(self,other) :
@@ -571,26 +584,36 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
       other = xrational(other);
     return other/self;
 
-  __truediv__ = __floordiv__ = __div__
-  __rtruediv__ = __rfloordiv__ = __rdiv__
+  __truediv__ = __div__
+  __rtruediv__ = __rdiv__
 
-  def __mod__(self,other) :
-    """Return the remainder from floordiv"""
-    return self - self//other*other;
+  if sys.version_info[0] < 3 :
 
-  def __rmod__(self,other) :
-    """Return the remainder from rfloordiv"""
-    return other - other//self*self;
+    def __floordiv__(self,other) :
+      """Return the floor of the real part of self/other"""
+      return xrational((self/other)._a.__floor__());
 
-  def __divmod__(self,other) :
-    """Return quotient and remainder"""
-    q = self//other;
-    return (q, self-q*other);
+    def __rfloordiv__(self,other) :
+      """Return the floor of the real part of other/self"""
+      return xrational((other/self)._a.__floor__());
 
-  def __rdivmod__(self,other) :
-    """Return quotient and remainder"""
-    q = other//self;
-    return (q, other-q*self);
+    def __mod__(self,other) :
+      """Return the remainder from floordiv"""
+      return self - self//other*other;
+
+    def __rmod__(self,other) :
+      """Return the remainder from rfloordiv"""
+      return other - other//self*self;
+
+    def __divmod__(self,other) :
+      """Return quotient and remainder"""
+      q = self//other;
+      return (q, self-q*other);
+
+    def __rdivmod__(self,other) :
+      """Return quotient and remainder"""
+      q = other//self;
+      return (q, other-q*self);
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
@@ -610,38 +633,9 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
         if not other : break;
         s *= s;
       return x;
-    if not isinstance(other,rational) :
-      raise TypeError('exponent must be an integer');
-    # rational (but not integral) power
-    raise ValueError('non-integer powers not implemented');
-  """
-    if other._a < 0 :
-      a,b = self._b**-other._a, self._a**-other._a;
-    else :
-      a,b = self._a**other._a, self._b**other._a;
-    # now, take the root
-    if a < 0 and not other._b&1 :
-      raise ValueError('complex result')    # even root of negative number
-    # first see if a and/or b has an integer root
-    ra = sgn(a)*root(abs(a),other._b);
-    rb = root(b,other._b);
-    pa = ra**other._b == a;  # a has an exact root?
-    pb = rb**other._b == b;  # b has an exact root
-    if pa and pb : return rational(ra,rb);
-    if pa and abs(b) > 1 << 28:    # exact result:
-      return ra*other._b/((other._b-1)*rb + rational(b,rb**(other._b-1)))
-    # return an inexact result :
-    if pb and abs(a) > 1 << 28 :
-      return ((other._b-1)*ra + rational(a,ra**(other._b-1)))/(rb*other._b);
-    logroot = rational(abs(a),b).log(2)/other._b;
-    alogroot = abs(logroot);
-    ilogroot = int(alogroot);
-    flogroot = alogroot-ilogroot;
-    r = rational(2**flogroot)*(sgn(a)<<ilogroot);
-    if logroot < 0 : r = 1/r;
-    x = rational(a,b);
-    return ((other._b-1)*r + x/r**(other._b-1))/other._b;
-"""
+    l = complex(other)*self.log();
+    return exp(l.real)*xrational(cos(l.imag),sin(l.imag));
+
   def __rpow__(self,other) :
     return xrational(other)**self;
 
@@ -652,3 +646,34 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
   def __rshift__(self,other) :
     """Return the quotient of self and 2**other, for other an integer"""
     return xrational(self._a>>other,self._b>>other) if other >= 0 else self<<-other;
+
+  def arg(self,ratio=False) :
+    """Return the argument of self; if ratio, as a fraction of 2pi"""
+    if not self : raise ZeroDivisionError('zero does not have an argument')
+    a = r = None;
+    if not self._b :
+      r = rational(1-sgn(self._a),4);
+    elif not self._a :
+      r = rational(sgn(self._b),4);
+    elif abs(self._a) == abs(self._b) :
+      r = rational(sgn(self._b)*(2-sgn(self._a)),8);
+    else :
+      a = atan2(self._b,self._a);
+    if ratio :
+      return a/tau if r==None else r;
+    else :
+      return tau*r if a==None else a;
+
+  def log(self,*base) :
+    """Return the log of the number as a complex"""
+    if base and (base[0] <= 0 or base[0] == 1) : raise ValueError('bad base');
+    if not self : return inf if base and base[0] < 1 else -inf;
+    a = abs(self);
+    b = self.arg();
+    c = base and base[0];
+    if c and c < 1 : a,b,base=1/a,-b,(1/c,);
+    return complex(log(a,*base),b/(log(base[0]) if base else 1));
+
+e = 1+1/rational(tuple(chain.from_iterable((2*i,1,1) for i in range(30))));
+pi = rational((3,7,15,1,292,1,1,1,2,1,3,1,14,2,1,1,2,2,2,2,1,84,2,1,1,15,3,13,1,4,2,6,6,99,1,2,2,6,3,5,1,1,6,8,1,7,1,2,3,7,1,2,1,1,12,1,1,1,3,1,1,8,1,1,2,1,6,1,1,5,2,2,3,1,2,4,4,16,1));
+tau = 2*pi;
