@@ -92,7 +92,7 @@ Instance variables:
 Methods:
   __init__, __repr__, __str__, __getitem__, __getattr__,
   __bool__, __nonzero__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-  __neg__, __iadd__, __add__, __radd__, __isub__, __sub__, __rsub__,
+  __neg__, __invert__, __iadd__, __add__, __radd__, __isub__, __sub__, __rsub__,
   __imul__, __mul__, __rmul__, __itruediv__, __idiv__, __truediv__, __div__
 
 NOTE: a 1x1x1x...1 matrix is treated as a scalar [could even be no 1s]
@@ -236,6 +236,13 @@ with successive lines varying the remaining dimensions, earlier faster"""
     s = matrix(self);
     for i in xrange(len(s.__v)) :
       s.__v[i] = -s.__v[i];
+    return s;
+
+  def __invert__(self) :
+    """Apply ~ to each element of a copy of the array"""
+    s = matrix(self);
+    for i in xrange(len(s.__v)) :
+      s.__v[i] = ~s.__v[i];
     return s;
 
 
