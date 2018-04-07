@@ -252,7 +252,7 @@ indices larger than the degree give 0; indices < 0 raise exception;
       other = other._a;
     if isinstance(other,polynomial) and other.degree <= 0 :
       other = other[0] if other else 0;
-    if other.__class__ in COMPLEX :
+    if not isinstance(other,RATFUN) :
       if other :
         return self.mapcoeffs(lambda x:x/other);
       raise ZeroDivisionError;
@@ -411,6 +411,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       i += 1;
       self = h;
     if g.degree :
+      c = g._p[0];
       return polynomial(*(x**c.p**(c.n-1) for x in g._p[::c.p])).factor(factors,c.p*e);
     else :
       return factors;
@@ -575,3 +576,5 @@ def rationalize(p) :
 
 _zero = polynomial();
 _one = polynomial(1);
+
+RATFUN = (polynomial,rationalfunction);
