@@ -410,9 +410,11 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       if self.degree : self._factor(factors,i*e);
       i += 1;
       self = h;
-    if g.degree :
+    if g.degree :    # finite field...
       c = g._p[0];
-      return polynomial(*(x**c.p**(c.n-1) for x in g._p[::c.p])).factor(factors,c.p*e);
+      p = c.p;    # characteristic
+      px = p**(c.n-1);    # exponent for mapping a**p -> a for a in GF(p**n)
+      return polynomial(*(x**px for x in g._p[::p])).factor(factors,p*e);
     else :
       return factors;
 
