@@ -395,11 +395,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
     if self._p[0]**2 != self._p[0] :
       factors[polynomial(self._p[0])] += e;
       self /= self._p[0];
-    d = self.derivative();
-    if not d :
-      # must be finite field of charactertic p with poly in x**p
-      return polynomial(*(x**c.p**(c.n-1) for x in self._p[::c.p])).factor(factors,c.p*e);
-    g = self.gcd(d);
+    g = self.gcd(self.derivative());
     self //= g
     # now self is square-free, but might have factor in common with g
     i = 1;
