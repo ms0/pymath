@@ -8,17 +8,20 @@ from itertools import chain
 from collections import defaultdict
 from matrix import product
 from rational import rational,xrational
+from ffield import isprime, factors, isirreducible, modpow, ffield
 
 if sys.version_info>(3,) :
   NONE = (None,);
   xrange = range;
   iteritems = lambda x: x.items();
-  isint = lambda x: isinstance(x,(int));
+  isint = lambda x: isinstance(x,int);
+  INT = set((int,));
   REAL = set((int,float,rational));
 else :
   NONE = (None,sys.maxint);
   iteritems = lambda x: x.iteritems();
   isint = lambda x: isinstance(x,(int,long));
+  INT = set((int,long));
   REAL = set((int,long,float,rational));
 
 RATIONAL = set((rational,));
@@ -97,7 +100,7 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__,
   __truediv__, __rtruediv__, __div__, __rdiv__, __floordiv__, __rfloordiv__,
   __divmod__, __mod__, __rmod__, __pow__,
-  mapcoeffs, derivative, gcd, xgcd, factor, @staticmethod unfactor"""
+  mapcoeffs, derivative, gcd, xgcd, isirreducible, factor, @staticmethod unfactor"""
 
   def __init__(self,*p) :
     """Create a polynomial from a sequence of coefficients, constant term last"""
@@ -368,6 +371,55 @@ indices larger than the degree give 0; indices < 0 raise exception;
       p,u,v,q,u1,v1 = q,u1,v1,p-m*q,u-m*u1,v-m*v1;
     p0 = p._p[0] if p else 1;
     return mapping(p/p0),mapping(u/p0),mapping(v/p0);
+
+  def isirreducible(p,q=0) :
+    """Return True iff p is irreducible over a field;
+if q is specified, it is the size of the field;
+if q is not specified, the field is inferred from p's coefficients"""
+    if q :
+      r = factors(q) ;
+      if len(r) != 1 :
+        raise ValueError('q must be a prime power')
+    d = p.degree;
+    if d <= 1 :
+      return d == 1;
+    types = set();
+    for x in p :
+      types.add(x.__class__);
+    if types <= INT and q > 0:
+      r = r[0];
+      if p._p[0] != 1 :
+        i = modpow(p._p[0],r-2,r);    # make monic
+        p = p.mapcoeffs(lambda x: x*i%r);
+        if d != p.degree :
+          raise ValueError('leading coefficient is 0 mod %d'%(r));
+      return isirreducible(p._p[1:],q);
+    if len(types) == 1 and tuple(types)[0].__class__ == ffield :
+      p0 = p._p[0];
+      if int(p0) != 1 :
+        p = p.mapcoeffs(lambda x: x/p0);    # make monic
+      q = q or p0.p**p0.n;
+      for c in p :
+        if (q-1)%(c.order or 1) :
+          raise ValueError('coefficients not all elements of GF(%d)'%(q));
+      x = polynomial(p._p[0],p._p[0]*0);    # Rabin test...
+      s = factors(d)+(1,);
+      k = len(s);
+      for i in xrange(k) :
+        e = q**(d//s[i]);
+        n = 1 << (bit_length(e)-1);
+        y = x;
+        n >>= 1;
+        while n :
+          y = y*y%p;
+          if e&n :
+            y = x*y%p;
+          n >>= 1;
+        if s[i] > 1 :
+          if p.gcd(y-x).degree != 0 : return False;
+        else :
+          return not (y-x)%p;
+    raise TypeError('implemented only for finite fields');
 
   def factor(self,factors=None,e=1) :
     """Return a factorization of polynomial self as a defaultdict(int);

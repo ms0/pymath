@@ -91,23 +91,27 @@ def isprime(n) :
 # if g != 0 f is reducible
 # else f is irreducible
 
-def isirreducible(poly,p) :  # missing leading coefficient assumed to be 1
-  """Run the deterministic Rabin test to see if poly over GF(p) is irreducible;
+def isirreducible(poly,q) :  # missing leading coefficient assumed to be 1
+  """Run the deterministic Rabin test to see if poly over GF(q) is irreducible;
 poly is represented as a tuple of coefficients ending with the constant term, but
 without the leading coefficient, which is taken to be 1"""
+  p = factors(q);
+  if len(p) != 1 : raise ValueError('q must be a power of a prime');
+  p = p[0];
   n = len(poly);
   if n <= 1 : return True;
   x = (1,0);
-  q = factors(n);
-  k = len(q);
+  r = factors(n);
+  k = len(r);
   f = (1,)+poly;
   for i in xrange(k) :
-    if len(mpgcd(p,f,mpsub(p,mppow(p,x,p**(n//q[i]),f),x))) != 1 : return False;
-  return not mpdivrem(p,mpsub(p,mppow(p,x,p**n,f),x),f)[1];
+    if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r[i]),f),x))) != 1 : return False;
+  return not mpdivrem(p,mpsub(p,mppow(p,x,q**n,f),x),f)[1];
 
 def factors(n) :
   """Return the prime factors of n in increasing order"""
   if n <= 1 : return ();
+  if n > primalitytestlimit and isprime(n) : return (n,);
   q = [];    # list of factors
   while not n&1 :
     if not q or q[-1] != 2 : q.append(2);
