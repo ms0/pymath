@@ -3,17 +3,41 @@ from poly import *
 from rational import *
 from random import random, randint
 
-x = polynomial(1,0);
+MINDIM = 1    # min square matrix dimension for test
+MAXDIM = 4    # max square matrix dimension for test
+REPEATS = 10    # number of times to repeat test
 
-def testcp() :
-  DIM = randint(1,6);
-  print(DIM);
-  X = matrix.Identity(DIM,x);
-  M = matrix((DIM,DIM),*tuple(random() for i in range(DIM*DIM)))
+x = polynomial(1,0);    # the polynomial x
+
+def testcp(dim,verbose=False) :    # characteristic polynomial test
+  X = matrix.Identity(dim,x);
+  M = matrix(dim,dim,
+             tuple(xrational(random()+random()*1j) for i in range(dim*dim)))
   cp = (M-X).det;
-  Md = M.mapped(rational).det;
-  if cp(0) != Md : print(float(Md),float(cp(0)));
-  if cp(M) : print(M,cp(M));
- 
-for i in range(30) :
-  testcp()
+  try :
+    if cp.denominator != 1 :
+      print('Charpoly not a polynomial? Denominator = %s'
+            %(cp.denominator.mapcoeffs(complex)));
+      verbose=True;
+    cp = cp.numerator;
+  except :
+    pass;    # was already polynomial
+  Md = M.det;
+  if verbose or cp(0) != Md or cp(M) :
+    print(M.mapped(complex));
+    print(cp.mapcoeffs(complex));
+  if cp(0) != Md : # check that characteristic polynomial at 0 is determinant
+    print('det %s != charpoly(0) %s'%(float(Md),float(cp(0))));
+  cpM = cp(M);
+  if cp(M) :    # check that matrix satisfies its characteristic polynomial
+    print(M,cpM);
+  MT = M.T
+  cpMT = cp(MT);
+  if cpMT :    # check that transposed matrix satisfies characteristic polynomial
+    print(MT,cpMT);
+
+if __name__=='__main__' :
+  for i in range(REPEATS) :
+    dim = randint(MINDIM,MAXDIM);
+    print(dim);
+    testcp(dim);

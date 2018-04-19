@@ -5,7 +5,7 @@ from ffield import *
 from matrix import *
 from poly import *
 
-MAXCHAR = 64;    # limit on characteristics to test
+MAXCHAR = 16;    # limit on characteristics to test
 LIMIT2 = 128;    # limit on ff size for full pair testing
 LIMIT3 = 64;     # limit on ff size for full triple testing
 LIMITM = 16;     # limit on size of vandermonde matrix
