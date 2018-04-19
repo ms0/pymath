@@ -6,7 +6,7 @@ Python code for mathematical classes
 Classes to implement finite fields (ffield.py), rationals and complex rationals (rational.py),
 quaternions (quaternion.py), matrices (matrix.py) over any ring, and
 single-variable polynomials and rational functions (poly.py) with coefficients in any field.
-Also, a class to implement bidirectional graphs (graph.py).
+Also, a class to implement undirected graphs (graph.py).
 
 Test programs for the various classes are included:
 test_ffield.py primarily tests ffield.py, but also uses matrix.py and poly.py
