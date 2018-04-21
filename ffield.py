@@ -203,13 +203,11 @@ def __getattr__(self,name) :
       return o;
     if self.x <= 1 :
       return self.x;
-    while True :
-      q = factors(o);
-      for p in q :
-        if (self**(o//p)).x == 1 : break;    # order is divisor of o//p
-      else :
-        return o;
-      o //= p;
+    for p in factors(o) :
+      while not o%p :
+        if (self**(o//p)).x != 1 : break;
+        o //= p;
+    return o;
   raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
 
 def __hash__(self) :
@@ -487,6 +485,9 @@ over the subfield. Raise an exception if m does not divide self.n.
   O = p**m-1;    # order of subfield
   if not O%(o or 1) :    # already in subfield
     return (G1,-self);
+  d = 1;    # calculate degree of minpoly...
+  while (p**(m*d)-1)%o :    # order of element must divide order of subfield
+    d += 1;
   if m > 1 :
     # brute force algorithm...
     # ceil(ceil(log(o+1,p))/m) is min possible degree of minpoly
@@ -497,12 +498,8 @@ over the subfield. Raise an exception if m does not divide self.n.
       g = G(random.randint(p,G.order));
       if not g.order % O: break;
     g **= g.order // O;   # generator of subfield
-    d = 1;    # calculate min possible degree of minpoly...
-    # (p**m)**d is size of subfield spanned by powers of self
-    while p**d < o+1 : d += 1;    # ceil(log(o+1,p)), floating point insufficient
-    d = (d+m-1)//m;    # make sure p**(md) is size of a sufficiently large subfield
+    P[d] = G1;
     while True :
-      P[d] = G1;
       # evaluate P(self)
       v = G0;
       for i in xrange(d,0,-1) :
@@ -522,26 +519,26 @@ over the subfield. Raise an exception if m does not divide self.n.
           P[i] = g;
           break;
       else :
-        d += 1;
+        # d += 1;    # should never happen
+        # P[d] = G1;
+        raise ValueError('Math failure');
   # get minpoly over GF(p) ...
   X = [];
   x = G1;
-  for i in xrange(n) :
+  for i in xrange(d) :
     X.append(tuple(map(G,_vector(x))));
     x *= self;
-  M = matrix.matrix(n,n,list(chain.from_iterable(X)));
-  for r in xrange(3,n+1) :
-    if M[:,:r].rank < r :
-      d = r-2;    # minpoly degree - 1
-      x = tuple(map(G,M[:,r-1]));
-      for s in reversed(xrange(n)) :
-        M[:,r-1] = map(G,(0 if i != s else 1 for i in xrange(n)));
-        if M[:,:r].rank == r :
-          if r == n : break;
-          r += 1;
-      return (G(1),)+tuple(-(M.inverse*x))[d::-1];
-  else :
-    return (G(1),)+tuple(-(M.inverse*map(G,_vector(x))))[::-1];
+  v = list(_vector(x));    # self**d
+  M = matrix.matrix(n,d,list(chain.from_iterable(X))).T;
+  if n > d :
+    for c in reversed(xrange(n)) :  # eliminate redundant columns from M and v
+      N = matrix.matrix(d,len(v)-1,M[:d*c]+M[d*(c+1):]);
+      if N.rank == d :
+        M = N;
+        del v[c];
+        if len(v) == d : break;
+  v = map(G,v);
+  return (G(1),)+tuple(-(v*M.inverse))[::-1];
 
 
 class ffield(type) :

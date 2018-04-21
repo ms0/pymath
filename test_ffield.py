@@ -85,6 +85,7 @@ def ptest(g) :    # polynomial tests
     x = g(randrange(pn));
     for m in set(chain.from_iterable((a,n//a) for a in (1,)+factors(n))) :
       P = polynomial(*x.minpoly(m));
+      ceq('v[0].isirreducible(v[1]**v[2])',P,p,m);    # make sure irreducible
       o = p**m-1;
       ceq('v[0].degree <= v[2]//v[1]',P,m,n);    # make sure degree is not too big
       for c in P :
