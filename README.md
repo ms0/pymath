@@ -16,4 +16,4 @@ test_poly.py primarliy tests poly.py, but also uses ffield.py and rational.py
 A demonstration of secret sharing using finite fields is also included (share.py),
 together with an html-based slide presentation (secretsharing.html)
 
-A demonstration of using the classes to create binary BCH codes is also included (bch.py)
+A demonstration of using the classes to create BCH codes is also included (bch.py)
