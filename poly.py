@@ -9,6 +9,7 @@ from collections import defaultdict
 from matrix import product
 from rational import rational,xrational
 from ffield import isprime, factors, isirreducible, modpow, ffield
+from random import randrange,randint
 
 if sys.version_info>(3,) :
   NONE = (None,);
@@ -382,7 +383,7 @@ if q is not specified, the field is inferred from p's coefficients"""
         raise ValueError('q must be a prime power')
     d = p.degree;
     if d <= 1 :
-      return d == 1;
+      return True;
     types = set();
     for x in p :
       types.add(x.__class__);
@@ -421,31 +422,31 @@ if q is not specified, the field is inferred from p's coefficients"""
           return not (y-x)%p;
     raise TypeError('implemented only for finite fields');
 
-  def factor(self,factors=None,e=1) :
+  def factor(self,facdict=None,e=1) :
     """Return a factorization of polynomial self as a defaultdict(int);
 keys are factors, and values are positive integer exponents;
 if the leading coefficient is real (i.e., int or float),
 the coefficients are converted to rationals before factoring
 and the result's coefficients are converted to floats.
 Nonconstant factors will be square-free but not necessarily irreducible."""
-    if not isinstance(factors,defaultdict) : factors = defaultdict(int);
+    if not isinstance(facdict,defaultdict) : facdict = defaultdict(int);
     if self.degree < 1 :
       if not self or self._p[0]**2 != self._p[0] :
-        factors[self] += e;
-      return factors;
+        facdict[self] += e;
+      return facdict;
     types = set();
     for x in self :
       types.add(x.__class__);
     if set() < types <= REAL and not types <= RATIONAL :
       for k,v in iteritems(self.mapcoeffs(rational).factor()) :
-        factors[k.mapcoeffs(float)] += v;
-      return factors;
+        facdict[k.mapcoeffs(float)] += v;
+      return facdict;
     elif types <= COMPLEX and not types <= XRATIONAL :
       for k,v in iteritems(self.mapcoeffs(xrational).factor()) :
-        factors[k.mapcoeffs(complex)] += v;
-      return factors;
+        facdict[k.mapcoeffs(complex)] += v;
+      return facdict;
     if self._p[0]**2 != self._p[0] :
-      factors[polynomial(self._p[0])] += e;
+      facdict[polynomial(self._p[0])] += e;
       self /= self._p[0];
     g = self.gcd(self.derivative());
     self //= g
@@ -455,46 +456,81 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       h = self.gcd(g);
       self //= h;
       g //= h;
-      if self.degree : self._factor(factors,i*e);
+      if self.degree : self._factor(facdict,i*e);
       i += 1;
       self = h;
     if g.degree :    # finite field...
       c = g._p[0];
       p = c.p;    # characteristic
       px = p**(c.n-1);    # exponent for mapping a**p -> a for a in GF(p**n)
-      return polynomial(*(x**px for x in g._p[::p])).factor(factors,p*e);
+      return polynomial(*(x**px for x in g._p[::p])).factor(facdict,p*e);
     else :
-      return factors;
+      return facdict;
 
-  def _factor(self,factors,e) :    # self is square-free and monic
+  def _factor(self,facdict,e) :    # self is square-free and monic
     try :
       c = self._p[0].__class__;
       q = c.p**c.n;
       i = 1;
       s = ();
       while 2*i <= self.degree :
-        o = c(1);
         z = c(0);
-        g = self.gcd(polynomial(*(o,)+((z,)*(q**i-2))+(-o,z))); # x**q**i - x
-        if g.degree :
-          factors[g] += e    # actually want g's factors, all of degree i
+        o = c(1);
+        h = b = polynomial(o,z);    # compute x**q**i % self ...
+        x = q**i;
+        m = (1<<(bit_length(x)-1)) >> 1;
+        while m :
+          h = h*h%self;
+          if x&m :
+            h = polynomial(*h._p+(z,))%self;
+          m >>= 1;
+        g = self.gcd(h-b);
+        n = g.degree;
+        if n :
+          # Cantor-Zassenhaus algorithm...
+          f = set((g,));
           self //= g;
+          r = n//i;    # number of degree i irreducible factors
+          if r > 1 :
+            x = (q**i-1)//factors(q**i-1)[0];
+            while len(f) < r :
+              h = b = polynomial(o,
+                *(c(randrange(q)) for j in range(i)))
+              m = (1<<(bit_length(x)-1)) >> 1;
+              while m :
+                h = h*h%g;
+                if x&m :
+                  h = h*b%g;
+                m >>= 1;
+              h -= c(1);
+              h = h.mapcoeffs(lambda x:x/h._p[0]);
+              for u in tuple(f) :
+                if u.degree > i :
+                  for w in (h,b) :
+                    v = u.gcd(w);
+                    if 0 < v.degree < u.degree :
+                      f.remove(u);
+                      f.add(v);
+                      f.add(u//v);
+                      break;
+          for u in f :
+            facdict[u] += e;
         i += 1;
       if self.degree :
-        factors[self] += e;     # must be irreducible
+        facdict[self] += e;     # must be irreducible
     except :
-      factors[self] += e;
+      facdict[self] += e;
 
   def mapcoeffs(self,f) :
     """Apply f to each coefficient and return the resulting polynomial"""
     return polynomial(*map(f,self._p));
 
   @staticmethod
-  def unfactor(factors,p=None) :
+  def unfactor(facdict,p=None) :
     """Take a factorization as produced by factor() and return the product,
 multiplied by p if specified"""
     if p == None : p = _one;
-    for f,e in iteritems(factors) :
+    for f,e in iteritems(facdict) :
       p *= f**e;
     return p;
 
