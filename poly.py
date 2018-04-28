@@ -492,7 +492,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
           self //= g;
           r = n//i;    # number of degree i irreducible factors
           if r > 1 :
-            x = (q**i-1)//factors(q**i-1)[0];
+            x = (q**i-1)//(factors(q**i-1) or (1,))[0];
             while len(f) < r :
               h = b = polynomial(o,
                 *(c(randrange(q)) for j in range(i)))

@@ -5,7 +5,13 @@ import sys
 from poly import *
 from ffield import *
 from rational import *
-from random import randint, randrange, random
+from random import Random
+
+R=Random();
+randint=R.randint;
+randrange=R.randrange;
+random=R.random;
+R.seed(0);    # for reproducibility of tests
 
 MINDEGREE = 1    # min degree of polynomials to be tested
 MAXDEGREE = 10   # max degree of polynomials to be tested
@@ -79,25 +85,42 @@ def testmp(F) :    # test minimal polys and isirreducible in ffield F
         error('GF(%d**%d)(%d) minpoly(%d) not irreducible over GF(%d**%d)?'
               %(p,n,i,k,p,k));
 
-if __name__ == '__main__' :
+def factest(F) :
+  print('\n%s'%(F));
+  for i in range(FREPEATS) :
+    testf(polynomial(F(1),*(F(randrange(F.order+1))
+                            for j in range(randint(MINDEGREE,MAXDEGREE)))));
+
+def factests() :
+  GF2 = ffield(2);
   GF3 = ffield(3);
   p = polynomial(1,0,2,2,0,1,1,0,2,2,0,1).mapcoeffs(GF3);
-  print('factor test');
-  f = testf(p);
+  testf(p);
+  p = polynomial(GF2(1));  # try product of all irreducible polys mod 2 thru degree 4
+  for d in range(1,5) :
+    for i in range(2**d) :
+      t = tuple(map(int,format(i,'0%db'%(d))));
+      if isirreducible(t,2) : p *= polynomial(*(1,)+t).mapcoeffs(GF2);
+  testf(p);
   GF243 = ffield(3,6,5);
   GF64 = ffield(2,6,3);
   GF32 = ffield(2,5,5);
   for F in (GF243,GF64,GF32) :
-    print('\n%s'%(F));
-    for i in range(FREPEATS) :
-      testf(polynomial(F(1),*(F(randrange(F.order+1))
-                              for j in range(randint(MINDEGREE,MAXDEGREE)))));
-  print('\nminpoly and isirreducible test')
-  testmp(GF243);
-  print('\nrandom polynomial ops test, gcd test')
+    factest(F);
+
+def optests() :
   for i in range(OPREPEATS) :
     r = randp();
     print(map(lambda x: x.degree,r));
     testpops(*r);
     testpgcd(*r[:2]);
+
+if __name__ == '__main__' :
+  print('factor test');
+  factests();
+  GF243 = ffield(3,6,5);
+  print('\nminpoly and isirreducible test')
+  testmp(GF243);
+  print('\nrandom polynomial ops test, gcd test')
+  optests();
   print('\nCompleted');
