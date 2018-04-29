@@ -4,11 +4,11 @@ __all__ = ['polynomial','rationalfunction']
 
 import sys
 
-from itertools import chain
+from itertools import chain, count
 from collections import defaultdict
 from matrix import product
 from rational import rational,xrational
-from ffield import isprime, factors, isirreducible, modpow, ffield
+from ffield import isprime, factors, isirreducible, modpow, ffield, primalitytestlimit
 from random import randrange,randint
 
 if sys.version_info>(3,) :
@@ -46,6 +46,14 @@ inf = float('inf');
 floatall = lambda x: x.mapcoeffs(float);
 complexall = lambda x: x.mapcoeffs(complex);
 identity = lambda x: x;
+
+def leastfactor(n) :
+  if n <= 1: return 1;
+  if n > primalitytestlimit and isprime(n) : return n;
+  if not n&1 : return 2;
+  for p in count(3,2) :
+    if p*p > n : return n;
+    if not n%p : return p;
 
 # danger: division converts to floating point (unless we use rational coeffs)
 
@@ -492,7 +500,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
           self //= g;
           r = n//i;    # number of degree i irreducible factors
           if r > 1 :
-            x = (q**i-1)//(factors(q**i-1) or (1,))[0];
+            x = (q**i-1)//leastfactor(q**i-1);
             while len(f) < r :
               h = b = polynomial(o,
                 *(c(randrange(q)) for j in range(i)))
