@@ -800,9 +800,40 @@ all polynomials over GF(p); note that g**-1 mod f = xmpgcd(p,f,g)[2]"""
     v0 = mpmul(p,v0,q);
   return f,u0,v0;
 
+def mu(n) :
+  """Return Mobius function of n"""
+  if not isinstance(n,(int,long)) or n < 1 :
+    raise ValueError('n must be a positive integer');
+  if n <= 1 :
+    return 1;
+  if n > primalitytestlimit and isprime(n) : return -1;
+  m = 1;
+  if not n&1 :
+    if not n&2 : return 0;
+    n >>= 1;
+    m = -1;
+  p = 3;
+  while n > 1 :
+    if p*p > n :
+      return -m;
+    if not n % p :
+      n //= p;
+      if not n % p : return 0;
+      m = -m;
+    p += 2;
+  return m;
 
-def test_irreducibility(p,n) :
-  """Print all the irreducible polynomials of degree n over GF(p)"""
+def irreducible_count(p,n) :
+  """Return number of monic irreducible degree n polynomials over GF(p)"""
+  s = 0;
+  for d in xrange(1,n+1) :
+    if not n%d :
+      s += p**d * mu(n//d);
+  return s//n;
+
+def irreducibles(p,n) :
+  """Return tuple of all monic irreducible degree n polynomials over GF(p)"""
+  l = [];
   for i in xrange(p**n) :
     poly = [];
     j = i;
@@ -810,35 +841,5 @@ def test_irreducibility(p,n) :
       poly.append(j%p);
       j //= p;
     poly = tuple(poly);
-    if isirreducible(poly,p) : print((1,)+poly);
-
-# for first few n :
-# (1,1),(1,0)
-# (1,1,1)
-# (1,0,1,1),(1,1,0,1)
-# (1,0,0,1,1),(1,1,1,1,1),(1,1,0,0,1)
-# (1,0,0,1,0,1),(1,0,1,1,1,1),(1,0,1,0,0,1),(1,1,1,0,1,1),(1,1,1,1,0,1),(1,1,0,1,1,1)
-# [this has been verified, but perhaps we should put it in the test]
-
-# some test routines that could be useful:
-# test n=1 cases of +,-,*,/,** [p=31,p=17]
-# test p=2 cases of " [n=8 should be fine]
-# test general cases [n=3,p=5 should be good enough]
-# How do we test?
-#  Verify associativity, commutativity, and distributivity for random values?
-#  Verify a/b*b = a for b!=0
-#  Verify a-b+b = a
-#  Verify 0*x = x*0 = 0
-#  Verify 1*x = x*1 = x
-#  Verify 0+x = x+0 = x
-#  Verify multiply and divide by scalar
-#  Verify 0**x = 0
-#  Verify 1**x = 1
-#  Verify a**(x+y) = a**x * a**y
-#  Verify (ab)**x = a**x * b**x
-#  Verify a*a**-1 = 1 for a!=0
-# For p = 2, n = 1, we can do a full test of all possible values,
-# noting that the exponent in pow is mod 1.
-# Even for p = 2, n = 5, a full test would be feasible, using independent code
-# For p > 2, n = 1, we can do a full test for small p (say 3 or 5)
-# The general case we'll do with random test values.
+    if isirreducible(poly,p) : l.append((1,)+poly);
+  return tuple(l);

@@ -10,6 +10,7 @@ LIMIT2 = 128;    # limit on ff size for full pair testing
 LIMIT3 = 64;     # limit on ff size for full triple testing
 LIMITM = 16;     # limit on size of vandermonde matrix
 LIMITP = 32;     # limit on number of minpoly test elements
+LIMITQ = 1024;   # limit on size of field for irreducibles testing
 
 def ceq(c,*v) :
   z = v[0].__class__(0);
@@ -36,6 +37,8 @@ def test(p,n) :
   g = randfield(p,n);
   print(g);
   pn = p**n;
+  if pn <= LIMITQ :
+    ceq('v[0]==len(v[1])',irreducible_count(p,n),irreducibles(p,n));
   z = g(0);
   o = g(1);
   ceq('not o+-1',o);
