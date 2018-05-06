@@ -159,7 +159,8 @@ Instance variables:
  n: the degree of the polynomial modulus (inherited from the type)
  x: the polynomial representation, evaluated at x=p"""
   if x.__class__ == self.__class__ or \
-     x.__class__.__class__ == ffield and x.n == 1 and x.p == self.p :
+     x.__class__.__class__ == ffield and x.p == self.p and (
+       x.n == 1 or self.n == 1 and x.x < x.p) :
     self.x = x.x;
     return;
   p = self.p;
