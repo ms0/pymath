@@ -2,7 +2,7 @@ from __future__ import division
 
 """ BCH error correcting code generation """
 
-from ffield import *
+from ffield import ffield,primepower
 from poly import *
 from fractions import gcd
 from random import randrange
@@ -20,29 +20,19 @@ def bch(q,n,d,c=1) :
   c is least of consecutive exponents of primitive root used for computing result
   NOTE: computations and results are in GF(q**m); so if q is not prime,
    converting results back to GF(q) will not be unique."""
-  r = factors(q);
-  if len(r) != 1 : raise ValueError('q must be a prime power');
-  p = r[0];
+  try :
+    p,k = primepower(q);
+  except :
+    raise ValueError('q must be a prime power');
   if not 2 <= d <= n : raise ValueError('must have 2 <= d <= n');
   if gcd(n,p) != 1 : raise ValueError('n and q must be coprime');
-  k = 1;    # compute k where q = p**k ...
-  m = q//p;
-  while m > 1 :
-    k += 1;
-    m /= p;
-  # m = 1;    # calculate m, the order of q mod n ...
+  m = 1;    # calculate m, the order of q mod n ...
   t = q;
   while t%n != 1 :
     m += 1;
     t = t*q%n;
-  km = k*m;
   qm = q**m;    # 1 mod n (so n|(q**m-1))
-  while True :
-    try :
-      F = ffield(p,km,randrange(qm));    # GF(q**m)
-      break;
-    except :
-      pass;
+  F = ffield(qm);
   while True :
     a = F(randrange(1,qm));
     if not a.order%n : break;
@@ -79,7 +69,7 @@ n-bit codewords and Hamming distance >= d"""
   g = bch(2,n,d);
   b = n - g.degree;
   return bmatrix(n,b,sum(
-    (map(int,encode(g,tuple(map(int,format(1<<i,'0%db'%(b))))))
+    (list(map(int,encode(g,tuple(map(int,format(1<<i,'0%db'%(b)))))))
      for i in reversed(range(b))),
     [])).T;
 
