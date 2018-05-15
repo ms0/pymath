@@ -4,6 +4,8 @@
 
 from __future__ import division
 
+__all__ = ['matrix','bmatrix']
+
 import sys
 import types
 import math

@@ -1,7 +1,12 @@
+import sys
+
+if sys.version_info>(3,) :
+  xrange = range;
+
 from random import randrange, sample
 from itertools import chain
 
-from ffield import *
+from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, factors, zits
 from matrix import *
 from poly import *
 
@@ -86,7 +91,7 @@ def ptest(g) :    # polynomial tests
   pn = p**n;
   for i in range(min(pn,LIMITP)) :
     x = g(randrange(pn));
-    for m in set(chain.from_iterable((a,n//a) for a in (1,)+factors(n))) :
+    for m in set(chain.from_iterable((a,n//a) for a in chain((1,),factors(n)))) :
       P = polynomial(*x.minpoly(m));
       ceq('v[0].isirreducible(v[1]**v[2])',P,p,m);    # make sure irreducible
       o = p**m-1;

@@ -3,7 +3,7 @@ from __future__ import print_function
 import sys
 
 from poly import *
-from ffield import *
+from ffield import ffield,isirreducible
 from rational import *
 from random import Random
 
@@ -111,7 +111,7 @@ def factests() :
 def optests() :
   for i in range(OPREPEATS) :
     r = randp();
-    print(map(lambda x: x.degree,r));
+    print(tuple(map(lambda x: x.degree,r)));
     testpops(*r);
     testpgcd(*r[:2]);
 

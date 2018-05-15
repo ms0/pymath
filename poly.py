@@ -6,9 +6,9 @@ import sys
 
 from itertools import chain, count
 from collections import defaultdict
-from matrix import product
+from matrix import product, bmatrix
 from rational import rational,xrational
-from ffield import isprime, factors, isirreducible, modpow, ffield, primalitytestlimit
+from ffield import isprime, primepower, factors, isirreducible, modpow, ffield, unpack
 from random import randrange,randint
 
 if sys.version_info>(3,) :
@@ -47,13 +47,10 @@ floatall = lambda x: x.mapcoeffs(float);
 complexall = lambda x: x.mapcoeffs(complex);
 identity = lambda x: x;
 
-def leastfactor(n) :
-  if n <= 1: return 1;
-  if n > primalitytestlimit and isprime(n) : return n;
-  if not n&1 : return 2;
-  for p in count(3,2) :
-    if p*p > n : return n;
-    if not n%p : return p;
+def leastfactor(n,maxfactor=None) :
+  for p in factors(n,maxfactor) :
+    return p;
+  return 1;
 
 # danger: division converts to floating point (unless we use rational coeffs)
 
@@ -386,8 +383,8 @@ indices larger than the degree give 0; indices < 0 raise exception;
 if q is specified, it is the size of the field;
 if q is not specified, the field is inferred from p's coefficients"""
     if q :
-      r = factors(q) ;
-      if len(r) != 1 :
+      r = primepower(q);
+      if not r :
         raise ValueError('q must be a prime power')
     d = p.degree;
     if d <= 1 :
@@ -412,10 +409,8 @@ if q is not specified, the field is inferred from p's coefficients"""
         if (q-1)%(c.order or 1) :
           raise ValueError('coefficients not all elements of GF(%d)'%(q));
       x = polynomial(p._p[0],p._p[0]*0);    # Rabin test...
-      s = factors(d)+(1,);
-      k = len(s);
-      for i in xrange(k) :
-        e = q**(d//s[i]);
+      for s in chain(factors(d),(1,)) :
+        e = q**(d//s);
         n = 1 << (bit_length(e)-1);
         y = x;
         n >>= 1;
@@ -424,7 +419,7 @@ if q is not specified, the field is inferred from p's coefficients"""
           if e&n :
             y = x*y%p;
           n >>= 1;
-        if s[i] > 1 :
+        if s > 1 :
           if p.gcd(y-x).degree != 0 : return False;
         else :
           return not (y-x)%p;
@@ -500,10 +495,21 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
           self //= g;
           r = n//i;    # number of degree i irreducible factors
           if r > 1 :
+            if leastfactor(q**i-1,7) > 7 :
+              saved = (c,q,z,o)
+              q **= 2
+              c = ffield(q);
+              z = c(0);
+              o = c(1);
+              maps = fieldmaps(saved[0],c);
+              g = g.mapcoeffs(maps[0]);
+              f = set((g,));
+            else :
+              saved = ();
             x = (q**i-1)//leastfactor(q**i-1);
             while len(f) < r :
               h = b = polynomial(o,
-                *(c(randrange(q)) for j in range(i)))
+                *(c(randrange(q)) for j in xrange(i)))
               m = (1<<(bit_length(x)-1)) >> 1;
               while m :
                 h = h*h%g;
@@ -521,6 +527,9 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
                       f.add(v);
                       f.add(u//v);
                       break;
+            if saved :
+              c,q,z,o = saved;
+              f = map(lambda x:x.mapcoeffs(maps[1]),f);
           for u in f :
             facdict[u] += e;
         i += 1;
@@ -541,6 +550,39 @@ multiplied by p if specified"""
     for f,e in iteritems(facdict) :
       p *= f**e;
     return p;
+
+def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
+  if F.n == 1 :
+    return (G,F);
+  GF2 = ffield(2);
+  fp = polynomial(*F._tupoly).mapcoeffs(GF2);    #F(2).minpoly();
+  m = F.n;
+  n = G.n;
+  while True :    # find generator of G
+    g = G(randrange(2,2**n));
+    if g.order==G.order : break;
+  h = g**(G.order//F.order);    # generator of F in G
+  for x in xrange(1,F.order-1) :
+    j = h**x;
+    if not fp(j) : break; # find an x such that h**x has minpoly F._tupoly
+  F2G = lambda f: polynomial(*unpack(2,int(f))).mapcoeffs(GF2)(j);
+  v = [G(1),j];
+  p = j;
+  for i in xrange(2,m) :
+    p *= j;
+    v.append(p);
+  p = g;
+  for k in xrange(1,2) :
+    for i in xrange(m) :
+      v.append(v[(k-1)*2+i]*g);
+      p *= g;
+  # v has n entries, but each needs to be turned into a column
+  s = 0;
+  for x in v[::-1] :
+    s = (s<<n) | x.x;
+  M = bmatrix((n,n),s).T.inverse[:,:m];
+  G2F = lambda g: F((bmatrix((n,),g.x)*M)._bits);
+  return (F2G,G2F);
 
 class rationalfunction() :
   def __init__(self,a,b=1) :

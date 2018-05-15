@@ -1,14 +1,18 @@
 """ finite field classes """
 
+__all__ = ['ffield']
+
 import sys
 
 if sys.version_info>(3,) :
   unicode = str;
   xrange = range;
   range = lambda *x: list(xrange(*x));
-  long = int;  
+  isint = lambda x: isinstance(x,int);
   xmap = map;
   map = lambda *x: list(xmap(*x));
+else :
+  isint = lambda x: isinstance(x,(int,long));
 
 try :
   int.bit_length;
@@ -28,7 +32,7 @@ except :
 import random
 random.seed();
 
-from itertools import chain
+from itertools import chain, count
 import matrix
 
 def modpow(b,x,p) :    # b**x mod p
@@ -50,7 +54,7 @@ primalitytestlimit = 1<<24;    # limit for looking for (odd) divisor
   
 def isprime(n) :
   """Test if n is prime, if no "small" factors, use probabilistic Miller-Rabin test"""
-  if not isinstance(n,(int,long)) or n < 2 or (not n%2 and n!=2) : return False;
+  if not isint(n) or n < 2 or (not n%2 and n!=2) : return False;
   if n < 9 : return True;
   i = 3;
   while i < primalitytestlimit :
@@ -76,6 +80,10 @@ def isprime(n) :
       return False;    # didn't get to -1
   return True;
 
+def primepower(q) :
+  """Return (p,n) if q == p**n, else None"""
+  for f in factor(q) :
+    return f if q == f[0]**f[1] else None;
 
 # test for irreducibility [Rabin]
 # let p be our prime, and n our exponent
@@ -92,40 +100,57 @@ def isprime(n) :
 # else f is irreducible
 
 def isirreducible(poly,q) :  # missing leading coefficient assumed to be 1
-  """Run the deterministic Rabin test to see if poly over GF(q) is irreducible;
-poly is represented as a tuple of coefficients ending with the constant term, but
+  """Run the deterministic Rabin test to see if poly is irreducible over GF(q);
+q must be a positive power of a prime p; poly is represented as a tuple of
+integer coefficients interpreted mod p, ending with the constant term, but
 without the leading coefficient, which is taken to be 1"""
-  p = factors(q);
-  if len(p) != 1 : raise ValueError('q must be a power of a prime');
+  p = primepower(q);
+  if not p : raise ValueError('q must be a power of a prime');
   p = p[0];
   n = len(poly);
   if n <= 1 : return True;
   x = (1,0);
-  r = factors(n);
-  k = len(r);
   f = (1,)+poly;
-  for i in xrange(k) :
-    if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r[i]),f),x))) != 1 : return False;
+  for r in factors(n) :
+    if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
   return not mpdivrem(p,mpsub(p,mppow(p,x,q**n,f),x),f)[1];
 
-def factors(n) :
-  """Return the prime factors of n in increasing order"""
-  if n <= 1 : return ();
-  if n > primalitytestlimit and isprime(n) : return (n,);
-  q = [];    # list of factors
-  while not n&1 :
-    if not q or q[-1] != 2 : q.append(2);
+def factors(n,maxfactor=None) :
+  """Return the prime factors of n in increasing order as a generator"""
+  for p in factor(n,maxfactor) : yield p[0];
+
+def factor(n,maxfactor=None) :
+  """Return prime factorization of n as generator of (prime,exponent) pairs"""
+  if n <= 1 :
+    return;
+  c = 0;
+  while not n & 1:
     n >>= 1;
-  p = 3;
-  while n > 1 :
+    c += 1;
+  if c : yield (2,c);
+  if n > primalitytestlimit and isprime(n) :
+    yield (n,1);
+    return;
+  for p in xrange(3,maxfactor+1,2) if maxfactor else count(3,2) :
     if p*p > n :
-      q.append(n);      
-      break;
+      if n > 1 : yield (n,1);
+      return;
+    c = 0;
     while not n % p :
-      if not q or q[-1] != p : q.append(p);
       n //= p;
-    p += 2;
-  return tuple(q);
+      c += 1;
+    if c :
+      yield (p,c);
+      if n > primalitytestlimit and isprime(n) :
+        yield (n,1);
+        return;
+  if n > 1 : yield (n,1);
+
+def unfactor(q) :
+  """Given sequence of (prime,exponent) pairs, return product"""
+  p = 1;
+  for (n,c) in q : p *= n**c;
+  return p;
 
 def pack(p,a) :
   """Return the evaluation at x=p of a, a tuple of coefficients ending with the constant term"""
@@ -165,7 +190,7 @@ Instance variables:
     return;
   p = self.p;
   n = self.n;
-  if isinstance(x,(int,long)) :
+  if isint(x) :
     pn = p**n;
     if -pn < x < pn :
       self.x = x%pn;
@@ -176,7 +201,7 @@ Instance variables:
     else :
       s = 0;
       for i in x :
-        if not isinstance(i,(int,long)) :
+        if not isint(i) :
           raise TypeError('tuple elements must be integers');
         if not 0 <= i < p :
           raise ValueError('tuple elements must be in [0,%d)'%(p));
@@ -197,7 +222,7 @@ Instance variables:
 
 def __getattr__(self,name) :
   if name == 'tupoly' :
-    return self._tupoly[self._nzi:];
+    return self._tupoly[self._nzi:] if self._nzi else ();
   if name == 'order' :
     o = self.p**self.n-1;
     if isinstance(self,ffield) :
@@ -270,7 +295,7 @@ def __add__(self,other) :
         return other+x;
       if other.n == 1 :
         other = other.x;
-    if isinstance(other,(int,long)) :
+    if isint(other) :
       other %= p;
       if not other : return self;
       return self.__class__(x-x%p+(x+other)%p);
@@ -326,7 +351,7 @@ def __sub__(self,other) :
         return x-other;
       if other.n == 1 :
         other = other.x;
-    if isinstance(other,(int,long)) :
+    if isint(other) :
       other %= p;
       if not other : return self;
       return self.__class__(x-x%p+(x-other)%p);
@@ -350,7 +375,7 @@ def __sub__(self,other) :
 def __rsub__(self,y) :
   """Return the difference of the swapped finite field elements; integers  are treated mod p"""
   p = self.p;
-  if not isinstance(y,(int,long)) :
+  if not isint(y) :
     raise TypeError('must be field element');
   return self.__class__(y%p)-self;
 
@@ -365,7 +390,7 @@ def __div__(self,y) :
         return x/y;
       if y.n == 1 :
         y = y.x;
-    if isinstance(y,(int,long)) :
+    if isint(y) :
       y %= p;
       if not y : raise ZeroDivisionError;
       if y == 1 : return self;
@@ -388,7 +413,7 @@ def __div__(self,y) :
 def __rdiv__(self,y) :    # y/self
   """Return y/self; y must be an integer and is interpreted mod p"""
   p = self.p;
-  if not isinstance(y,(int,long)) :
+  if not isint(y) :
     raise TypeError('must be field element');
   x = self.x;
   if not x : raise ZeroDivisionError;
@@ -412,7 +437,7 @@ def __mul__(self,y) :
         return y*x;
       if y.n == 1 :
         y = y.x;
-    if isinstance(y,(int,long)) :
+    if isint(y) :
       d = y%p;
       if not d : return self.__class__(0);
       if d == 1 : return self;
@@ -444,7 +469,7 @@ def __mul__(self,y) :
 
 def __pow__(self,e) :
   """Raise the finite field element to the specified power mod p**n-1, 0**0=0"""
-  if not isinstance(e,(int,long)) :
+  if not isint(e) :
     raise TypeError('power must be integer');
   x = self.x;
   if x <= 1 :
@@ -547,8 +572,8 @@ class ffield(type) :
 Field elements are represented as polynomials over GF(p) with degree < n.
 Arithmetic is done modulo a specified irreducible monic polynomial of degree n.
 That polynomial modulus is represented as a tuple of coefficients, length <= n,
-constant term last; the coefficient of x**n is elided and assumed to be 1,
-immediately following zero coefficients may also be elided.
+constant term last; the coefficient of x**n is elided and assumed to be 1 while
+immediately following zero coefficients may be elided as well.
 The polynomial is also stored as its value at x=p, again without the x**n term.
 The polynomial modulus can be specified in either of those ways.
 Instance variables:
@@ -558,7 +583,13 @@ Instance variables:
   poly: an integer giving the value of tupoly at x = p
   _tupoly: the unelided polynomial modulus as a tuple with first element 1
   order: p**n-1, the multiplicative order of the field
-Methods: __new__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__
+Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__
+
+Signatures:
+  ffield(q) : q = p**n, a prime power; irreducible polynomial chosen at random
+  ffield(q,n,poly) : q, a prime; n, a positive int; poly, a la tupoly or poly
+  ffield(q,n) : q, a prime; n, a positive int; irreducible polynomial chosen at random
+  ffield(q,poly) : q, a prime power; poly, a la tupoly or poly
 
 Each instance of the created type is an element of the finite field:
 Instance variables:
@@ -572,18 +603,51 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __pow__, minpoly
 """
 
-  def __new__(cls,p,n=1,poly=0) :
-    if p < 2 or not isprime(p) :
-      raise ValueError('Not prime');
-    if  n < 1 or not isinstance(n,(int,long)) :
+  def __new__(cls,q,*args,**kwargs) :
+    q = primepower(q);
+    if not q :
+      raise ValueError('Not prime power');
+    p,n = q;
+    poly = kwargs.pop('poly',None);
+    dn = kwargs.pop('n',None);
+    if dn != None :
+      if n != 1 :
+        raise ValueError('n specified for prime power');
+      n = dn;
+    if len(kwargs) :
+      raise TypeError('Allowed keywords: n poly')
+    if args :
+      if len(args) == 1 :
+        if (dn or n != 1) and poly != None :
+          raise TypeError('too many arguments');
+        x = args[0]
+        if n == 1 and isint(x) :
+          n = x;
+        elif poly == None :
+          poly = x;
+        else :
+          raise TypeError('too many arguments');
+      elif len(args) == 2 :
+        if n != 1 or poly != None :
+          raise TypeError('too many arguments');
+        n,poly = args;
+      else :
+        raise TypeError('too many arguments');
+    poly = poly or 0;
+    if  n < 1 or not isint(n) :
       raise ValueError('Bad power');
-    if isinstance(poly,(int,long)) :
+    if not poly and n > 1:    # pick irreducible poly at random
+      while True :
+        poly = p**n + random.randrange(p**n);
+        if isirreducible(unpack(p,poly)[1:],p) : break;
+      poly -= p**n;
+    if isint(poly) :
       if not 0 <= poly < p**n : raise ValueError('Bad poly');
     elif isinstance(poly,tuple) and len(poly) <= n :
       tupoly = poly;
       poly = 0;
       for c in tupoly :
-        if not (isinstance(c,(int,long)) and 0 <= c < p) :
+        if not (isint(c) and 0 <= c < p) :
           raise ValueError('Bad poly');
         poly = p*poly + c;
     else : raise ValueError('Bad poly');
@@ -634,10 +698,14 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
     # NO: i* because want these things to be immutable
     # see https://docs.python.org/2/reference/datamodel.html
 
-    name = ('GF%d'%(p) if n == 1 else
+    name = ('GF%d'%(p) if n == 1 and not tupoly else
+            'GF%d_%s'%(p,zits[poly] if p <= 36 else str(poly)) if n == 1 else
             'GF%d_%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p <= 36 else
             'GF%d_%d_%s'%(p,n,'_'.join(['%d'%(c) for c in tupoly])));
     return type.__new__(cls,name,(),d);
+
+  def __init__(self,*args,**kwargs) :
+    return;
 
   __getattr__ = __getattr__
 
@@ -803,16 +871,16 @@ all polynomials over GF(p); note that g**-1 mod f = xmpgcd(p,f,g)[2]"""
 
 def mu(n) :
   """Return Mobius function of n"""
-  if not isinstance(n,(int,long)) or n < 1 :
+  if not isint(n) or n < 1 :
     raise ValueError('n must be a positive integer');
   if n <= 1 :
     return 1;
-  if n > primalitytestlimit and isprime(n) : return -1;
   m = 1;
   if not n&1 :
     if not n&2 : return 0;
     n >>= 1;
     m = -1;
+  if n > primalitytestlimit and isprime(n) : return -m;
   p = 3;
   while n > 1 :
     if p*p > n :
@@ -821,15 +889,16 @@ def mu(n) :
       n //= p;
       if not n % p : return 0;
       m = -m;
+      if n > primalitytestlimit and isprime(n) : return -m;
     p += 2;
   return m;
 
-def irreducible_count(p,n) :
-  """Return number of monic irreducible degree n polynomials over GF(p)"""
+def irreducible_count(q,n) :
+  """Return number of monic irreducible degree n polynomials over GF(q)"""
   s = 0;
   for d in xrange(1,n+1) :
     if not n%d :
-      s += p**d * mu(n//d);
+      s += q**d * mu(n//d);
   return s//n;
 
 def irreducibles(p,n) :
@@ -844,3 +913,17 @@ def irreducibles(p,n) :
     poly = tuple(poly);
     if isirreducible(poly,p) : l.append((1,)+poly);
   return tuple(l);
+
+def phi(n) :
+  """Return Euler totient function of n"""
+  p = 1;
+  for n,c in factor(n) :
+    p *= (n-1)*n**(c-1);
+  return p;
+
+def sigma(n) :
+  """Return sum of divisors of n"""
+  p = 1;
+  for n,c in factor(n) :
+    p *= (n**(c+1)-1)//(n-1);
+  return p;
