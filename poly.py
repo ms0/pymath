@@ -535,7 +535,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
         i += 1;
       if self.degree :
         facdict[self] += e;     # must be irreducible
-    except :
+    except AttributeError :
       facdict[self] += e;
 
   def mapcoeffs(self,f) :
