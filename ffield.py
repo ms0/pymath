@@ -50,35 +50,47 @@ def modpow(b,x,p) :    # b**x mod p
   return e;
 
 primalitytestlimit = 1<<24;    # limit for looking for (odd) divisor
-# beyond this limit, use Miller-Rabin
+# beyond this limit, use Miller-Rabin or Lucas-Lehmer
   
 def isprime(n) :
-  """Test if n is prime, if no "small" factors, use probabilistic Miller-Rabin test"""
+  """Test if n is prime, if no "small" factors,
+use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
   if not isint(n) or n < 2 or (not n%2 and n!=2) : return False;
   if n < 9 : return True;
-  i = 3;
-  while i < primalitytestlimit :
-    q = n//i;
-    if not (n-i*q) : return False;
-    if q <= i : return True;
-    i += 2;
-  # Miller Rabin test
-  c = n//2;    # (n-1)/2
-  b = 1;       # n = 2**b * c
-  while not c&1 :
-    c >>= 1;
-    b += 1;
-  for i in xrange(100) :
-    a = random.randrange(1,n);
-    e = pow(a,c,n);
-    if e == 1 : continue;
-    for i in xrange(b) :
-      if e == n-1 : break;
-      e = pow(e,2,n);
-      if e == 1 : return False;
-    else :
-      return False;    # didn't get to -1
-  return True;
+  if n & (n+1) :    # not Mersenne number
+    i = 3;
+    while i < primalitytestlimit :
+      q = n//i;
+      if not (n-i*q) : return False;
+      if q <= i : return True;
+      i += 2;
+    # Miller Rabin test :
+    c = n//2;    # (n-1)/2
+    b = 1;       # n-1 = 2**b * c
+    while not c&1 :
+      c >>= 1;
+      b += 1;
+    for i in xrange(100) :
+      a = random.randrange(2,n-1);
+      e = pow(a,c,n);
+      if e == 1 : continue;
+      for i in xrange(b) :
+        if e == n-1 : break;
+        e = pow(e,2,n);
+        if e == 1 : return False;
+      else :
+        return False;    # didn't get to -1
+    return True;
+  e = bit_length(n);    # n = 2**e-1
+  if not isprime(e) : return False;
+  for i in xrange(2*e+1,primalitytestlimit,2*e) :
+    if i*i > n : break;
+    if not n % i : return False;
+  # Lucas-Lehmer test :
+  c = 4;
+  for i in xrange(e-2) :
+    c = (c*c-2)%n;
+  return not c;
 
 def primepower(q) :
   """Return (p,n) if q == p**n, else None"""
