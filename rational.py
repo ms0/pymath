@@ -324,6 +324,10 @@ If a is a nonempty list or tuple of integers (and b==1),
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
+    if isinstance(other,(complex,xrational)) :
+      if other.imag :
+        return xrational(self)**other;
+      other = other.real;
     if isinstance(other,float) :
       other = rational(other);
     if isinstance(other,rational) and other._b == 1 :
@@ -334,7 +338,7 @@ If a is a nonempty list or tuple of integers (and b==1),
         return rational(self._b**other,self._a**other);
       return rational(self._a**other,self._b**other);
     if not isinstance(other,rational) :
-      raise TypeError('exponent must be an integer');
+      raise TypeError('exponent must be a number');
     # rational (but not integral) power
     if other._a < 0 :
       a,b = self._b**-other._a, self._a**-other._a;
@@ -342,7 +346,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       a,b = self._a**other._a, self._b**other._a;
     # now, take the root
     if a < 0 and not other._b&1 :
-      raise ValueError('complex result')    # even root of negative number
+      return xrational(self)**other;    # even root of negative number
     # first see if a and/or b has an integer root
     ra = sgn(a)*root(abs(a),other._b);
     rb = root(b,other._b);
@@ -617,6 +621,8 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
+    if isinstance(other,(complex,xrational)) and not other.imag :
+      other = other.real;
     if isinstance(other,float) :
       other = rational(other);
     if isinstance(other,rational) and other._b == 1 :

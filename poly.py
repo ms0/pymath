@@ -43,7 +43,9 @@ except :
     return 0;
 
 inf = float('inf');
-floatall = lambda x: x.mapcoeffs(float);
+
+int_float = lambda x: x.a if x.b == 1 else x.a/x.b;
+floatall = lambda x: x.mapcoeffs(int_float);
 complexall = lambda x: x.mapcoeffs(complex);
 identity = lambda x: x;
 
@@ -442,7 +444,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       types.add(x.__class__);
     if set() < types <= REAL and not types <= RATIONAL :
       for k,v in iteritems(self.mapcoeffs(rational).factor()) :
-        facdict[k.mapcoeffs(float)] += v;
+        facdict[k.mapcoeffs(int_float)] += v;
       return facdict;
     elif types <= COMPLEX and not types <= XRATIONAL :
       for k,v in iteritems(self.mapcoeffs(xrational).factor()) :
