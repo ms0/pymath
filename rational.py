@@ -335,7 +335,7 @@ If a is a nonempty list or tuple of integers (and b==1),
     if isint(other) :
       if other < 0 :
         if not self._a : raise ZeroDivisionError;
-        return rational(self._b**other,self._a**other);
+        return rational(self._b**-other,self._a**-other);
       return rational(self._a**other,self._b**other);
     if not isinstance(other,rational) :
       raise TypeError('exponent must be a number');
