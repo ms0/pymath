@@ -34,6 +34,7 @@ def gcd(x,y) :
 def root(a,n) :
   """Return the nth root of a, where a and n are positive integers"""
   l = log(a,2)/n;
+  if l < 1 : return 1;
   try :
     r = int(round(2**l));
   except :    # too big
@@ -328,44 +329,78 @@ If a is a nonempty list or tuple of integers (and b==1),
       if other.imag :
         return xrational(self)**other;
       other = other.real;
+    if not self._a :
+      if other < 0 :
+        raise ZeroDivisionError;
+      else :
+        return self if other else rational(1);
     if isinstance(other,float) :
       other = rational(other);
     if isinstance(other,rational) and other._b == 1 :
       other = other._a;
     if isint(other) :
       if other < 0 :
-        if not self._a : raise ZeroDivisionError;
         return rational(self._b**-other,self._a**-other);
       return rational(self._a**other,self._b**other);
     if not isinstance(other,rational) :
       raise TypeError('exponent must be a number');
     # rational (but not integral) power
     if other._a < 0 :
-      a,b = self._b**-other._a, self._a**-other._a;
-    else :
-      a,b = self._a**other._a, self._b**other._a;
-    # now, take the root
-    if a < 0 and not other._b&1 :
-      return xrational(self)**other;    # even root of negative number
+      if self._a < 0 :
+        a,b,c = -self._b, -self._a, -other._a;
+      else :
+        a,b,c = self._b, self._a, -other._a;
+    elif other._a :
+      a,b,c = self._a, self._b, other._a;
+    d = other._b;
+    s = 1;    # tentative sign of result
+    if a < 0 :
+      if not d&1 :
+        return xrational(self)**other;    # even root of negative number
+      if c&1 :
+        s = -1;
+      a = -a;
+    # result should be s*a**(c/d) / b**(c/d)
+    q,r = divmod(c,d);
+    if 2*r > d :
+      q += 1;
+      r -= d;
+    ac,bc = s*a**q,b**q;    # to integer power
+    if r < 0 : a,b,r = b,a,-r;
+    # want (a/b)**(r/d) * ac/bc
     # first see if a and/or b has an integer root
-    ra = sgn(a)*root(abs(a),other._b);
-    rb = root(b,other._b);
-    pa = ra**other._b == a;  # a has an exact root?
-    pb = rb**other._b == b;  # b has an exact root
-    if pa and pb : return rational(ra,rb);
-    if pa and abs(b) > 1 << 28:    # exact result:
-      return ra*other._b/((other._b-1)*rb + rational(b,rb**(other._b-1)))
-    # return an inexact result :
-    if pb and abs(a) > 1 << 28 :
-      return ((other._b-1)*ra + rational(a,ra**(other._b-1)))/(rb*other._b);
-    logroot = rational(abs(a),b).log(2)/other._b;
+    ra = root(a,d);
+    rb = root(b,d);
+    pa = ra**d == a;  # a has an exact root?
+    pb = rb**d == b;  # b has an exact root?
+    if pa and pb :
+      return rational(ra**r*ac,rb**r*bc);    # exact result
+    if d*log(max(a,b),2) < 1024 :
+      a **= r;
+      b **= r;
+      ra = root(a,d);
+      rb = root(b,d);
+      pa = ra**d == a;
+      pb = rb**d == b;
+      if pa and abs(b) > 1 << 28:
+        return ra*d/((d-1)*rb + rational(b,rb**(d-1)))*ac/bc;
+      if pb and abs(a) > 1 << 28 :
+        return ((d-1)*ra + rational(a,ra**(d-1)))/(rb*d)*ac/bc;
+      logroot = rational(a,b).log(2)/d;
+      alogroot = abs(logroot);
+      ilogroot = int(alogroot);
+      flogroot = alogroot-ilogroot;
+      r = rational(2**flogroot)<<ilogroot;
+      if logroot < 0 : r = 1/r;
+      x = rational(a,b);
+      return ((d-1)*r + x/r**(d-1))/d*ac/bc;
+    logroot = rational(a,b).log(2)*r/d;
     alogroot = abs(logroot);
     ilogroot = int(alogroot);
     flogroot = alogroot-ilogroot;
-    r = rational(2**flogroot)*(sgn(a)<<ilogroot);
+    r = rational(2**flogroot)<<ilogroot;
     if logroot < 0 : r = 1/r;
-    x = rational(a,b);
-    return ((other._b-1)*r + x/r**(other._b-1))/other._b;
+    return rational(r._a*ac,r._b*bc);
 
   def __rpow__(self,other) :
     return rational(other)**self;
@@ -396,13 +431,13 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the ceil of the number"""
     return int(-(-self._a//self._b));
 
-  def __round__(self,n) :
+  def __round__(self,n=0) :
     """Return the round of the number"""
     ten2absn = 10**abs(n);
     return ((int((self/ten2absn - half)*ten2absn) if self._a < 0 else
              int(self/ten2absn + half)*ten2absn) if n < 0 else
-            -((half - self*ten2absn)//ten2absn) if self._a < 0 else
-            (half + self*ten2absn)//ten2absn);
+            -(int(half - self*ten2absn)/ten2absn) if self._a < 0 else
+            int(half + self*ten2absn)/ten2absn);
 
   def log(self,*base) :
     """Return the log of the number as a float"""
@@ -627,9 +662,13 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
       other = rational(other);
     if isinstance(other,rational) and other._b == 1 :
       other = other._a;
+    if not self._a :
+      if isinstance(other,(complex,xrational)) or other < 0:
+        raise ZeroDivisionError('0 to negative or complex power');
+      else :
+        return rational(0 if other else 1);
     if isint(other) :
       if other < 0 :
-        if not self._a : raise ZeroDivisionError;
         return (1/self)**-other;
       x = xrational(1);
       s = self;
