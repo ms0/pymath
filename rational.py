@@ -19,6 +19,23 @@ else :
     """Return True iff an integer"""
     return isinstance(x,int);
 
+try :
+  int.bit_length;
+  bit_length = lambda n : n.bit_length();
+except :
+  def bit_length(n) :
+    n = abs(n);
+    b = 0;
+    while n :
+      try :
+        l = int(log(n,2));
+        while n >> l : l += 1;
+      except OverflowError :
+        l = sys.float_info.max_exp-1;
+      b += l
+      n >>= l;
+    return b;
+
 inf = float('inf');
 
 def sgn(x) :
@@ -48,6 +65,7 @@ def root(a,n) :
     if -1 <= ro-r <= 1 :
       return ro if abs(a-ro**n) < abs(a-r**n) else r;
     
+LOG2X = 1<<4;    # precision multiplier for log2
 
 class rational :
   """Rational number class
@@ -443,23 +461,22 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the log of the number as a float"""
     if base and (base[0] <= 0 or base[0] == 1) : raise ValueError('bad base');
     if not self._a : return inf if base and base[0] < 1 else -inf;
+    base = rational((base and base[0]) or e);
+    return float(self.log2()/base.log2());
+
+  def log2(self) :
+    """Return the base 2 log of the number as a rational"""
     a = self._a;
+    if self._a <= 0 :
+      raise ValueError('only positive numbers allowed');
     b = self._b;
-    c = base and base[0];
-    if c and c < 1 : a,b,c=b,a,1/c;
-    if c and int(c) == c :
-      c = int(c);    # try for maximum precision
-      la = int(round(log(a,c)));
-      lb = int(round(log(b,c)));
-      a /= c**la;
-      b /= c**lb;
-      return (la-lb)+(log(a,c)-log(b,c));
-    else :    # non-integral base
-      try :
-        b/a;    # this might overflow (in which case a/b might be denormalized)
-        return log(a/b,*base);    # might overflow
-      except :
-        return log(a,*base)-log(b,*base); # less precise than the above
+    a **= LOG2X;
+    b **= LOG2X;
+    la = bit_length(a);
+    lb = bit_length(b);
+    a /= 1<<la;
+    b /= 1<<lb;
+    return (la-lb+rational(log(a,2))-rational(log(b,2)))/LOG2X;
 
   def cf(self) :
     """Return a tuple of the terms of the regular continued fraction for the number"""

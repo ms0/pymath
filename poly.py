@@ -35,12 +35,17 @@ try :
 except :
   import math
   def bit_length(n) :
-    if n :
-      n = abs(n);
-      l = int(math.log(n,2));
-      while n >> l : l += 1;
-      return l;
-    return 0;
+    n = abs(n);
+    b = 0;
+    while n :
+      try :
+        l = int(math.log(n,2));
+        while n >> l : l += 1;
+      except OverflowError :
+        l = sys.float_info.max_exp-1;
+      b += l
+      n >>= l;
+    return b;
 
 inf = float('inf');
 
