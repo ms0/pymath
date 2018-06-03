@@ -393,32 +393,15 @@ If a is a nonempty list or tuple of integers (and b==1),
     pb = rb**d == b;  # b has an exact root?
     if pa and pb :
       return rational(ra**r*ac,rb**r*bc);    # exact result
-    if d*log(max(a,b),2) < 1024 :
-      a **= r;
-      b **= r;
-      ra = root(a,d);
-      rb = root(b,d);
-      pa = ra**d == a;
-      pb = rb**d == b;
-      if pa and abs(b) > 1 << 28:
-        return ra*d/((d-1)*rb + rational(b,rb**(d-1)))*ac/bc;
-      if pb and abs(a) > 1 << 28 :
-        return ((d-1)*ra + rational(a,ra**(d-1)))/(rb*d)*ac/bc;
-      logroot = rational(a,b).log(2)/d;
-      alogroot = abs(logroot);
-      ilogroot = int(alogroot);
-      flogroot = alogroot-ilogroot;
-      r = rational(2**flogroot)<<ilogroot;
-      if logroot < 0 : r = 1/r;
-      x = rational(a,b);
-      return ((d-1)*r + x/r**(d-1))/d*ac/bc;
-    logroot = rational(a,b).log(2)*r/d;
+    logroot = rational(a,b).log2()*r/d;
     alogroot = abs(logroot);
-    ilogroot = int(alogroot);
-    flogroot = alogroot-ilogroot;
-    r = rational(2**flogroot)<<ilogroot;
-    if logroot < 0 : r = 1/r;
-    return rational(r._a*ac,r._b*bc);
+    ilogroot = int(alogroot//1);
+    flogroot = float(alogroot-ilogroot);
+    x = rational(2**flogroot)<<ilogroot;
+    if logroot < 0 : x = 1/x;
+    return rational(x._a*ac,x._b*bc) if \
+      r*log(max(a,b),2) > 1024 or d*log(max(x._a,x._b)) > 1024 else \
+      ((d-1)*x + rational(a**r,b**r)/x**(d-1))/d*ac/bc;    
 
   def __rpow__(self,other) :
     return rational(other)**self;
@@ -457,12 +440,12 @@ If a is a nonempty list or tuple of integers (and b==1),
             -(int(half - self*ten2absn)/ten2absn) if self._a < 0 else
             int(half + self*ten2absn)/ten2absn);
 
-  def log(self,*base) :
-    """Return the log of the number as a float"""
-    if base and (base[0] <= 0 or base[0] == 1) : raise ValueError('bad base');
-    if not self._a : return inf if base and base[0] < 1 else -inf;
-    base = rational((base and base[0]) or e);
-    return float(self.log2()/base.log2());
+  def log(self,base=None) :
+    """Return the log of the number as a rational if finite, else as +-inf"""
+    if base != None and (base <= 0 or base == 1) : raise ValueError('bad base');
+    if not self._a : return inf if base < 1 else -inf;
+    base = rational(base or e);
+    return self.log2()/base.log2();
 
   def log2(self) :
     """Return the base 2 log of the number as a rational"""
@@ -679,7 +662,7 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
       other = rational(other);
     if isinstance(other,rational) and other._b == 1 :
       other = other._a;
-    if not self._a :
+    if not self :
       if isinstance(other,(complex,xrational)) or other < 0:
         raise ZeroDivisionError('0 to negative or complex power');
       else :
@@ -695,8 +678,8 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
         if not other : break;
         s *= s;
       return x;
-    l = complex(other)*self.log();
-    return exp(l.real)*xrational(cos(l.imag),sin(l.imag));
+    l = xrational(other)*self.log();
+    return e**l.real*xrational(xcos(l.imag),xsin(l.imag));
 
   def __rpow__(self,other) :
     return xrational(other)**self;
@@ -726,16 +709,31 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     else :
       return tau*r if a==None else a;
 
-  def log(self,*base) :
-    """Return the log of the number as a complex"""
-    if base and (base[0] <= 0 or base[0] == 1) : raise ValueError('bad base');
-    if not self : return inf if base and base[0] < 1 else -inf;
+  def log(self,base=None) :
+    """Return the log of the number as an xrational"""
+    if base != None and (base <= 0 or base == 1) : raise ValueError('bad base');
+    if not self : raise ZeroDivisionError('complex 0 has no log');
     a = abs(self);
     b = self.arg();
-    c = base and base[0];
-    if c and c < 1 : a,b,base=1/a,-b,(1/c,);
-    return complex(log(a,*base),b/(log(base[0]) if base else 1));
-
+    c = rational(base or e);
+    if c and c < 1 : a,b,c=1/a,-b,(1/c,);
+    return xrational(a.log2()/c.log2(),b/(c.log() if base else 1));
+    
 e = 1+1/rational(tuple(chain.from_iterable((2*i,1,1) for i in range(30))));
 pi = rational((3,7,15,1,292,1,1,1,2,1,3,1,14,2,1,1,2,2,2,2,1,84,2,1,1,15,3,13,1,4,2,6,6,99,1,2,2,6,3,5,1,1,6,8,1,7,1,2,3,7,1,2,1,1,12,1,1,1,3,1,1,8,1,1,2,1,6,1,1,5,2,2,3,1,2,4,4,16,1));
 tau = 2*pi;
+roothalf = rational(tuple(min(i,2) for i in range(100)));
+
+def xsin(t) :
+  t %= tau;
+  r = 8*t/tau;
+  if int(r) == r :
+    return (0,roothalf,1,roothalf,0,-roothalf,-1,-roothalf)[int(r)];
+  return sin(t);
+
+def xcos(t) :
+  t %= tau;
+  r = 8*t/tau;
+  if int(r) == r :
+    return (1,roothalf,0,-roothalf,-1,-roothalf,0,roothalf)[int(r)];
+  return cos(t);
