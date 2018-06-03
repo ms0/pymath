@@ -716,7 +716,7 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     a = abs(self);
     b = self.arg();
     c = rational(base or e);
-    if c and c < 1 : a,b,c=1/a,-b,(1/c,);
+    if c < 1 : a,b,c=1/a,-b,(1/c,);
     return xrational(a.log2()/c.log2(),b/(c.log() if base else 1));
     
 e = 1+1/rational(tuple(chain.from_iterable((2*i,1,1) for i in range(30))));
