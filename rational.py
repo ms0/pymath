@@ -4,8 +4,8 @@ from __future__ import division
 
 import sys
 
-from math import floor, log, atan2, exp, sin, cos
-from itertools import chain
+from math import floor, log
+from itertools import chain, count
 
 if sys.version_info[0] < 3 :
 
@@ -14,6 +14,8 @@ if sys.version_info[0] < 3 :
     return isinstance(x,(int,long));
 
 else :
+
+  xrange = range;
 
   def isint(x) :
     """Return True iff an integer"""
@@ -64,8 +66,6 @@ def root(a,n) :
     r = ((n-1)*r + a//r**(n-1))//n;
     if -1 <= ro-r <= 1 :
       return ro if abs(a-ro**n) < abs(a-r**n) else r;
-    
-LOG2X = 1<<4;    # precision multiplier for log2
 
 class rational :
   """Rational number class
@@ -102,7 +102,7 @@ If a is a nonempty list or tuple of integers (and b==1),
         if isinstance(a,float) :
           x = a;
           m0,m1,n0,n1 = 0,1,1,0;
-          for i in range(64) :
+          for i in xrange(64) :
             ix = floor(x);
             fx = x - ix;        
             iix = int(ix);
@@ -175,7 +175,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       elif isinstance(other,float) :
         return self == rational(other);
       else :
-        return False;
+        return other == self;
     return self._a*other._b == self._b*other._a;
 
   def __ne__(self,other) :
@@ -186,7 +186,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       elif isinstance(other,float) :
         return self != rational(other);
       else :
-        return True;
+        return other != self;
     return self._a*other._b != self._b*other._a;
 
   def __ge__(self,other) :
@@ -393,15 +393,7 @@ If a is a nonempty list or tuple of integers (and b==1),
     pb = rb**d == b;  # b has an exact root?
     if pa and pb :
       return rational(ra**r*ac,rb**r*bc);    # exact result
-    logroot = rational(a,b).log2()*r/d;
-    alogroot = abs(logroot);
-    ilogroot = int(alogroot//1);
-    flogroot = float(alogroot-ilogroot);
-    x = rational(2**flogroot)<<ilogroot;
-    if logroot < 0 : x = 1/x;
-    return rational(x._a*ac,x._b*bc) if \
-      r*log(max(a,b),2) > 1024 or d*log(max(x._a,x._b)) > 1024 else \
-      ((d-1)*x + rational(a**r,b**r)/x**(d-1))/d*ac/bc;    
+    return _exp(rational(a,b).log()*r/d)*ac/bc;
 
   def __rpow__(self,other) :
     return rational(other)**self;
@@ -445,21 +437,12 @@ If a is a nonempty list or tuple of integers (and b==1),
     if base != None and (base <= 0 or base == 1) : raise ValueError('bad base');
     if not self._a : return inf if base < 1 else -inf;
     base = rational(base or e);
-    return self.log2()/base.log2();
+    d = _ln(base) if base != e else 1;
+    return _ln(self)/d;
 
-  def log2(self) :
-    """Return the base 2 log of the number as a rational"""
-    a = self._a;
-    if self._a <= 0 :
-      raise ValueError('only positive numbers allowed');
-    b = self._b;
-    a **= LOG2X;
-    b **= LOG2X;
-    la = bit_length(a);
-    lb = bit_length(b);
-    a /= 1<<la;
-    b /= 1<<lb;
-    return (la-lb+rational(log(a,2))-rational(log(b,2)))/LOG2X;
+  def exp(self) :
+    """Return exp(self) as a rational"""
+    return _exp(self);
 
   def cf(self) :
     """Return a tuple of the terms of the regular continued fraction for the number"""
@@ -470,6 +453,47 @@ If a is a nonempty list or tuple of integers (and b==1),
       l.append(q);
       a,b = b,int(a-q*b);
     return tuple(l);
+
+  def approximate(self,accuracy=None) :
+    """If accuracy is unspecified, or self is an integer, return self; else
+If self is negative, approximate -self and return the negative; else
+If self < 1, approximate 1/self and return the inverse; else
+Return x with least denominator such that |(1-x/self)*accuracy| <= 1"""
+    if accuracy == None : return self;
+    a,b = self._a,self._b;
+    if b == 1 : return self;
+    s = sgn(a);    # make sure symmetric over negation
+    a *= s;
+    if a < b : return 1/(1/self).approximate(accuracy); # make sure symmetric over inversion
+    za,zb = a,b;
+    m0,m1,n0,n1 = 0,1,1,0;
+    while b :
+      q = a//b;
+      o0,o1 = m0+q*n0,m1+q*n1;    # fully-included term
+      if n1 :
+        #if abs((z-rational(o0,o1))/z*accuracy) <= 1 :
+        if _checkaccuracy(accuracy,za,zb,o0,o1) :
+          n = (q+1)//2;    # min possible term
+          x = q;           # max possible term
+          while True :
+            i = (n+x)//2;
+            p0,p1 = m0+i*n0,m1+i*n1;
+            #r = rational(p0,p1);
+            #if abs((z-r)/z*accuracy) > 1 :
+            if not _checkaccuracy(accuracy,za,zb,p0,p1) :
+              n = i+1;
+            else :
+              x = i;
+              if x == n :
+                return rational(s*p0,p1);
+      else :
+        r = q + (q*(q+1)*zb*zb < za*za);
+        #if abs((z-r)/z*accuracy) <= 1 :
+        if _checkaccuracy(accuracy,za,zb,r,1) :
+          return rational(r*s);
+      m0,m1,n0,n1 = n0,n1,o0,o1;
+      a,b = b, a-q*b;
+    return self;
 
 half = rational(1,2);
 
@@ -678,8 +702,8 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
         if not other : break;
         s *= s;
       return x;
-    l = xrational(other)*self.log();
-    return e**l.real*xrational(xcos(l.imag),xsin(l.imag));
+    return (xrational(other)*self.log()).exp();
+
 
   def __rpow__(self,other) :
     return xrational(other)**self;
@@ -703,7 +727,7 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     elif abs(self._a) == abs(self._b) :
       r = rational(sgn(self._b)*(2-sgn(self._a)),8);
     else :
-      a = atan2(self._b,self._a);
+      a = xatan2(self._b,self._a);
     if ratio :
       return a/tau if r==None else r;
     else :
@@ -713,27 +737,137 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     """Return the log of the number as an xrational"""
     if base != None and (base <= 0 or base == 1) : raise ValueError('bad base');
     if not self : raise ZeroDivisionError('complex 0 has no log');
-    a = abs(self);
-    b = self.arg();
     c = rational(base or e);
-    if c < 1 : a,b,c=1/a,-b,(1/c,);
-    return xrational(a.log2()/c.log2(),b/(c.log() if base else 1));
+    d = _ln(c) if c != e else 1;
+    return xrational(_ln(abs(self))/d,self.arg()/d);
     
-e = 1+1/rational(tuple(chain.from_iterable((2*i,1,1) for i in range(30))));
+  def exp(self) :
+    """Return exp(self) as an xrational"""
+    i = self.imag;
+    m = _exp(self.real);
+    return xrational(m*xcos(i),m*xsin(i));
+    
+  def approximate(self,accuracy=None) :
+    return xrational(self.real.approximate(accuracy),self.imag.approximate(accuracy));
+
+_0=rational(0);
+_1=rational(1);
+# 327 bits :
+e = 1+1/rational(tuple(chain.from_iterable((2*i,1,1) for i in xrange(30))));
+# 314 bits :
+log2e = rational((1,2,3,1,6,3,1,1,2,1,1,1,1,3,10,1,1,1,2,1,1,1,1,3,2,3,1,13,7,4,1,1,1,7,2,4,1,1,2,5,14,1,10,1,4,2,18,3,1,4,1,6,2,7,3,3,1,13,3,1,4,4,1,3,1,1,1,1,2,17,3,1,2,32,1,1,1,1,3,1,4,5,1,1,4,1,3,9,8,1,1,7,1,1,1,1,1,1,1,4,5,4,32,1,19,2,1,1));
+# 261 bits :
 pi = rational((3,7,15,1,292,1,1,1,2,1,3,1,14,2,1,1,2,2,2,2,1,84,2,1,1,15,3,13,1,4,2,6,6,99,1,2,2,6,3,5,1,1,6,8,1,7,1,2,3,7,1,2,1,1,12,1,1,1,3,1,1,8,1,1,2,1,6,1,1,5,2,2,3,1,2,4,4,16,1));
 tau = 2*pi;
-roothalf = rational(tuple(min(i,2) for i in range(100)));
+hpi = pi/2;
+qpi = pi/4;
+# 256 bits :
+root2 = rational(tuple(min(i,2) for i in xrange(1,103))); # root2**2 > 2 [see froot2]
+roothalf = 1/root2;
+# 254 bits :
+froot2 = root2 - 1;    # required for xatan: froot2 > (1-froot2)/(1+froot2)
+if froot2 < (1-froot2)/(1+froot2) : raise ValueError('root2 too small for atan');
+
+SIGNIFICANCE = 80;   # bits of significance for below functions
+ACCURACY = 1<<256;   # for intermediate computations
+
+def _checkaccuracy(a,za,zb,ra,rb) :    # assume za,zb,ra,rb all positive
+  d = za*rb;
+  return abs(a*(d-zb*ra)) <= d;    # abs(z-r)/z*a <= 1
+
+def _exp(x) :
+  n = round(x);
+  x -= n;
+  if x <= 0 :
+    if x :
+      return e**n/_expp(-x);
+    return e**n;
+  return e**n*_expp(x);
+
+def _expp(x) :   # 0 < x <= 1/2
+  x = x.approximate(ACCURACY);
+  t = 1;
+  s = 1;
+  for i in count(1) :
+    s *= x/i;
+    t += s;
+    if s<<SIGNIFICANCE <= t-1 : break;
+  return t.approximate(ACCURACY);
 
 def xsin(t) :
   t %= tau;
   r = 8*t/tau;
   if int(r) == r :
-    return (0,roothalf,1,roothalf,0,-roothalf,-1,-roothalf)[int(r)];
-  return sin(t);
+    return (_0,roothalf,_1,roothalf,_0,-roothalf,-_1,-roothalf)[int(r)];
+  return _sin(t);
 
 def xcos(t) :
   t %= tau;
   r = 8*t/tau;
   if int(r) == r :
-    return (1,roothalf,0,-roothalf,-1,-roothalf,0,roothalf)[int(r)];
-  return cos(t);
+    return (_1,roothalf,_0,-roothalf,-_1,-roothalf,_0,roothalf)[int(r)];
+  return _sin((t-hpi)%tau-pi);
+
+def xatan2(y,x) :
+  if not x :
+    return hpi*sgn(y);
+  a = xatan(y/x);
+  return a if x > 0 else a+(sgn(y) or 1)*pi;
+
+def xatan(z) :
+  if z < 0 :
+    return -xatan(-z);
+  if z > 1 :
+    return hpi - xatan(1/z);
+  if z > froot2 :
+    return qpi - xatan((1-z)/(1+z)) if z != -1 else qpi;
+  # 0 <= z <= v2-1
+  z = z.approximate(ACCURACY);
+  w = -z*z;
+  s = t = z;
+  for i in count(3,2) :
+    s *= w;
+    t += s/i;
+    if abs(s)<<SIGNIFICANCE <= z : break;
+  return t.approximate(ACCURACY);
+
+def _ln(z) :
+  if z <= 1 :
+    if z <= 0 :
+      raise ValueError('math domain error');
+    if z < 1 :
+      return -_ln(1/z);
+    return rational(0);
+  b = bit_length(int(z)) - 1;
+  z >>= b;    # 1 <= z < 2
+  if z > root2 :
+    z >>= 1;
+    b += 1;
+  # v2/2 < z <= v2
+  return (-_mln1p(1-z) if z < 1 else _mln1p(1-1/z) if z > 1 else 0)+b/log2e;
+
+def _mln1p(x) :    # z = 1-x; -ln z, for v2/2 < z < 1
+  x = x.approximate(ACCURACY);
+  t = s = x;    # 0 < x < 1-v2/2
+  for i in count(2) :
+    s *= x;
+    t += s/i;
+    if s<<SIGNIFICANCE <= x : break;
+  return t.approximate(ACCURACY);
+
+def _sin(z) :
+  z = (z+pi)%tau - pi;
+  if abs(z) > hpi :
+    z = sgn(z)*pi - z;
+  # -hpi <= z <= hpi
+  z /= 27;
+  z = z.approximate(ACCURACY);
+  w = -z*z;
+  s = t = z;
+  for i in count(3,2) :
+    s *= w/(i*(i-1));
+    t += s;
+    if abs(s)<<SIGNIFICANCE <= abs(z) : break;
+  for i in xrange(3) :
+    t = 3*t - 4*t**3;
+  return t.approximate(ACCURACY);
