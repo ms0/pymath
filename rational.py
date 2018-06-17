@@ -153,7 +153,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       elif isinstance(other,float) :
         return self < rational(other);
       else :
-        return False;
+        return NotImplemented;
     return self._a*other._b < self._b*other._a;
 
   def __le__(self,other) :
@@ -164,7 +164,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       elif isinstance(other,float) :
         return self <= rational(other);
       else :
-        return False;
+        return NotImplemented;
     return self._a*other._b <= self._b*other._a;
 
   def __eq__(self,other) :
@@ -175,7 +175,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       elif isinstance(other,float) :
         return self == rational(other);
       else :
-        return other == self;
+        return NotImplemented;
     return self._a*other._b == self._b*other._a;
 
   def __ne__(self,other) :
@@ -186,7 +186,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       elif isinstance(other,float) :
         return self != rational(other);
       else :
-        return other != self;
+        return NotImplemented;
     return self._a*other._b != self._b*other._a;
 
   def __ge__(self,other) :
@@ -197,7 +197,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       elif isinstance(other,float) :
         return self >= rational(other);
       else :
-        return False;
+        return NotImplemented;
     return self._a*other._b >= self._b*other._a;
 
   def __gt__(self,other) :
@@ -208,7 +208,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       elif isinstance(other,float) :
         return self > rational(other);
       else :
-        return False;
+        return NotImplemented;
     return self._a*other._b > self._b*other._a;
 
   def __bool__(self) :
@@ -549,7 +549,7 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
       try :
         other = xrational(other);
       except :
-        return False;
+        return NotImplemented;
     return self._a == other._a and self._b == other._b;
 
   def __ne__(self,other) :
@@ -558,7 +558,7 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
       try :
         other = xrational(other);
       except :
-        return True;
+        return NotImplemented;
     return self._a != other._a or self._b != other._b;
 
   def __bool__(self) :
