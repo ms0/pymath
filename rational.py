@@ -4,7 +4,7 @@ from __future__ import division
 
 import sys
 
-from math import floor, log
+from math import floor, log, isinf
 from itertools import chain, count
 
 if sys.version_info[0] < 3 :
@@ -81,7 +81,7 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__
-  __pow__, __rpow__, log, cf"""
+  __pow__, __rpow__, log, exp, cf, approximate"""
 
   def __init__(self,a,b=1) :
     """Create a rational number equal to a/b; attempting b=0 raises ZeroDivisionError
@@ -151,6 +151,8 @@ If a is a nonempty list or tuple of integers (and b==1),
       if isint(other) :
         return self._a < self._b*other;
       elif isinstance(other,float) :
+        if isinf(other) :
+          return other > 0;
         return self < rational(other);
       else :
         return NotImplemented;
@@ -162,6 +164,8 @@ If a is a nonempty list or tuple of integers (and b==1),
       if isint(other) :
         return self._a <= self._b*other;
       elif isinstance(other,float) :
+        if isinf(other) :
+          return other > 0;
         return self <= rational(other);
       else :
         return NotImplemented;
@@ -173,7 +177,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       if isint(other) :
         return self._a == self._b*other;
       elif isinstance(other,float) :
-        return self == rational(other);
+        return not isinf(other) and self == rational(other);
       else :
         return NotImplemented;
     return self._a*other._b == self._b*other._a;
@@ -184,7 +188,7 @@ If a is a nonempty list or tuple of integers (and b==1),
       if isint(other) :
         return self._a != self._b*other;
       elif isinstance(other,float) :
-        return self != rational(other);
+        return isinf(other) or self != rational(other);
       else :
         return NotImplemented;
     return self._a*other._b != self._b*other._a;
@@ -195,6 +199,8 @@ If a is a nonempty list or tuple of integers (and b==1),
       if isint(other) :
         return self._a >= self._b*other;
       elif isinstance(other,float) :
+        if isinf(other) :
+          return other < 0;
         return self >= rational(other);
       else :
         return NotImplemented;
@@ -206,6 +212,8 @@ If a is a nonempty list or tuple of integers (and b==1),
       if isint(other) :
         return self._a > self._b*other;
       elif isinstance(other,float) :
+        if isinf(other) :
+          return other < 0;
         return self > rational(other);
       else :
         return NotImplemented;
@@ -504,12 +512,13 @@ Instance variables:
   imag: the imaginary part, a rational
 Methods:
   __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
-  __eq__, __ne__, __pos__, __neg__, __abs__,
+  __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
+   __pos__, __neg__, __abs__, __invert__, conjugate,
   __float__, __complex__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__
-  __pow__, __rpow__, log, arg"""
+  __pow__, __rpow__, log, exp, arg, approximate"""
 
   def __init__(self,real,imag=0) :
     """Create a complex number equal to real+imag*i; real and imag are converted to rational
@@ -560,6 +569,26 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
       except :
         return NotImplemented;
     return self._a != other._a or self._b != other._b;
+
+  def __lt__(self,other) :
+    if self.imag :
+      raise TypeError('no ordering relation is defined for complex numbers');
+    return self.real < other;
+
+  def __le__(self,other) :
+    if self.imag :
+      raise TypeError('no ordering relation is defined for complex numbers');
+    return self.real <= other;
+
+  def __gt__(self,other) :
+    if self.imag :
+      raise TypeError('no ordering relation is defined for complex numbers');
+    return self.real > other;
+
+  def __ge__(self,other) :
+    if self.imag :
+      raise TypeError('no ordering relation is defined for complex numbers');
+    return self.real >= other;
 
   def __bool__(self) :
     """Return True iff self != 0"""
@@ -727,7 +756,7 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     elif abs(self._a) == abs(self._b) :
       r = rational(sgn(self._b)*(2-sgn(self._a)),8);
     else :
-      a = xatan2(self._b,self._a);
+      a = _atan2(self._b,self._a);
     if ratio :
       return a/tau if r==None else r;
     else :
@@ -765,11 +794,27 @@ qpi = pi/4;
 root2 = rational(tuple(min(i,2) for i in xrange(1,103))); # root2**2 > 2 [see froot2]
 roothalf = 1/root2;
 # 254 bits :
-froot2 = root2 - 1;    # required for xatan: froot2 > (1-froot2)/(1+froot2)
+froot2 = root2 - 1;    # required for _atan: froot2 > (1-froot2)/(1+froot2)
 if froot2 < (1-froot2)/(1+froot2) : raise ValueError('root2 too small for atan');
 
-SIGNIFICANCE = 80;   # bits of significance for below functions
-ACCURACY = 1<<256;   # for intermediate computations
+_SIGNIFICANCE = 80;   # bits of significance for below functions
+MIN_SIGNIFICANCE = 16;    # somewhat arbitrary
+MAX_SIGNIFICANCE = 256;   # based on transcendental constants
+
+def set_significance(significance=None) :
+  """Set/return number of bits of significance for transcendental functions"""
+  global _SIGNIFICANCE
+  if not isint(significance) :
+    if significance != None :
+      raise TypeError('significance must be an integer');
+  elif not MIN_SIGNIFICANCE <= significance <= MAX_SIGNIFICANCE :
+    raise ValueError('significance must be between %d and %d',
+                     MIN_SIGNIFICANCE, MAX_SIGNIFICANCE);
+  else :
+    _SIGNIFICANCE = significance;
+  return _SIGNIFICANCE;
+
+_ACCURACY = 1<<MAX_SIGNIFICANCE;   # for intermediate computations
 
 def _checkaccuracy(a,za,zb,ra,rb) :    # assume za,zb,ra,rb all positive
   d = za*rb;
@@ -785,16 +830,17 @@ def _exp(x) :
   return e**n*_expp(x);
 
 def _expp(x) :   # 0 < x <= 1/2
-  x = x.approximate(ACCURACY);
+  x = x.approximate(_ACCURACY);
   t = 1;
   s = 1;
   for i in count(1) :
     s *= x/i;
     t += s;
-    if s<<SIGNIFICANCE <= t-1 : break;
-  return t.approximate(ACCURACY);
+    if s<<_SIGNIFICANCE <= t-1 : break;
+  return t.approximate(_ACCURACY);
 
 def xsin(t) :
+  """Return sin(t) as a rational"""
   t %= tau;
   r = 8*t/tau;
   if int(r) == r :
@@ -802,34 +848,35 @@ def xsin(t) :
   return _sin(t);
 
 def xcos(t) :
+  """Return cos(t) as a rational"""
   t %= tau;
   r = 8*t/tau;
   if int(r) == r :
     return (_1,roothalf,_0,-roothalf,-_1,-roothalf,_0,roothalf)[int(r)];
   return _sin((t-hpi)%tau-pi);
 
-def xatan2(y,x) :
+def _atan2(y,x) :
   if not x :
     return hpi*sgn(y);
-  a = xatan(y/x);
+  a = _atan(y/x);
   return a if x > 0 else a+(sgn(y) or 1)*pi;
 
-def xatan(z) :
+def _atan(z) :
   if z < 0 :
-    return -xatan(-z);
+    return -_atan(-z);
   if z > 1 :
-    return hpi - xatan(1/z);
+    return hpi - _atan(1/z);
   if z > froot2 :
-    return qpi - xatan((1-z)/(1+z)) if z != -1 else qpi;
+    return qpi - _atan((1-z)/(1+z)) if z != -1 else qpi;
   # 0 <= z <= v2-1
-  z = z.approximate(ACCURACY);
+  z = z.approximate(_ACCURACY);
   w = -z*z;
   s = t = z;
   for i in count(3,2) :
     s *= w;
     t += s/i;
-    if abs(s)<<SIGNIFICANCE <= z : break;
-  return t.approximate(ACCURACY);
+    if abs(s)<<_SIGNIFICANCE <= z : break;
+  return t.approximate(_ACCURACY);
 
 def _ln(z) :
   if z <= 1 :
@@ -847,13 +894,13 @@ def _ln(z) :
   return (-_mln1p(1-z) if z < 1 else _mln1p(1-1/z) if z > 1 else 0)+b/log2e;
 
 def _mln1p(x) :    # z = 1-x; -ln z, for v2/2 < z < 1
-  x = x.approximate(ACCURACY);
+  x = x.approximate(_ACCURACY);
   t = s = x;    # 0 < x < 1-v2/2
   for i in count(2) :
     s *= x;
     t += s/i;
-    if s<<SIGNIFICANCE <= x : break;
-  return t.approximate(ACCURACY);
+    if s<<_SIGNIFICANCE <= x : break;
+  return t.approximate(_ACCURACY);
 
 def _sin(z) :
   z = (z+pi)%tau - pi;
@@ -861,13 +908,13 @@ def _sin(z) :
     z = sgn(z)*pi - z;
   # -hpi <= z <= hpi
   z /= 27;
-  z = z.approximate(ACCURACY);
+  z = z.approximate(_ACCURACY);
   w = -z*z;
   s = t = z;
   for i in count(3,2) :
     s *= w/(i*(i-1));
     t += s;
-    if abs(s)<<SIGNIFICANCE <= abs(z) : break;
+    if abs(s)<<_SIGNIFICANCE <= abs(z) : break;
   for i in xrange(3) :
     t = 3*t - 4*t**3;
-  return t.approximate(ACCURACY);
+  return t.approximate(_ACCURACY);
