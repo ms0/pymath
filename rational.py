@@ -814,8 +814,6 @@ def set_significance(significance=None) :
     _SIGNIFICANCE = significance;
   return _SIGNIFICANCE;
 
-_ACCURACY = 1<<MAX_SIGNIFICANCE;   # for intermediate computations
-
 def _checkaccuracy(a,za,zb,ra,rb) :    # assume za,zb,ra,rb all positive
   d = za*rb;
   return abs(a*(d-zb*ra)) <= d;    # abs(z-r)/z*a <= 1
@@ -830,14 +828,14 @@ def _exp(x) :
   return e**n*_expp(x);
 
 def _expp(x) :   # 0 < x <= 1/2
-  x = x.approximate(_ACCURACY);
-  t = 1;
+  x = x.approximate(1<<(_SIGNIFICANCE+16));
+  t = 0;    # compute expm1 to full significance, then add 1 at the end
   s = 1;
   for i in count(1) :
     s *= x/i;
     t += s;
-    if s<<_SIGNIFICANCE <= t-1 : break;
-  return t.approximate(_ACCURACY);
+    if s<<_SIGNIFICANCE <= t : break;
+  return 1+t.approximate(1<<(_SIGNIFICANCE+8));
 
 def xsin(t) :
   """Return sin(t) as a rational"""
@@ -869,14 +867,14 @@ def _atan(z) :
   if z > froot2 :
     return qpi - _atan((1-z)/(1+z)) if z != -1 else qpi;
   # 0 <= z <= v2-1
-  z = z.approximate(_ACCURACY);
+  z = z.approximate(1<<(_SIGNIFICANCE+16));
   w = -z*z;
   s = t = z;
   for i in count(3,2) :
     s *= w;
     t += s/i;
     if abs(s)<<_SIGNIFICANCE <= z : break;
-  return t.approximate(_ACCURACY);
+  return t.approximate(1<<(_SIGNIFICANCE+8));
 
 def _ln(z) :
   if z <= 1 :
@@ -894,13 +892,13 @@ def _ln(z) :
   return (-_mln1p(1-z) if z < 1 else _mln1p(1-1/z) if z > 1 else 0)+b/log2e;
 
 def _mln1p(x) :    # z = 1-x; -ln z, for v2/2 < z < 1
-  x = x.approximate(_ACCURACY);
+  x = x.approximate(1<<(_SIGNIFICANCE+16));
   t = s = x;    # 0 < x < 1-v2/2
   for i in count(2) :
     s *= x;
     t += s/i;
     if s<<_SIGNIFICANCE <= x : break;
-  return t.approximate(_ACCURACY);
+  return t.approximate(1<<(_SIGNIFICANCE+8));
 
 def _sin(z) :
   z = (z+pi)%tau - pi;
@@ -908,13 +906,13 @@ def _sin(z) :
     z = sgn(z)*pi - z;
   # -hpi <= z <= hpi
   z /= 27;
-  z = z.approximate(_ACCURACY);
+  z = z.approximate(1<<(_SIGNIFICANCE+16));
   w = -z*z;
   s = t = z;
   for i in count(3,2) :
     s *= w/(i*(i-1));
     t += s;
-    if abs(s)<<_SIGNIFICANCE <= abs(z) : break;
+    if abs(s)<<(_SIGNIFICANCE+5) <= abs(z) : break;
   for i in xrange(3) :
     t = 3*t - 4*t**3;
-  return t.approximate(_ACCURACY);
+  return t.approximate(1<<(_SIGNIFICANCE+8));

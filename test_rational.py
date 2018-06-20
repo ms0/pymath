@@ -121,13 +121,13 @@ def ttest() :    # test accuracy of transcendental functions
   # arg(x+iy) = atan(y/x)
   # i.e., (i*x).exp().arg() = x and abs((i*x).exp()) = 1
   bits = inf;
-  for n in xrange(8) :
-    x = rational(n+1,16);
+  for n in xrange(16) :
+    x = rational(n+1,32);
     bits = min(bits,sigbits(x.exp().log(),x));
   print('min bits of agreement of ln(exp(x)) with x: %g'%(bits));
   bits = inf;
-  for n in xrange(8) :
-    x = (1-roothalf)*(n+1)/8;
+  for n in xrange(16) :
+    x = (1-roothalf)*(n+1)/16;
     bits = min(bits,sigbits(x.log().exp(),x));
   print('min bits of agreement of exp(ln(x)) with x: %g'%(bits));
   bits = inf;
@@ -144,7 +144,7 @@ def ttest() :    # test accuracy of transcendental functions
     mbits = min(mbits,sigbits(z*~z,1+x*x));
   print('min bits of agreement of (i*arg(1+ix)).exp() ...');
   print('  .imag/.real with x: %g'%(bits));
-  print('  .imag**2+.real**2) with 1+x**2: %g'%(bits));
+  print('  .imag**2+.real**2 with 1+x**2: %g'%(bits));
 
 
 if __name__ == '__main__' :
