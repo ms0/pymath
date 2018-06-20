@@ -432,13 +432,61 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the ceil of the number"""
     return int(-(-self._a//self._b));
 
-  def __round__(self,n=0) :
+  def __round__(self,n=0,base=10) :
     """Return the round of the number"""
-    ten2absn = 10**abs(n);
-    return ((int((self/ten2absn - half)*ten2absn) if self._a < 0 else
-             int(self/ten2absn + half)*ten2absn) if n < 0 else
-            -(int(half - self*ten2absn)/ten2absn) if self._a < 0 else
-            int(half + self*ten2absn)/ten2absn);
+    if not isint(n) :
+      raise TypeError('n must be an integer');
+    if not isint(base) or base < 2 :
+      raise ValueError('base must be an integer > 1');
+    if not n : return -int(half-self) if self._a < 0 else int(half+self);
+    base2absn = base**abs(n);
+    return ((rational(int((self/base2absn - half)*base2absn)) if self._a < 0 else
+             rational(int((self/base2absn + half)*base2absn))) if n < 0 else
+            rational(-int(half - self*base2absn),base2absn) if self._a < 0 else
+            rational(int(half + self*base2absn),base2absn));
+
+  def tonx(self,n,base=10) :
+    """Return (0,0) if self == 0; else
+Return (t,x) with base**(n-1) <= |t| < base**n and |t-self/base**x| <= 1/2"""
+    if not (isint(n) and n > 0) :
+      raise ValueError('n must be a positive integer');
+    if not isint(base) or base < 2 :
+      raise ValueError('base must be an integer > 1');
+    if not self :
+      return (0,0);
+    s = abs(self);
+    x = int(s.log(base));
+    while base**x > s :
+      x -= 1;
+    while base**(x+1) <= s :
+      x += 1;
+    t = int(s*base**(n-x-1)+half);
+    if t >= base**n :
+      t //= base;
+      x += 1;
+    return (sgn(self)*t,x+1-n);
+
+  def bstr(self,n,base=10) :
+    """Return an n-digit string representation of self in the specified base;
+if the base is not ten, it is included as a decimal number followed by a number sign;
+a following << indicates multiplication by the indicated power of the base;
+a following >> indicates division by the indicated power of the base"""
+    if not (isint(n) and n > 0) :
+      raise ValueError('n must be a positive integer');
+    if not (isint(base) and 2 <= base <= 36) :
+      raise ValueError('base must be an integer in [2,36]')
+    if not self : return '0';
+    t,x = self.tonx(n,base);
+    t = abs(t);
+    s = [];
+    while t :
+      s.append('0123456789abcdefghijklmnopqrstuvwxyz'[t%base]);
+      t //= base;
+    s = ''.join(s[::-1]);
+    return ('-' if self < 0 else '') + (str(base)+'#' if base != 10 else '') + ( 
+      s + '<<' + str(x) if x > 0 else
+      '.' + s + '>>' + str(-x-len(s)) if -x > len(s) else
+      s[:len(s)+x] + ('.' + s[len(s)+x:] if x else ''));
 
   def log(self,base=None) :
     """Return the log of the number as a rational if finite, else as +-inf"""
@@ -819,7 +867,7 @@ def _checkaccuracy(a,za,zb,ra,rb) :    # assume za,zb,ra,rb all positive
   return abs(a*(d-zb*ra)) <= d;    # abs(z-r)/z*a <= 1
 
 def _exp(x) :
-  n = round(x);
+  n = x.__round__();
   x -= n;
   if x <= 0 :
     if x :
