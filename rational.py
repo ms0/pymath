@@ -143,6 +143,10 @@ If a is a nonempty list or tuple of integers (and b==1),
       return self._a;
     if name in ('b','denominator') :
       return self._b;
+    if name == 'real' :
+      return self;
+    if name == 'imag' :
+      return _0;
     raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
 
   def __lt__(self,other) :
@@ -466,7 +470,7 @@ Return (t,x) with base**(n-1) <= |t| < base**n and |t-self/base**x| <= 1/2"""
       x += 1;
     return (sgn(self)*t,x+1-n);
 
-  def bstr(self,n,base=10) :
+  def bstr(self,n=5,base=10) :
     """Return an n-digit string representation of self in the specified base;
 if the base is not ten, it is included as a decimal number followed by a number sign;
 a following << indicates multiplication by the indicated power of the base;
@@ -490,11 +494,11 @@ a following >> indicates division by the indicated power of the base"""
 
   def log(self,base=None) :
     """Return the log of the number as a rational if finite, else as +-inf"""
-    if base != None and (base <= 0 or base == 1) : raise ValueError('bad base');
+    base = rational(base) if base != None else e;
+    if base <= 0 or base == 1 : raise ValueError('bad base');
     if not self._a : return inf if base < 1 else -inf;
-    base = rational(base or e);
     d = _ln(base) if base != e else 1;
-    return _ln(self)/d;
+    return xrational(_ln(-self)/d,pi/d) if self < 0 else _ln(self)/d;
 
   def exp(self) :
     """Return exp(self) as a rational"""
@@ -619,24 +623,24 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     return self._a != other._a or self._b != other._b;
 
   def __lt__(self,other) :
-    if self.imag :
+    if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return self.real < other;
+    return self._a < other;
 
   def __le__(self,other) :
-    if self.imag :
+    if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return self.real <= other;
+    return self._a <= other;
 
   def __gt__(self,other) :
-    if self.imag :
+    if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return self.real > other;
+    return self._a > other;
 
   def __ge__(self,other) :
-    if self.imag :
+    if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return self.real >= other;
+    return self._a >= other;
 
   def __bool__(self) :
     """Return True iff self != 0"""
@@ -664,12 +668,12 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
 
   def __float__(self) :
     """Return a floating point approximation to the number if real"""
-    if self.imag : raise TypeError('complex');
-    return float(self.real);
+    if self._b : raise TypeError('complex');
+    return float(self._a);
 
   def __complex__(self) :
     """Return a floating point [i.e., complex] approximation to the number"""
-    return complex(self.real,self.imag);
+    return complex(self._a,self._b);
 
   def __add__(self,other) :
     """Return the sum of the two numbers"""
@@ -793,6 +797,14 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     """Return the quotient of self and 2**other, for other an integer"""
     return xrational(self._a>>other,self._b>>other) if other >= 0 else self<<-other;
 
+  def bstr(self,n=5,base=10) :
+    """Return a string representation of self, using rational.bstr"""
+    if not self._b :
+      return self._a.bstr(n,base);
+    if not self._a :
+      return self._b.bstr(n,base) + '*i';
+    return self._a.bstr(n,base) + '+' + self._b.bstr(n,base) + '*i';
+
   def arg(self,ratio=False) :
     """Return the argument of self; if ratio, as a fraction of 2pi"""
     if not self : raise ZeroDivisionError('zero does not have an argument')
@@ -812,20 +824,20 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
 
   def log(self,base=None) :
     """Return the log of the number as an xrational"""
-    if base != None and (base <= 0 or base == 1) : raise ValueError('bad base');
-    if not self : raise ZeroDivisionError('complex 0 has no log');
-    c = rational(base or e);
-    d = _ln(c) if c != e else 1;
+    base = rational(base) if base != None else e;
+    if base <= 0 or base == 1 : raise ValueError('bad base');
+    if not self : return inf if base < 1 else -inf;
+    d = _ln(base) if base != e else 1;
     return xrational(_ln(abs(self))/d,self.arg()/d);
     
   def exp(self) :
     """Return exp(self) as an xrational"""
-    i = self.imag;
-    m = _exp(self.real);
+    i = self._b;
+    m = _exp(self._a);
     return xrational(m*xcos(i),m*xsin(i));
     
   def approximate(self,accuracy=None) :
-    return xrational(self.real.approximate(accuracy),self.imag.approximate(accuracy));
+    return xrational(self._a.approximate(accuracy),self._b.approximate(accuracy));
 
 _0=rational(0);
 _1=rational(1);
@@ -838,10 +850,10 @@ pi = rational((3,7,15,1,292,1,1,1,2,1,3,1,14,2,1,1,2,2,2,2,1,84,2,1,1,15,3,13,1,
 tau = 2*pi;
 hpi = pi/2;
 qpi = pi/4;
-# 258 bits :
+# 263 bits :
 root2 = rational(tuple(min(i,2) for i in xrange(1,105))); # root2**2 > 2 [see froot2]
 roothalf = 1/root2;
-# 256 bits :
+# 261 bits :
 froot2 = root2 - 1;    # required for _atan: froot2 > (1-froot2)/(1+froot2)
 if froot2 < (1-froot2)/(1+froot2) : raise ValueError('root2 too small for atan');
 
