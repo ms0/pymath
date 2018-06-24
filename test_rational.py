@@ -93,6 +93,8 @@ def sigbits(computed,actual=1) :
     return 0 if computed != actual else inf;
   return -abs(1-computed/actual).log(2);
 
+half=rational(1,2);
+
 def ttest() :    # test accuracy of transcendental functions
   # try values at maximum of series range:
   # exp: (imaginary arg tests sin and cos) [0,1/2]
@@ -107,7 +109,7 @@ def ttest() :    # test accuracy of transcendental functions
   ceq('xrational(0,1).arg()==hpi');
   ceq('xrational(-1,0).arg()==pi');
   ceq('xrational(1,1).arg()==qpi');
-  print('(e**.5)**2 should be e, #bits of agreement is %g'%(sigbits((e**.5)**2,e)));
+  print('(3**.5)**2 should be 3, #bits of agreement is %g'%(sigbits((3**half)**2,3)));
   print('half.exp()**2 should be e, #bits of agreement is %g'%(sigbits(half.exp()**2,e)));
   i = xrational(0,1);
   l2ri = lambda c:(-abs(c.real).log(2),-abs(c.imag).log(2));
