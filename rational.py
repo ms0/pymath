@@ -4,7 +4,7 @@ from __future__ import division
 
 import sys
 
-from math import floor, log as mathlog, isinf, isnan, copysign as mathcopysign
+from math import log as mathlog, isinf, isnan, copysign as mathcopysign
 from itertools import chain, count
 
 if sys.version_info[0] < 3 :
@@ -121,7 +121,7 @@ If a is a nonempty list or tuple of integers (and b==1),
           x = a;
           m0,m1,n0,n1 = 0,1,1,0;
           for i in xrange(64) :
-            ix = floor(x);
+            ix = x//1;
             fx = x - ix;        
             iix = int(ix);
             m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
@@ -1293,7 +1293,7 @@ def floor(x) :
   return rational(x)//1;
 
 def ceil(x) :
-  return -floor(-x);
+  return -(rational(-x)//1);
 
 def factorial(x) :
   x = rational(x);
