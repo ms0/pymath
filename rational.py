@@ -113,6 +113,19 @@ def _parsebasenum(s) :
     n,s = _parsenum(s[1:],b);
   else :
     b = 10;
+  q,s = _parseshift(s);
+  if q :
+    n = n*b**q;
+  s = s.lstrip();
+  if s and s[0] == '/' :
+    d,s = _parsenum(s[1:],b);
+    q,s = _parseshift(s);
+    if q :
+      d = d*b**q;
+    n /= rational(d);
+  return n,s;
+
+def _parseshift(s) :
   s = s.lstrip();
   try :
     q = 1-2*('<<','>>').index(s[:2]);
@@ -121,8 +134,7 @@ def _parsebasenum(s) :
   if q :
     p,s = _parseint(s[2:]);
     if not isint(p) : raise ValueError('shift amount must be an integer');
-    n = n*b**rational(p*q) ;
-  return n,s;
+  return q and rational(p*q),s;
 
 def _parsesign(s) :
   s = s.lstrip();
@@ -182,7 +194,7 @@ Methods:
   def __new__(cls,a=0,b=1) :
     """Create a rational number equal to a/b; 0/0 is nan; a/0 is sgn(a)*inf, 0/-1 is -0
 If a is a float or rational (and b==1), return the simplest possible rational
-If a is a string, it is interpreted in bstr() format
+If a is a string (and b==1), it is interpreted in liberalized bstr() and/or str() format
 If a is iterable (and b==1), its elements, which must be numbers,
 are interpreted as the terms of a regular continued fraction"""
     if not isint(a) or not isint(b) :
