@@ -46,7 +46,7 @@ except :
       n >>= l;
     return b;
 
-inf = float('inf');
+_finf = float('inf');
 
 def sgn(x) :
   """Return the sign of x as an integer: -1, 0, or +1"""
@@ -629,11 +629,11 @@ are interpreted as the terms of a regular continued fraction"""
   def __float__(self) :
     """Return a floating point approximation to the number"""
     if not self._b :
-      return sgn(self._a)*inf;
+      return sgn(self._a)*_finf;
     try :
       return self._a/self._b;
     except OverflowError :
-      return sgn(self)*inf;
+      return sgn(self)*_finf;
 
   def __int__(self) :
     """Return the integer part of the number"""
@@ -1126,6 +1126,9 @@ _i=xrational(_0,_1);
 _half = rational(1,2);
 _hi = xrational(_0,_half);
 
+inf = _pinf;
+nan = _nan;
+
 # 327 bits :
 e = rational(chain((2,1),chain.from_iterable((2*i,1,1) for i in xrange(1,30))));
 log2e = rational((1,2,3,1,6,3,1,1,2,1,1,1,1,3,10,1,1,1,2,1,1,1,1,3,2,3,1,13,7,4,1,1,1,7,2,4,1,1,2,5,14,1,10,1,4,2,18,3,1,4,1,6,2,7,3,3,1,13,3,1,4,4,1,3,1,1,1,1,2,17,3,1,2,32,1,1,1,1,3,1,4,5,1,1,4,1,3,9,8,1,1,7,1,1,1,1,1,1,1,4,5,4,32,1,19,2,1,1,52));   #,43,1,1,7,2,1,3,28))
@@ -1427,10 +1430,15 @@ def isnan(x) :
   return x != x;
 
 def isinf(x) :
+  if x.imag :
+    return isinf(max(abs(x.real),abs(x.imag)));
   try :
     return x*2 == x and bool(x);
   except :
     return False;
+
+def isfinite(x) :
+  return not isinf(x) and not isnan(x);
 
 def copysign(x,y) :
   x = rational(x);
@@ -1556,3 +1564,10 @@ def bernouilli(k,pos=False) :
     for j in range(i+1) :
       s += (1-((j&1)<<1)) * combinations(i,j) * rational((j+p)**k,i+1);
   return s;
+
+def isclose(a,b,rel_tol=rational(1e-9), abs_tol=0) :
+  """Return True if a is close in value to b; False otherwise:
+a == b or abs(a-b) <= abs_tol or abs(a-b)/max(abs(a),abs(b)) <= rel_tol"""
+  if a == b : return True;
+  d = abs(a-b);
+  return d <= abs_tol or d/max(abs(a),abs(b)) <= rel_tol;
