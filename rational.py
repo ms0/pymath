@@ -4,7 +4,7 @@ from __future__ import division
 
 import sys
 
-from math import log as mathlog, isinf, isnan, copysign as mathcopysign
+from math import log as _mlog, copysign as _mcopysign
 from itertools import chain, count
 
 if sys.version_info[0] < 3 :
@@ -15,7 +15,7 @@ if sys.version_info[0] < 3 :
 
   def isrational(x) :
     """Return True iff rational"""
-    return isinstance(x,(int,rational,xrational));
+    return isinstance(x,(int,long,rational,xrational));
 
 else :
 
@@ -38,7 +38,7 @@ except :
     b = 0;
     while n :
       try :
-        l = int(mathlog(n,2));
+        l = int(_mlog(n,2));
         while n >> l : l += 1;
       except OverflowError :
         l = sys.float_info.max_exp-1;
@@ -47,13 +47,10 @@ except :
     return b;
 
 inf = float('inf');
-nan = float('nan');
-inf_i = complex('infj');
-nan_i = complex('nanj');
 
 def sgn(x) :
   """Return the sign of x as an integer: -1, 0, or +1"""
-  return -1 if x < 0 else 1 if x else 0;
+  return -1 if x < 0 else 1 if x > 0 else _nan if x else 0;
 
 def gcd(x,y) :
   """Return the [nonnegative] greatest common divisor of x and y"""
@@ -63,7 +60,7 @@ def gcd(x,y) :
 
 def root(a,n) :
   """Return the nth root of a, where a and n are positive integers"""
-  l = mathlog(a,2)/n;
+  l = _mlog(a,2)/n;
   if l < 1 : return 1;
   try :
     r = int(round(2**l));
@@ -78,85 +75,208 @@ def root(a,n) :
     if -1 <= ro-r <= 1 :
       return ro if abs(a-ro**n) < abs(a-r**n) else r;
 
+_zits = '0123456789abcdefghijklmnopqrstuvwxyz';
+
+def _parsenum(s,b=10) :
+  s = s.lstrip();
+  if not s : raise ValueError('empty string');
+  p = None;
+  n = 0;
+  for i,c in enumerate(s) :
+    try :
+      d = _zits.index(c,0,b);
+      n = b*n + d;
+    except :
+      if c == '.' :
+        if p != None : raise ValueError('only one point is allowed');
+        p = i;
+        continue;
+      break;
+  else :
+    i+=1;
+  if not i-(p!=None) : raise ValueError('number must have at least one zit');
+  return rational(n)/b**(i-1-p) if p != None else n,s[i:];
+
+def _parsebasenum(s) :
+  s = s.lstrip();
+  try :
+    q = ('inf','nan').index(s[:3]);
+    return (_pinf,_nan)[q],s[3:];
+  except :
+    pass;
+  n,s = _parsenum(s);
+  s = s.lstrip();
+  if s and s[0] == '#' :
+    b = n;
+    if not (isint(n) and 2<=b<=36) : raise ValueError('base must be between 2 and 36 inclusive');
+
+    n,s = _parsenum(s[1:],b);
+  else :
+    b = 10;
+  s = s.lstrip();
+  try :
+    q = 1-2*('<<','>>').index(s[:2]);
+  except :
+    q = 0;
+  if q :
+    p,s = _parseint(s[2:]);
+    if not isint(p) : raise ValueError('shift amount must be an integer');
+    n = n*b**rational(p*q) ;
+  return n,s;
+
+def _parsesign(s) :
+  s = s.lstrip();
+  try :
+    q = 1-2*('+-').index(s[:1]);
+    s = s[1:]
+  except :
+    q = 1;
+  return q,s;
+
+def _parseint(s) :
+  q,s = _parsesign(s);
+  n,s = _parsenum(s);
+  return q*n,s;
+
+def _parsesignednum(s) :
+  q,s = _parsesign(s);
+  n,s = _parsebasenum(s);
+  return q*rational(n),s;
+
+def _parserat(s) :
+  s = s.strip().lower();
+  a,s = _parsesignednum(s);
+  s = s.lstrip();
+  if s :
+    if s[0] in '*i' :
+      if s[0] == '*' :
+        s = s[1:].lstrip();
+      if s == 'i' :
+        return xrational(0,a);
+      raise ValueError('real part terminates as if imaginary')
+    b,s = _parsesignednum(s);
+    if s :
+      if s[0] == '*' :
+        s = s[1:].lstrip();
+      if s == 'i' :
+        return xrational(a,b);
+    raise ValueError('improper imaginary portion')
+  return rational(a);
+
 class rational(object) :
   """Rational number class
 Instance variables:
   a or numerator: the numerator, an integer
-  b or denominator: the denominator, a positive integer
+  b or denominator: the denominator, a positive integer (except -1 for -0)
   Note that gcd(a,b) == 1.
 Methods:
   __new__, __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-  __pos__, __neg__, __abs__,
+  __pos__, __neg__, __abs__, __invert__, maxnorm,
   __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__
   __pow__, __rpow__, log, exp, cf, approximate"""
 
-  def __new__(cls,a,b=1) :
-    """Create a rational number equal to a/b; attempting b=0 raises ZeroDivisionError
+  def __new__(cls,a=0,b=1) :
+    """Create a rational number equal to a/b; 0/0 is nan; a/0 is sgn(a)*inf, 0/-1 is -0
 If a is a float or rational (and b==1), return the simplest possible rational
-If a is a nonempty list or tuple of integers (and b==1),
- they are interpreted as the terms of a regular continued fraction"""
+If a is a string, it is interpreted in bstr() format
+If a is iterable (and b==1), its elements, which must be numbers,
+are interpreted as the terms of a regular continued fraction"""
     if not isint(a) or not isint(b) :
       if b == 1 :
         if isinstance(a,(rational,xrational)) :
           return a if a.imag else a.real;
-        elif a and isinstance(a,(tuple,list)) :
-          m0,m1,n0,n1 = 0,1,1,0;
+        if isinstance(a,str) :
+          return _parserat(a);
+        try :
+          a = iter(a);
+          m0,m1,n0,n1 = 0,1,1,0;    # |m0n1-m1n0| == 1 throughout
           for i in a :
-            if not isrational(i) : raise TypeError('cf must be rational');
-            if i <= 0 and n1 : raise TypeError('cf terms beyond first must be positive');
+            if not isrational(i) :
+              try :
+                i = rational(i);
+              except :
+                raise ValueError('cf terms must be rational');
+            if not isint(i) and not i.imag and i.real._b == 1 :
+              i = int(i);
             m0,m1,n0,n1 = n0,n1,m0+i*n0,m1+i*n1;
           if isint(n0) and isint(n1) :
             a,b = int(n0),int(n1)
+            if b < 0 :
+              a,b = -a,-b;
           else :
             return n0/n1;
-        elif a.imag :
-          return xrational(a);
-        elif isinstance(a.real,float) and not isinf(a.real) and not isnan(a.real) :
-          a = a.real;
-          self = super(rational,cls).__new__(cls);
-          x = a;
-          m0,m1,n0,n1 = 0,1,1,0;
-          for i in xrange(64) :
-            ix = x//1;
-            fx = x - ix;        
-            iix = int(ix);
-            m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
-            if fx == 0 or n0/n1 == a : break;
-            x = 1/fx;
-          a,b = int(n0),int(n1);
-        else :
-          raise TypeError('arg must be a number or a nonempty list or tuple of cf terms')
+        except TypeError :
+          if a.imag :
+            return xrational(a);
+          elif isinstance(a.real,float) :
+            a = a.real;
+            if isnan(a) :
+              a = b = 0;
+            elif isinf(a) :
+              a,b = sgn(a),0;
+            elif not a :
+              a,b = 0,int(_mcopysign(1,a));
+            else :
+              x = a;
+              m0,m1,n0,n1 = 0,1,1,0;    # |m0n1-m1n0| == 1 throughout
+              for i in xrange(64) :
+                ix = x//1;
+                fx = x - ix;        
+                iix = int(ix);
+                m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
+                if fx == 0 or n0/n1 == a : break;
+                x = 1/fx;
+                if isinf(x) :    # fx was denormalized
+                  c = 1;
+                  while True :
+                    fx *= 2;
+                    x = 1/fx;
+                    if not isinf(x) : break;
+                    c += 1
+                  x = int(1/fx)<<c;
+              a,b = int(n0),int(n1);
+          else :
+            raise TypeError('arg must be a number or an iterable of cf terms')
       else :
         raise TypeError('numerator and denominator must be integers');
     else :
-      if b < 0 : a,b = -a,-b;
-      if not b : raise ZeroDivisionError;
-      g = gcd(a,b);
-      a = int(a//g);
-      b = int(b//g);
+      if not b :
+        a = sgn(a);    # nan, +-inf
+      elif not a :
+        a,b = 0,sgn(b);
+      else :
+        if b < 0 : a,b = -a,-b;
+        g = gcd(a,b);
+        a = int(a//g);
+        b = int(b//g);
     if not a :
       try :
-        return _0;
+        return _0 if b > 0 else _m0 if b else _nan;
       except :
         pass;    # happens exactly once!
+    elif not b :
+      try :
+        return _minf if a < 0 else _pinf;
+      except :
+        pass;
     self = super(rational,cls).__new__(cls);
     self._a,self._b = a,b;
     return self;
 
-  def __init__(self,a,b=1) :
+  def __init__(self,a=0,b=1) :
     return;
 
   def __str__(self) :
     """Return a string showing the rational number as a fraction or integer"""
-    return '%d/%d'%(self._a,self._b) if self._b != 1 else '%d'%(self._a);
+    return '%d/%d'%(self._a,self._b) if abs(self._b) != 1 else '%s%d'%((self._b<0)*'-',self._a);
 
   def __repr__(self) :
-    """Return a string showing the rational number as it could be input"""
-    return 'rational(%d,%d)'%(self._a,self._b) if self._b != 1 else 'rational(%d)'%(self._a);
+    """Return a string showing the rational number"""
+    return 'rational(%s)'%(self);
 
   def __hash__(self) :
     """Return a hash for the rational number; if an integer, use that integer's hash"""
@@ -178,84 +298,82 @@ If a is a nonempty list or tuple of integers (and b==1),
 
   def __lt__(self,other) :
     """Return True iff self < other """
+    if self is _nan : return False;
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self._a < self._b*other;
+        return self._a < abs(self._b)*other;
       if isinstance(other,float) :
-        if isnan(other) :
-          return False;
-        if isinf(other) :
-          return other > 0;
-        return self < self.__class__(other);
-      return NotImplemented;
-    return self._a*other._b < self._b*other._a;
+        other = self.__class__(other);
+      else :
+        return NotImplemented;
+    if not other._b :
+      return other._a > 0 and (self._b != 0 or self is _minf);
+    return self._a*abs(other._b) < abs(self._b)*other._a;
 
   def __le__(self,other) :
     """Return True iff self <= other"""
+    if self is _nan : return False;
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self._a <= self._b*other;
+        return self._a <= abs(self._b)*other;
       if isinstance(other,float) :
-        if isnan(other) :
-          return False;
-        if isinf(other) :
-          return other > 0;
         return self <= self.__class__(other);
       return NotImplemented;
-    return self._a*other._b <= self._b*other._a;
+    if not other._b :
+      return other._a > 0 or other is self;
+    return self._a*abs(other._b) <= abs(self._b)*other._a;
 
   def __eq__(self,other) :
     """Return True iff self == other"""
+    if self is _nan : return False;
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self._a == self._b*other;
+        return self._a == abs(self._b)*other;
       if isinstance(other,float) :
-        return not isinf(other) and not isnan(other) and self == self.__class__(other);
+        return self == self.__class__(other);
       return NotImplemented;
-    return self._a*other._b == self._b*other._a;
+    return self._a == other._a and abs(self._b) == abs(other._b) and other is not _nan;
 
   def __ne__(self,other) :
     """Return True iff self != other"""
+    if self is _nan : return True;
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self._a != self._b*other;
+        return self._a != abs(self._b)*other;
       if isinstance(other,float) :
-        return not isnan(other) and (isinf(other) or self != self.__class__(other));
+        return self != self.__class__(other);
       return NotImplemented;
-    return self._a*other._b != self._b*other._a;
+    return self._a != other._a or abs(self._b) != abs(other._b) or other is _nan;
 
   def __ge__(self,other) :
+    if self is _nan : return False;
     """Return True iff self >= other"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self._a >= self._b*other;
+        return self._a >= abs(self._b)*other;
       if isinstance(other,float) :
-        if isnan(other) :
-          return False;
-        if isinf(other) :
-          return other < 0;
         return self >= self.__class__(other);
       return NotImplemented;
-    return self._a*other._b >= self._b*other._a;
+    if not other._b :
+      return other._a < 0 or self == other;
+    return self._a*abs(other._b) >= abs(self._b)*other._a;
 
   def __gt__(self,other) :
     """Return True iff self > other"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self._a > self._b*other;
+        return self._a > abs(self._b)*other;
       if isinstance(other,float) :
-        if isnan(other) :
-          return False;
-        if isinf(other) :
-          return other < 0;
         return self > self.__class__(other);
       else :
         return NotImplemented;
-    return self._a*other._b > self._b*other._a;
+    if not other._b :
+      return other._a < 0 and (self._b != 0 or self is _pinf);
+    return self._a*abs(other._b) > abs(self._b)*other._a;
 
   def __bool__(self) :
     """Return True iff self != 0"""
-    return self._a != 0;
+    return self._a != 0 or self._b == 0;
 
   __nonzero__ = __bool__
 
@@ -263,16 +381,21 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return self"""
     return self;
 
+  __invert__ = __pos__
+
   def __neg__(self) :
     """Return -self"""
-    return self.__class__(-self._a,self._b) if self._a else self;
+    return self.__class__(-self._a,self._b if self._a else -self._b);
 
   def __abs__(self) :
     """Return |self|"""
-    return self.__class__(-self._a,self._b) if self._a < 0 else self;
+    return self.__class__(-self._a,self._b) if self._a < 0 else self or _0;
+
+  maxnorm = __abs__
 
   def __add__(self,other) :
     """Return the sum of the two numbers"""
+    if self is _nan : return _nan;
     if not isinstance(other,self.__class__) :
       if other.imag :
         return xrational(self)+other;
@@ -280,25 +403,30 @@ If a is a nonempty list or tuple of integers (and b==1),
         return self+self.__class__(other);
       except :
         return other.__class__(self)+other;
+    if not other._b :
+      return other if other._a and self is not -other else _nan;
+    if not self._a :
+      return other or (_0 if other._b > 0 or self._b > 0 else _m0);
     return self.__class__(self._a*other._b+other._a*self._b,self._b*other._b);
 
   __radd__ = __add__
 
   def __sub__(self,other) :
     """Return the difference of the two numbers"""
+    if self is _nan : return _nan;
     if not isinstance(other,self.__class__) :
-      if isinstance(other,complex) :
-        return xrational(self)-other;
       try :
         return self-self.__class__(other);
       except :
         return other.__class__(self)-other;
+    if not other._b :
+      return -other if other._a and self is not other else _nan;
+    if not other._a :
+      return self or (_0 if other._b < 0 or self._b > 0 else _m0);
     return self.__class__(self._a*other._b-other._a*self._b,self._b*other._b);
 
   def __rsub__(self,other) :
     """Return the difference of the swapped two numbers"""
-    if isinstance(other,complex) :
-      return other-xrational(self);
     try :
       return self.__class__(other)-self;
     except :
@@ -308,13 +436,16 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the product of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.__class__(self._a*other,self._b);
-      if isinstance(other,complex) :
-        return xrational(self)*other;
+        return self.__class__(self._a*other,self._b) if self._a else self if other >= 0 else -self;
       try :
         return self*self.__class__(other);
       except :
         return other.__class__(self)*other;
+    if not self._a and not other._b or not other._a and not self._b : return _nan;
+    if not self._a :
+      return self if other._a >= 0 and other._b > 0 else -self;
+    if not other._a :
+      return other if other._a > 0 else -other;
     return self.__class__(self._a*other._a,self._b*other._b);
 
   __rmul__ = __mul__
@@ -323,33 +454,43 @@ If a is a nonempty list or tuple of integers (and b==1),
     """Return the quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.__class__(self._a,other*self._b);
-      if isinstance(other,complex) :
-        return xrational(self)/other;
+        return self.__class__(self._a,other*self._b) if self._b else \
+          self if other >= 0 else -self;
       try :
         return self/self.__class__(other);
       except :
         return other.__class__(self)/other;
-    return self.__class__(self._a*other._b,self._b*other._a);
+    a,b = self._a*other._b,self._b*other._a;
+    if not a and not b : return _nan;
+    if not self._a :
+      return self if other._a > 0 else -self;
+    if not self._b :
+      return self if other._a >= 0 and other._b > 0 else -self;
+    return self.__class__(a,b);
 
   def __rtruediv__(self,other) :
     """Return the inverse quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.__class__(other*self._b,self._a);
-      if isinstance(other,complex) :
-        return other/xrational(self);
+        return self.__class__(other*self._b,self._a if self._b or other >= 0 else -self._a)
       try :
         return self.__class__(other)/self;
       except :
         return other/other.__class__(self);
-    return self.__class__(self._b*other._a,self._a*other._b);
+    a,b =self._b*other._a,self._a*other._b;
+    if not a and not b : return _nan;
+    if not other._a :
+      return other if self._a > 0 else -other;
+    if not other._b :
+      return other if self._a >= 0 and self._b > 0 else -other;
+    return self.__class__(a,b);
 
   __div__ = __truediv__
   __rdiv__ = __rtruediv__
 
   def __floordiv__(self,other) :
     """Return the floor of the quotient of the two numbers"""
+    if not self._b : return _nan;
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return self.__class__(self._a//(self._b*other));
@@ -359,10 +500,13 @@ If a is a nonempty list or tuple of integers (and b==1),
         return self//self.__class__(other);
       except :
         return other.__class__(self)//other;
+    if not other._b : return _nan;
+    if not other : raise ZeroDivisionError;
     return self.__class__((self._a*other._b)//(self._b*other._a));
 
   def __rfloordiv__(self,other) :
     """Return the floor of the inverse quotient of the two numbers"""
+    if not self._b : return _nan;
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return self.__class__((self._b*other)//self._a);
@@ -372,6 +516,8 @@ If a is a nonempty list or tuple of integers (and b==1),
         return self.__class__(other)//self;
       except :
         return other//other.__class__(self);
+    if not other._b : return _nan;
+    if not self : raise ZeroDivisionError;
     return self.__class__((self._b*other._a)//(self._a*other._b));
 
   def __mod__(self,other) :
@@ -394,25 +540,16 @@ If a is a nonempty list or tuple of integers (and b==1),
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
-    if isinstance(other,(complex,xrational)) :
-      if other.imag :
-        try :
-          return xrational(self)**other;
-        except :
-          return exp(other*self.log());
-      other = other.real;
-    if not self._a :
-      if other < 0 :
-        raise ZeroDivisionError;
-      else :
-        return self if other else _1;
+    if self is _nan : return _nan;
+    if other.imag :
+      try :
+        return xrational(self)**other;
+      except :
+        return exp(other*self.log());
+    other = other.real;
     if isinstance(other,float) :
-      if isnan(other) : return nan;
-      if isinf(other) :
-        b=abs(self);
-        return _1 if b == 1 else _0 if (b < 1) == (other > 0) else inf;
       other = self.__class__(other);
-    if isinstance(other,self.__class__) and other._b == 1 :
+    if isinstance(other,self.__class__) and abs(other._b) == 1 :
       other = other._a;
     if isint(other) :
       if other < 0 :
@@ -420,7 +557,17 @@ If a is a nonempty list or tuple of integers (and b==1),
       return self.__class__(self._a**other,self._b**other);
     if not isinstance(other,self.__class__) :
       raise TypeError('exponent must be a number');
+    if not other._b :    # non-finite power
+      return _nan if other is _nan \
+        else _1 if self == 1 else _pinf if (self > 1) == (other._a > 0) else _0;
     # rational (but not integral) power
+    if not self._a :    # zero base
+      if other < 0 :
+        self = 1/self;
+        other = -other;
+      return self if other._a&1 else abs(self) if other else _1;
+    if not self._b :    # infinite base
+      return _pinf if self._a > 0 or not other._a&1 else _minf if other._b&1 else xrational(self)**other;
     if other._a < 0 :
       if self._a < 0 :
         a,b,c = -self._b, -self._a, -other._a;
@@ -457,23 +604,6 @@ If a is a nonempty list or tuple of integers (and b==1),
     try :
       return self.__class__(other)**self;
     except :
-      if isinstance(other,(float,complex)) :
-        if self._b == 1 :    # integer power
-          n = self._a;
-          if n == 1 : return other;
-          if n == 0 : return _1;
-          if not (isinf(other.real) or isinf(other.imag)) : return nan;
-          if n < 0 : return _0;
-          if not other.imag :    # pure real +-inf
-            return inf if other.real > 0 or not n&1 else -inf;
-          if not other.real :    # pure imag +-inf
-            return complex(0 if not n&1 else inf if n&2 else -inf,
-                           0 if n&1 else (1-(n&2))*other.imag);
-          return nan;
-        if not (isinf(other.real) or isinf(other.imag)) : return nan;
-        if isinf(other.real) and not other.imag :
-          return other.real if self > 0 else _0;
-        return _0 if self < 0 else nan;
       return other**other.__class__(self);
 
   def __lshift__(self,other) :
@@ -486,6 +616,8 @@ If a is a nonempty list or tuple of integers (and b==1),
 
   def __float__(self) :
     """Return a floating point approximation to the number"""
+    if not self._b :
+      return sgn(self._a)*inf;
     try :
       return self._a/self._b;
     except OverflowError :
@@ -499,11 +631,17 @@ If a is a nonempty list or tuple of integers (and b==1),
 
   def __floor__(self) :
     """Return the floor of the number"""
-    return int(self._a//self._b);
+    try :
+      return int(self._a//self._b);
+    except :
+      return self;
 
   def __ceil__(self) :
     """Return the ceil of the number"""
-    return int(-(-self._a//self._b));
+    try :
+      return int(-(-self._a//self._b));
+    except :
+      return self;
 
   def __round__(self,n=0,base=10) :
     """Return the round of the number"""
@@ -511,12 +649,15 @@ If a is a nonempty list or tuple of integers (and b==1),
       raise TypeError('n must be an integer');
     if not isint(base) or base < 2 :
       raise ValueError('base must be an integer > 1');
-    if not n : return -int(_half-self) if self._a < 0 else int(_half+self);
-    base2absn = base**abs(n);
-    return ((self.__class__(int((self/base2absn - _half)*base2absn)) if self._a < 0 else
-             self.__class__(int((self/base2absn + _half)*base2absn))) if n < 0 else
-            self.__class__(-int(_half - self*base2absn),base2absn) if self._a < 0 else
-            self.__class__(int(_half + self*base2absn),base2absn));
+    try :
+      if not n : return -int(_half-self) if self._a < 0 else int(_half+self);
+      base2absn = base**abs(n);
+      return ((self.__class__(int((self/base2absn - _half)*base2absn)) if self._a < 0 else
+               self.__class__(int((self/base2absn + _half)*base2absn))) if n < 0 else
+              self.__class__(-int(_half - self*base2absn),base2absn) if self._a < 0 else
+              self.__class__(int(_half + self*base2absn),base2absn));
+    except :
+      return self;
 
   def tonx(self,n,base=10) :
     """Return (0,0) if self == 0; else
@@ -550,7 +691,9 @@ a following >> indicates division by the indicated power of the base"""
       raise ValueError('n must be a positive integer');
     if not (isint(base) and 2 <= base <= 36) :
       raise ValueError('base must be an integer in [2,36]')
-    if not self : return '0';
+    if self._b <= 0 :
+      return '-0' if self._b else '-inf' if self._a < 0 else 'inf' if self._a else 'nan';
+    if not self : return '+0';
     t,x = self.tonx(n,base);
     t = abs(t);
     s = [];
@@ -563,17 +706,16 @@ a following >> indicates division by the indicated power of the base"""
       '.' + s + '>>' + str(-x-len(s)) if -x > len(s) else
       s[:len(s)+x] + ('.' + s[len(s)+x:] if x else ''));
 
-  def arg(self) :
-    """Return 0"""
-    return _0;
+  def arg(self,ratio=False) :
+    """Return 0 if self > 0, pi or 1/2 if self < 0, otherwise _nan"""
+    return _0 if self._a > 0 else (_half if ratio else pi) if self._a < 0 else _nan;
 
   def log(self,base=None) :
-    """Return the log of the number as a rational if finite, else as +-inf"""
+    """Return the log of the number as a rational"""
     base = self.__class__(base) if base != None else e;
-    if base <= 0 or base == 1 : raise ValueError('bad base');
-    if not self._a : return inf if base < 1 else -inf;
+    if not base.real._b or base.imag or base <= 0 or base == 1 : raise ValueError('bad base');
     d = _ln(base);
-    return xrational(_ln(-self)/d,pi/d) if self < 0 else _ln(self)/d;
+    return xrational(_ln(-self)/d,pi/d) if self._a < 0 or self._b < 0 else _ln(self)/d;
 
   def exp(self) :
     """Return exp(self) as a rational"""
@@ -581,13 +723,15 @@ a following >> indicates division by the indicated power of the base"""
 
   def cf(self) :
     """Return a tuple of the terms of the regular continued fraction for the number"""
-    l = [];
+    return tuple(self.cfg());
+
+  def cfg(self) :
+    """Return a generator of the terms of the regular continued fraction for the number"""
     a,b = self._a,self._b;
     while b :
       q = int(a//b);    # turn long into int if possible
-      l.append(q);
+      yield q;
       a,b = b,int(a-q*b);
-    return tuple(l);
 
   def approximate(self,accuracy=None) :
     """If accuracy is unspecified, or self is an integer, return self; else
@@ -596,7 +740,7 @@ If self < 1, approximate 1/self and return the inverse; else
 Return x with least denominator such that |(1-x/self)*accuracy| <= 1"""
     if accuracy == None : return self;
     a,b = self._a,self._b;
-    if b == 1 : return self;
+    if b <= 1 : return self;
     s = sgn(a);    # make sure symmetric over negation
     a *= s;
     if a < b : return 1/(1/self).approximate(accuracy); # make sure symmetric over inversion
@@ -638,42 +782,45 @@ Instance variables:
 Methods:
   __new__, __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-   __pos__, __neg__, __abs__, __invert__, conjugate,
+   __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm,
   __float__, __complex__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__
   __pow__, __rpow__, log, exp, arg, approximate"""
 
-  def __new__(cls,real,imag=0) :
+  def __new__(cls,real=0,imag=0) :
     """Create a complex number equal to real+imag*i; real and imag are converted to rational
-If real is complex or xrational (and imag==0), return the corresponding xrational"""
+If real is complex or xrational (and imag==0), return the corresponding xrational
+If real is a string (and imag==0), return xrational(rational(real))"""
     if imag == 0 :
       if isinstance(real,xrational) : return real;
       if isinstance(real,complex) :
         real,imag = real.real, real.imag;
+      if isinstance(real,str) :
+        return xrational(rational(real));
     try :
-      if real.imag or imag.imag : raise TypeError;
       real = rational(real);
       imag = rational(imag);
+      if real.imag or imag.imag : raise TypeError;
     except :
       raise TypeError('args must be convertible to rationals');
     self = super(xrational,cls).__new__(cls);
     self._a,self._b = real,imag;
     return self;
 
-  def __init__(self,real,imag=0) :
+  def __init__(self,real=0,imag=0) :
     return;
 
   def __str__(self) :
     """Return a string showing the complex rational number"""
     return '%s%s%si'%(self._a,
-                      '+' if self._b > 0 else '',
-                      self._b) if self._b else '%s'%(self._a);
+                      '' if self._b._a < 0 or self._b._b < 0 else '+',
+                      self._b) if self._b is not _0 else '%s'%(self._a);
 
   def __repr__(self) :
-    """Return a string showing the rational number as it could be input"""
-    return 'xrational(%s)'%(str(self));
+    """Return a string showing the rational number"""
+    return 'xrational(%s)'%(self);
 
   def __hash__(self) :
     """Return a hash for the xrational number; if an integer, use that integer's hash"""
@@ -751,6 +898,10 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
   def __abs__(self) :
     """Return |self|"""
     return (self._a**2+self._b**2)**_half;
+
+  def maxnorm(self) :
+    """Return max(|self._a|,|self._b|)"""
+    return max(abs(self._a),abs(self._b));
 
   def __float__(self) :
     """Return a floating point approximation to the number if real"""
@@ -869,22 +1020,17 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
+    other = rational(other);
     if not other.imag :
       other = other.real;
-    if isinstance(other,float) :
-      if isnan(other) : return nan;
-      if isinf(other) :
-        b = abs(self);
-        return _1 if b == 1 else _0 if (b<1)==(other>0) else inf;
-      other = rational(other);
-    if isinstance(other,rational) and other._b == 1 :
+      if not other._b :
+        if not other._b : return _nan;
+        b = other._a;
+        return _1 if b == 1 else _0 if (b<1)==(other>0) else _pinf;
+    if isinstance(other,rational) and abs(other._b) == 1 :
       other = other._a;
-    if not self :
-      if other.imag or other < 0:
-        raise ZeroDivisionError('0 to negative or complex power');
-      else :
-        return _0 if other else _1;
     if isint(other) :
+      if not self : return self._a**other;
       if other < 0 :
         return (1/self)**-other;
       x = self.__class__(_1);
@@ -895,6 +1041,7 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
         if not other : break;
         s *= s;
       return x;
+    if not self : return _nan if other.imag or other < 0 else _0;
     try :
       return (self.__class__(other)*self.log()).exp();
     except :
@@ -904,10 +1051,6 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     try :
       return self.__class__(other)**self;
     except :
-      if isinstance(other,(float,complex)) :
-        if not self._b : return other**self._a;    # real power
-        if not (isinf(other.real) or isinf(other.imag)) : return nan;
-        return _0 if self._a < 0 else nan;
       return other**other.__class__(self);
 
   def __lshift__(self,other) :
@@ -920,24 +1063,23 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
 
   def bstr(self,n=5,base=10) :
     """Return a string representation of self, using rational.bstr"""
-    if not self._b :
-      return self._a.bstr(n,base);
-    if not self._a :
-      return self._b.bstr(n,base) + '*i';
-    return self._a.bstr(n,base) + '+' + self._b.bstr(n,base) + '*i';
+    return self._a.bstr(n,base) + ('+' if self._b > 0 else '') + \
+      self._b.bstr(n,base) + ('i' if base <= 10 else '*i');
 
   def arg(self,ratio=False) :
     """Return the argument of self; if ratio, as a fraction of 2pi"""
-    if not self : raise ZeroDivisionError('zero does not have an argument')
+    x,y = self._a,self._b;
+    if not x and not y :
+      x,y = 1/x,1/y;    # treat +-0 as if +-inf, because why not?
     a = r = None;
-    if not self._b :
-      r = rational(1-sgn(self._a),4);
-    elif not self._a :
-      r = rational(sgn(self._b),4);
-    elif abs(self._a) == abs(self._b) :
-      r = rational(sgn(self._b)*(2-sgn(self._a)),8);
+    if not y :
+      r = rational(1-sgn(x),4);
+    elif not x :
+      r = rational(sgn(y),4);
+    elif abs(x) == abs(y) :
+      r = rational(sgn(y)*(2-sgn(x)),8);
     else :
-      a = _atan2(self._b,self._a);
+      a = _atan2(y,x);
     if ratio :
       return a/tau if r==None else r;
     else :
@@ -946,8 +1088,8 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
   def log(self,base=None) :
     """Return the log of the number as an xrational"""
     base = rational(base) if base != None else e;
-    if base.imag or base <= 0 or base == 1 : raise ValueError('bad base');
-    if not self : return inf if base < 1 else -inf;
+    if not base.real._b or base.imag or base <= 0 or base == 1 : raise ValueError('bad base');
+    if not self : return _pinf if base < 1 else _minf;
     d = _ln(base);
     return self.__class__(_ln(abs(self))/d,self.arg()/d);
     
@@ -955,28 +1097,34 @@ If real is complex or xrational (and imag==0), return the corresponding xrationa
     """Return exp(self) as an xrational"""
     i = self._b;
     m = _exp(self._a);
-    return self.__class__(m*_xcos(i),m*_xsin(i));
+    c = _xcos(i);
+    s = _xsin(i);
+    return self.__class__(c and m*c,s and m*s);
     
   def approximate(self,accuracy=None) :
     return self.__class__(self._a.approximate(accuracy),self._b.approximate(accuracy));
 
 _0=rational(0);
 _1=rational(1);
+_m0=rational(0,-1);
+_pinf=rational(1,0);
+_minf=rational(-1,0);
+_nan=rational(0,0);
 _i=xrational(_0,_1);
 _half = rational(1,2);
 _hi = xrational(_0,_half);
 
 # 327 bits :
-e = 1+1/rational(tuple(chain.from_iterable((2*i,1,1) for i in xrange(30))));
-# 321 bits :
-log2e = rational((1,2,3,1,6,3,1,1,2,1,1,1,1,3,10,1,1,1,2,1,1,1,1,3,2,3,1,13,7,4,1,1,1,7,2,4,1,1,2,5,14,1,10,1,4,2,18,3,1,4,1,6,2,7,3,3,1,13,3,1,4,4,1,3,1,1,1,1,2,17,3,1,2,32,1,1,1,1,3,1,4,5,1,1,4,1,3,9,8,1,1,7,1,1,1,1,1,1,1,4,5,4,32,1,19,2,1,1));
-# 315 bits :
-pi = rational((3,7,15,1,292,1,1,1,2,1,3,1,14,2,1,1,2,2,2,2,1,84,2,1,1,15,3,13,1,4,2,6,6,99,1,2,2,6,3,5,1,1,6,8,1,7,1,2,3,7,1,2,1,1,12,1,1,1,3,1,1,8,1,1,2,1,6,1,1,5,2,2,3,1,2,4,4,16,1,161,45,1,22,1,2,2,1,4,1,2));
+e = rational(chain((2,1),chain.from_iterable((2*i,1,1) for i in xrange(1,30))));
+log2e = rational((1,2,3,1,6,3,1,1,2,1,1,1,1,3,10,1,1,1,2,1,1,1,1,3,2,3,1,13,7,4,1,1,1,7,2,4,1,1,2,5,14,1,10,1,4,2,18,3,1,4,1,6,2,7,3,3,1,13,3,1,4,4,1,3,1,1,1,1,2,17,3,1,2,32,1,1,1,1,3,1,4,5,1,1,4,1,3,9,8,1,1,7,1,1,1,1,1,1,1,4,5,4,32,1,19,2,1,1,52));   #,43,1,1,7,2,1,3,28))
+# 322 bits :
+pi = rational((3,7,15,1,292,1,1,1,2,1,3,1,14,2,1,1,2,2,2,2,1,84,2,1,1,15,3,13,1,4,2,6,6,99,1,2,2,6,3,5,1,1,6,8,1,7,1,2,3,7,1,2,1,1,12,1,1,1,3,1,1,8,1,1,2,1,6,1,1,5,2,2,3,1,2,4,4,16,1,161,45,1,22,1,2,2,1,4,1,2,24,1));    #,2,1,3,1,2,1,1));
 tau = 2*pi;
 hpi = pi/2;
 qpi = pi/4;
+rootpi = rational((1,1,3,2,1,1,6,1,28,13,1,1,2,18,1,1,1,83,1,4,1,2,4,1,288,1,90,1,12,1,1,7,1,3,1,6,1,2,71,9,3,1,5,36,1,2,2,1,1,1,2,5,9,8,1,7,1,2,2,1,63,1,4,3,1,6,1,1,1,5,1,9,2,5,4,1,2,1,1,2,20,1,1,2,1,10,5,2,1,100));    #,11,1,9,1,2,1,1,1,1));
 # 263 bits :
-root2 = rational(tuple(min(i,2) for i in xrange(1,105))); # root2**2 > 2 [see froot2]
+root2 = rational(min(i,2) for i in xrange(1,105)); # root2**2 > 2 [see froot2]
 roothalf = 1/root2;
 # 261 bits :
 froot2 = root2 - 1;    # required for _atan: froot2 > (1-froot2)/(1+froot2)
@@ -1004,6 +1152,7 @@ def _checkaccuracy(a,za,zb,ra,rb) :    # assume za,zb,ra,rb all positive
   return abs(a*(d-zb*ra)) <= d;    # abs(z-r)/z*a <= 1
 
 def _exp(x) :
+  if not x._b : return _0 if x._a < 0 else x;
   n = x.__round__();
   x -= n;
   if x <= 0 :
@@ -1024,6 +1173,7 @@ def _expp(x) :   # 0 < x <= 1/2
 
 def _xsin(t) :
   """Return sin(t) as a rational"""
+  if not t._b : return _nan;
   t %= tau;
   r = 8*t/tau;
   if int(r) == r :
@@ -1032,6 +1182,7 @@ def _xsin(t) :
 
 def _xcos(t) :
   """Return cos(t) as a rational"""
+  if not t._b : return _nan;
   t %= tau;
   r = 8*t/tau;
   if int(r) == r :
@@ -1039,7 +1190,7 @@ def _xcos(t) :
   return _sin((t-hpi)%tau-pi);
 
 def _atan2(y,x) :
-  if not x :
+  if not x/y :
     return hpi*sgn(y);
   a = _atan(y/x);
   return a if x > 0 else a+(sgn(y) or 1)*pi;
@@ -1062,8 +1213,10 @@ def _atan(z) :
   return t.approximate(1<<(_SIGNIFICANCE+8));
 
 def _ln(z) :
+  if not z._b : return z;    # nan or inf
   if z <= 1 :
     if z <= 0 :
+      if not z : return _minf;
       raise ValueError('math domain error');
     if z < 1 :
       return -_ln(1/z);
@@ -1106,37 +1259,12 @@ def _sin(z) :
 # math functions
 
 def exp(x) :
-  if isinstance(x,(float,complex)) :
-    if isnan(x.real) : return nan;
-    if isinf(x.real) :
-      if x.real < 0 : return 0;
-      if isnan(x.imag) or isinf(x.imag) : return nan;
-      r = x.imag/float(hpi)%4;
-      s = int(r);
-      if r == s :
-        return inf if isinstance(x,float) else \
-          complex(*((inf,nan),(nan,inf),(-inf,nan),(nan,-inf))[s]);
-      else :
-        return complex(*((inf,inf),(-inf,inf),(-inf,-inf),(inf,-inf))[s]);
-    if isnan(x.imag) or isinf(x.imag) : return nan;
-  return xrational(x).exp() if x.imag else _exp(rational(x));
+  return rational(x).exp();
 
 def expm1(x) :
   return exp(x)-1;
 
 def log(x,base=e) :
-  if isinstance(x,(float,complex)) :
-    if base.imag or base <= 0 or base == 1 : raise ValueError('bad base');
-    b = log(base);
-    if isnan(x.real) :
-      return complex(inf/b,sgn(x.imag)*hpi/b) if isinf(x.imag) else nan;
-    if isinf(x.real) :
-      if isinf(x.imag) :
-        return complex(inf/b,qpi/b*(1+(1-sgn(x.real)))*sgn(x.imag));
-      return inf/b if x.real > 0 else complex(inf/b,pi/b);
-    if isinf(x.imag) :
-      return complex(inf/b,sgn(x.imag)*hpi/b);
-    if isnan(x.imag) : return nan;
   return xrational(x).log(base) if x.imag else rational(x).log(base);
 
 def log1p(x) :
@@ -1149,47 +1277,41 @@ def log2(x) :
   return log(x,2);
 
 def sin(x) :
-  if isinstance(x,(float,complex)) and (
-    isinf(x.real) or isinf(x.imag) or isnan(x.real) or isnan(x.imag)) :
-    return nan;
+  x = rational(x);
+  if not x.real._b or not x.imag._b : return _nan;
   if x.imag :
     ix = _i*x;
     return ((-ix).exp()-ix.exp())*_hi;
   return _xsin(x.real);
 
 def cos(x) :
-  if isinstance(x,(float,complex)) and (
-    isinf(x.real) or isinf(x.imag) or isnan(x.real) or isnan(x.imag)) :
-    return nan;
+  x = rational(x);
+  if not x.real._b or not x.imag._b : return _nan;
   if x.imag :
     ix = _i*x;
     return ((-ix).exp()+ix.exp())*_half;
   return _xcos(x.real);
 
 def tan(x) :
-  if isinstance(x,(float,complex)) and (
-    isinf(x.real) or isinf(x.imag) or isnan(x.real) or isnan(x.imag)) :
-    return nan;
+  x = rational(x);
+  if not x.real._b or not x.imag._b : return _nan;
   return sin(x)/cos(x);
 
 def atan2(y,x) :
+  x,y = rational(x),rational(y);
   if y.imag or x.imag :
-    raise ValueError('math domain error');
+    return atan(y/x) if x else _nan;
   x,y = x.real, y.real;
-  if isinstance(x,float) and isinf(x) or isinstance(y,float) and isinf(y) :
-    return atan(y/x);
   return xrational(x,y).arg();
 
 def atan(x) :
-  if isinstance(x,(float,complex)) :
-    if isnan(x.real) or isnan(x.imag) :
-      return nan;
-    if isinf(x.imag) :
-      return nan;    #?
-    if isinf(x.real) :
-      return nan if x.imag else hpi if x.real > 0 else -hpi;
+  x = rational(x);
+  if x.real is _nan or not x.imag._b :
+    return _nan;    #?
+  if not x.real._b :
+    return _nan if x.imag else hpi if x.real > 0 else -hpi;
   if not x.real and abs(x.imag)==1 :
-    return complex(0,sgn(x.imag)*inf);
+    return xrational(_0,sgn(x.imag)*_pinf);
   return ((1-_i*x)/(1+_i*x)).log()*_hi;
 
 def acos(x) :
@@ -1199,56 +1321,46 @@ def asin(x) :
   return atan2(x,(_1-x*x)**.5);
 
 def cosh(x) :
-  if isinstance(x,(float,complex)) :
-    if isnan(x.real) or isnan(x.imag) or isinf(x.imag) :
-      return nan;
-    if isinf(x.real) :
-      return complex(x.real*cos(x.imag),x.real*sin(x.imag)) if x.imag else inf;
+  x = rational(x);
+  if not x.real :
+    return cos(x.imag);
   return (exp(x)+exp(-x))/2;
 
 def sinh(x) :
-  if isinstance(x,(float,complex)) :
-    if isnan(x.real) or isnan(x.imag) or isinf(x.imag):
-      return nan;
-    if isinf(x.real) :
-      return complex(x.real*cos(x.imag),x.real*sin(sgn(x.real)*x.imag)) if x.imag else x.real;
+  x = rational(x);
+  if not x.real :
+    return xrational(0,sin(x.imag));
   return (exp(x)-exp(-x))/2;
 
 def tanh(x) :
-  if isinstance(x,(float,complex)) :
-    if isnan(x.real) or isnan(x.imag) :
-      return nan;
-    if isinf(x.real) :
-      return _1*sgn(x);
+  x = rational(x);
+  if x.real is _nan or x.imag is _nan :
+    return _nan;
+  if not x.real._b and not x.imag :
+    return _1*x.a;
+  if not x.real :
+    return xrational(0,tan(x.imag));
   c = cosh(x);
   if not c :
-    return sgn(sinh(x).imag)*inf;
+    return sgn(sinh(x).imag)*_pinf;
   return sinh(x)/c;
 
 def atanh(x) :
-  if not x.imag and abs(x.real) == 1 :
-    return sgn(x.real)*inf;
-  if isinstance(x,complex) :
-    if x.imag :
-      if not x.real :
-        return i*tan(x.imag);
-      if isinf(x.real) :
-        return nan;    #?
-    else :
-      x = x.real;
-  if isinstance(x,float) :
-    if isnan(x) :
-      return nan;
-    if isinf(x) :
-      return xrational(0,hpi*sgn(x));
   x = rational(x);
+  if not x.real :
+    return xrational(0,atan(x.imag));
+  if not x.imag :
+    x = x.real;
+    if abs(x) == 1 : return sgn(x)*_pinf;
+    if not x._b :
+      return xrational(0,hpi*x._a) if x._a else _nan;
   return ((1+x)/(1-x)).log()/2;
 
 def acosh(x) :
   return atanh((_1-_1/(x*x))**.5);
 
 def asinh(x) :
-  return sgn(x) * atanh((_1+_1/(x*x))**-.5) if x else 0;
+  return (1 if x.imag else sgn(x)) * atanh((_1+_1/(x*x))**-.5) if x else 0;
 
 # random math functions
 
@@ -1281,8 +1393,8 @@ def fsum(iterable) :
   return i;
 
 def frexp(x) :
-  if not x : return (_0,0);
   x = rational(x);
+  if not x._a or not x._b : return (x,0);
   e = int(log2(abs(x))//1) + 1;
   return (x>>e,e);
 
@@ -1295,39 +1407,140 @@ def floor(x) :
 def ceil(x) :
   return -(rational(-x)//1);
 
-def factorial(x) :
+def hypot(x,y) :
+  x,y = rational(x), rational(y);
+  return sqrt(x*~x + y*~y);
+
+def isnan(x) :
+  return x != x;
+
+def isinf(x) :
+  try :
+    return x*2 == x and bool(x);
+  except :
+    return False;
+
+def copysign(x,y) :
   x = rational(x);
-  if x.imag or x < 0 or x._b != 1 : raise ValueError('arg must be nonnegative integer');
+  y = rational(y);
+  if x.imag or y.imag : raise TypeError('arguments must be real')
+  x,y = x.real,y.real;
+  if x is _nan or y is _nan : return _nan;
+  return abs(x)*sgn(y._a or y._b);
+
+def fabs(x) :
+  return abs(rational(x));
+
+def erf(x) :
+  if not x : return _0;
+  x = rational(x).approximate(1<<(_SIGNIFICANCE+16));
+  if x.real is _nan or not x.imag._b : return _nan;    #?
+  if not x.imag and not x.real._b : return rational(x.real._a);
+  w = -x*x;
+  s = t = x;
+  for i in count(1) :
+    s *= w/i;
+    u = s/(2*i+1);
+    t += u;
+    if u.maxnorm()<<(_SIGNIFICANCE+8) <= t.maxnorm() : break;
+  t *= 2/rootpi;
+  return t.approximate(1<<(_SIGNIFICANCE+8));
+
+def erfc(x) :
+  if x.imag :
+    return 1-erf(x);
+  x = x.real;
+  if x <= 4 :
+    return 1-erf(x) if x >= -1 else 2-erfc(-x);
+  x = rational(x).approximate(1<<(_SIGNIFICANCE+16));
+  if not x._b : return _0 if x._a else _nan;
+  v = -x*x;
+  w = 2*v;
+  s = t = 1;
+  for i in count(1) :
+    p = abs(s);
+    s *= (2*i-1)/w ;    # -**i*1*3*5*...(2i-1)/2x**2i
+    if abs(s) >= p :    # series began diverging
+      t *= v.exp()/rootpi/x;
+      # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i integral(x,oo) t**-2i exp(-t**2) dt
+      break;
+    t += s;
+    if abs(s)<<(_SIGNIFICANCE+8) <= t : break;
+  return t.approximate(1<<(_SIGNIFICANCE+8));
+    
+def sinc(x) :
+  if not x : return _1;
+  x = rational(x);
+  if not x.imag and not x.real._b :
+    return 1/x.real;
+  x *= pi;
+  return sin(x)/x;
+
+def lgamma(x) :
+  x = rational(x);
+  if not x.imag :
+    if abs(x._b) == 1 :
+      return log(factorial(x._a-1)) if x._a > 0 else _pinf ;
+    if not x._b : return x;
+  if x.real <= 0 :
+    z = 1-x;
+    return -sinc(z).log()-lgamma(1+z);
+  p = 1;
+  x = x.approximate(1<<(_SIGNIFICANCE+16));
+  while x.real < 32 :
+    p *= x;
+    x += 1;
+  t = x.log() * (x-_half) - x + _half*tau.log();
+  u = x;
+  w = x*x;
+  for i in count(1) :
+    s = bernouilli(2*i)/(2*i*(2*i-1))/u;
+    t += s;
+    if s.maxnorm()<<(_SIGNIFICANCE+8) <= t.maxnorm() : break;
+    u *= w;
+  return t.approximate(1<<(_SIGNIFICANCE+8))-log(p);
+
+def gamma(x) :    # note gamma(x) = gamma(x+1)/x
+  x = rational(x);
+  if not x.imag :
+    x = x.real;
+    if abs(x._b) == 1 : return factorial(x._a-1) if x > 0 else _pinf;
+  return rational(lgamma(x).exp());    # real if not x.imag
+
+def factorial(x) :
+  """Return x!"""
+  if not isint(x) or x < 0:
+    n = rational(x);
+    if n.imag or n._a != x or n._a < 0: return gamma(1+x);
+    x = n._a;
   y = 1;
-  for n in range(2,x._a+1) :
+  for n in xrange(x,1,-1) :
     y *= n;
   return y;
 
-def hypot(x,y) :
-  try :
-    return (rational(x)**2 + rational(y)**2)**_half;
-  except :    # x and/or y is a nan or inf
-    return abs(x)+abs(y);
+def combinations(n,k) :    # n!/(k!(n-k)!) = n*(n-1)*...(n-k+1)/k!
+  """Return the number of combinations of n things taken k at a time"""
+  n = int(n);
+  k = int(k);
+  if not 0 <= k <= n :
+    raise ValueError('args must be nonnegative integers with n >= k');
+  if k<<1 > n :
+    k = n-k;
+  a = 1;
+  for i in xrange(n,n-k,-1) : a*=i;
+  for i in xrange(k,1,-1) : a//=i;
+  return a;
 
-def copysign(x,y) :
-  if not x :
-    return mathcopysign(x,y);
-  if not y and isinstance(y,float) :
-    y = mathcopysign(1,y);
-  else :
-    y = -1 if y < 0 else 1;
-  try :
-    return rational(abs(x))*y;
-  except :    # x is a nan or inf
-    return mathcopysign(x,y);
-
-def fabs(x) :
-  try :
-    return rational(abs(x));
-  except :    # x is a nan or inf
-    return abs(x);
-
-#def erf(x)
-#def erfc(x)
-#def gamma(x)
-#def lgamma(x)
+def bernouilli(k,pos=False) :
+  """Return the kth Bernouilli number; pos determines the sign of bernouilli(1)"""
+  k = int(k);
+  if k < 0 :
+    raise ValueError('k must be nonnegative integer');
+  p = int(pos);
+  if not 0 <= p <= 1 :
+    raise ValueError('pos must be True or False');
+  s = _0;
+  for i in range(k+1) :
+    for j in range(i+1) :
+      s += (1-((j&1)<<1)) * combinations(i,j) * rational((j+p)**k,i+1);
+  return s;

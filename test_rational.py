@@ -67,8 +67,124 @@ def testops(v) :    # v is vector of 3 values to be tested
   if isinstance(v[0],xrational) :
     ceq('not v[0] or abs(((v[0]*~v[0])-abs(v[0])**2)/(v[0]*~v[0]))<<set_significance() < 1',v[:1])
 
+def ratspectest() :
+  p0 = rational();
+  m0 = -p0;
+  pinf = rational(1,0);
+  minf = -pinf;
+  nan = rational(0,0);
+  half = rational(1,2);
+  ceq('v[0]!=v[0]',(nan,));
+  for x in (p0,m0,pinf,minf) :
+    ceq('v[0]==v[0]',(x,));
+  ceq('v[0]==v[1]',(p0,m0));         # +0 == -0
+  ceq('v[0]!=v[1]',(pinf,minf));     # +inf != -inf
+  ceq('v[0]>v[1]',(pinf,minf));      # +inf > -inf
+  ceq('v[0]>1>v[1]',(pinf,minf));    # +inf > 1 > -inf
+  ceq('v[0]>v[2]>v[1]',(pinf,minf,p0));    # +inf > +0 > -inf
+  ceq('v[0]>v[2]>v[1]',(pinf,minf,m0));    # +inf > -0 > -inf
+  ceq('v[0]>v[2]>=v[3]>v[1]',(pinf,minf,p0,m0));    # +inf > +0 >= -0 > -inf
+  ceq('v[0]>v[3]>=v[2]>v[1]',(pinf,minf,p0,m0));    # +inf > -0 >= +0 > -inf
+  ceq('v[1]<v[0]',(pinf,minf));      # -inf < +inf
+  ceq('v[1]<1<v[0]',(pinf,minf));    # -inf < 1 < +inf
+  ceq('v[1]<v[2]<v[0]',(pinf,minf,p0));    # -inf < +0 < +inf
+  ceq('v[1]<v[2]<v[0]',(pinf,minf,m0));    # -inf < -0 < +inf
+  ceq('v[0]>v[2]>=v[3]>v[1]',(pinf,minf,p0,m0));    # +inf > +0 >= -0 > -inf
+  ceq('v[0]>v[3]>=v[2]>v[1]',(pinf,minf,p0,m0));    # +inf > -0 >= +0 > -inf
+  ceq('v[1]<v[2]<=v[3]<v[0]',(pinf,minf,p0,m0));    # -inf < +0 <= -0 > +inf
+  ceq('v[1]<v[3]<=v[2]<v[0]',(pinf,minf,p0,m0));    # -inf < -0 <= +0 > +inf
+  ceq('v[0] is 1/v[1]',(p0,pinf));   # +0 is 1/+inf
+  ceq('v[0] is 1/v[1]',(m0,minf));   # -0 is 1/-inf
+  ceq('v[0] is -1/v[1]',(p0,minf));  # +0 is -1/-inf
+  ceq('v[0] is -1/v[1]',(m0,pinf));  # -0 is -1/+inf
+  ceq('v[1] is 1/v[0]',(p0,pinf));   # +inf is 1/+0
+  ceq('v[1] is 1/v[0]',(m0,minf));   # -inf is 1/-0
+  ceq('v[1] is -1/v[0]',(p0,minf));  # -inf is -1/+0
+  ceq('v[1] is -1/v[0]',(m0,pinf));  # +inf is -1/-0
+  ceq('v[0] is v[0]/v[1]',(p0,pinf));# +0 is +0/+inf
+  ceq('v[0] is v[0]/v[1]',(m0,pinf));# -0 is -0/+inf
+  ceq('-v[0] is v[0]/v[1]',(p0,minf)); # -+0 is +0/-inf
+  ceq('-v[0] is v[0]/v[1]',(m0,minf)); # --0 is -0/-inf
+  ceq('v[1] is v[1]/v[0]',(p0,pinf));# +inf is +inf/+0
+  ceq('v[1] is v[1]/v[0]',(p0,minf));# -inf is -inf/+0
+  ceq('-v[1] is v[1]/v[0]',(m0,pinf)); # -+inf is -0/+inf
+  ceq('-v[1] is v[1]/v[0]',(m0,minf)); # --inf is -0/-inf
+  ceq('v[0] is not v[1]',(p0,m0));   # +0 is not -0
+  ceq('v[0] is v[0]+v[0]',(p0,));    # +0 is +0 + +0
+  ceq('v[0] is v[0]+v[0]',(m0,));    # -0 is -0 + -0
+  ceq('v[0] is v[1]+v[0]',(p0,m0));  # +0 is -0 + +0
+  ceq('v[0] is v[0]-v[0]',(p0,));    # +0 is +0 - +0
+  ceq('v[0] is v[0]-v[1]',(p0,m0));  # +0 is +0 - -0
+  ceq('v[0] is v[1]-v[1]',(p0,m0));  # +0 is -0 - -0
+  ceq('v[1] is v[1]-v[0]',(p0,m0));  # -0 is -0 - +0
+  ceq('v[0] is v[0]*v[0]',(p0,));    # +0 is +0 * +0
+  ceq('v[0] is v[1]*v[1]',(p0,m0));  # +0 is -0 * -0
+  ceq('v[1] is v[0]*v[1]',(p0,m0));  # -0 is +0 * -0
+  ceq('v[1] is v[1]*v[0]',(p0,m0));  # -0 is -0 * +0
+  ceq('v[0] is v[0]**v[1]',(p0,half));  # +0 is (+0)**.5
+  ceq('v[0] is v[0]**v[1]',(m0,half));  # -0 is (-0)**.5
+  ceq('v[0] is v[0]**v[1]',(p0,1));  # +0 is (+0)**1
+  ceq('v[0] is v[0]**v[1]',(m0,1));  # -0 is (-0)**1
+  ceq('v[0]**0 == 1',(p0,));         # (+0)**0 == 1
+  ceq('v[0]**0 == 1',(m0,));         # (-0)**0 == 1    
+  ceq('v[0]<<1 is v[0]',(p0,));      # (+0)<<1 == +0
+  ceq('v[0]<<1 is v[0]',(m0,));      # (-0)<<1 == -0
+  ceq('v[0]>>1 is v[0]',(p0,));      # (+0)>>1 == +0
+  ceq('v[0]>>1 is v[0]',(m0,));      # (-0)>>1 == -0
+  ceq('v[0] is -v[1]',(p0,m0));      # +0 is --0
+  ceq('v[1] is -v[0]',(p0,m0));      # -0 is -+0
+  ceq('v[0] is abs(v[0])',(p0,));    # +0 is abs(+0)
+  ceq('v[0] is abs(v[1])',(p0,m0));  # +0 is abs(-0)
+  ceq('v[0] is -v[1]',(pinf,minf));  # +inf is --inf
+  ceq('v[1] is -v[0]',(pinf,minf));  # -inf is -+inf
+  ceq('v[0] is abs(v[0])',(pinf,));    # +inf is abs(+inf)
+  ceq('v[0] is abs(v[1])',(pinf,minf));  # +inf is abs(-inf)
+  ceq('v[0] is v[1]/v[1]',(nan,p0));  # nan is +0/+0
+  ceq('v[0] is v[1]/v[1]',(nan,m0));  # nan is -0/-0
+  ceq('v[0] is v[1]/v[2]',(nan,p0,m0));  # nan is +0/-0
+  ceq('v[0] is v[2]/v[1]',(nan,p0,m0));  # nan is -0/+0
+  ceq('v[0] is v[1]/v[1]',(nan,pinf));  # nan is +inf/+inf
+  ceq('v[0] is v[1]/v[1]',(nan,minf));  # nan is -inf/-inf
+  ceq('v[0] is v[1]/v[2]',(nan,pinf,minf));  # nan is +inf/-inf
+  ceq('v[0] is v[2]/v[1]',(nan,pinf,minf));  # nan is -inf/+inf
+  ceq('v[0] is v[1]*v[2]',(nan,p0,pinf));  # nan is +0*+inf
+  ceq('v[0] is v[2]*v[1]',(nan,p0,pinf));  # nan is +inf*+0
+  ceq('v[0] is v[1]*v[2]',(nan,m0,minf));  # nan is -0*-inf
+  ceq('v[0] is v[2]*v[1]',(nan,m0,minf));  # nan is -inf*-0
+  ceq('v[0] is v[1]+v[2]',(nan,pinf,minf));  # nan is +inf+-inf  
+  ceq('v[0] is v[2]+v[1]',(nan,pinf,minf));  # nan is -inf++inf
+  ceq('v[0] == v[0]+v[1]',(1,p0));   # 1 == 1++0
+  ceq('v[0] == v[0]+v[1]',(1,m0));   # 1 == 1+-0
+  ceq('v[0] == v[0]+v[1]',(pinf,1)); # +inf == +inf+1
+  ceq('v[0] == v[0]+v[1]',(minf,1)); # -inf == -inf+1
+  ceq('v[0] == v[0]*v[1]',(pinf,2)); # +inf == +inf*2
+  ceq('v[0] == v[0]*v[1]',(minf,2)); # -inf == -inf*2
+  ceq('v[0] == v[1]*v[2]',(pinf,minf,-2));  # +inf == -inf*-2
+  ceq('v[1] == v[0]*v[2]',(pinf,minf,-2));  # -inf == +inf*-2
+  for x in (69,p0,m0,pinf,minf,nan) :
+    ceq('v[0] != v[1]',(nan,x));
+    ceq('v[1] != v[0]',(nan,x));
+    ceq('not v[0] < v[1]',(nan,x));
+    ceq('not v[1] < v[0]',(nan,x));
+    ceq('not v[0] <= v[1]',(nan,x));
+    ceq('not v[1] <= v[0]',(nan,x));
+    ceq('not v[0] == v[1]',(nan,x));
+    ceq('not v[1] == v[0]',(nan,x));
+    ceq('not v[0] >= v[1]',(nan,x));
+    ceq('not v[1] >= v[0]',(nan,x));
+    ceq('not v[0] > v[1]',(nan,x));
+    ceq('not v[1] > v[0]',(nan,x));
+    ceq('v[0] is v[0]+v[1]',(nan,x));
+    ceq('v[0] is v[0]-v[1]',(nan,x));
+    ceq('v[0] is v[0]*v[1]',(nan,x));
+    ceq('v[0] is v[0]/v[1]',(nan,x));
+    ceq('v[0] is v[1]+v[0]',(nan,x));
+    ceq('v[0] is v[1]-v[0]',(nan,x));
+    ceq('v[0] is v[1]*v[0]',(nan,x));
+    ceq('v[0] is v[1]/v[0]',(nan,x));
 
 def rattest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
+  ratspectest()
   for i in xrange(repeats) :
     testops(tuple(rational(randint(*nrange),randint(*drange)) for j in xrange(3)));
   
