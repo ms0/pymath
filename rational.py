@@ -1296,7 +1296,7 @@ def sin(x) :
   if not x.real._b or not x.imag._b : return _nan;
   if x.imag :
     ix = _i*x;
-    return ((-ix).exp()-ix.exp())*_hi;
+    return (((-ix).exp()-ix.exp())*_hi).approximate(1<<(_SIGNIFICANCE+8));
   return _xsin(x.real);
 
 def cos(x) :
@@ -1304,7 +1304,7 @@ def cos(x) :
   if not x.real._b or not x.imag._b : return _nan;
   if x.imag :
     ix = _i*x;
-    return ((-ix).exp()+ix.exp())*_half;
+    return (((-ix).exp()+ix.exp())*_half).approximate(1<<(_SIGNIFICANCE+8));
   return _xcos(x.real);
 
 def tan(x) :
@@ -1339,13 +1339,13 @@ def cosh(x) :
   x = rational(x);
   if not x.real :
     return cos(x.imag);
-  return (exp(x)+exp(-x))/2;
+  return ((exp(x)+exp(-x))/2).approximate(1<<(_SIGNIFICANCE+8));
 
 def sinh(x) :
   x = rational(x);
   if not x.real :
     return xrational(0,sin(x.imag));
-  return (exp(x)-exp(-x))/2;
+  return ((exp(x)-exp(-x))/2).approximate(1<<(_SIGNIFICANCE+8));
 
 def tanh(x) :
   x = rational(x);

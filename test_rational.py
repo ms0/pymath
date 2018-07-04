@@ -23,6 +23,7 @@ from rational import *
 
 R=Random();
 randint=R.randint;
+random=R.random;
 R.seed(0);    # for test reproducibility
 
 def ceq(c,v=()) :
@@ -216,7 +217,7 @@ def ttest() :    # test accuracy of transcendental functions
   # exp: (imaginary arg tests sin and cos) [0,1/2]
   # ln: (v2/2,1)
   # arg (atan):  [0,v2-1]
-  # sin: [-pi/27
+  # sin: [-pi/27,pi/27]
   # __pow__ tests all of the above
   ceq('rational(0).exp()==1');
   ceq('rational(1).log()==0');
@@ -264,6 +265,43 @@ def ttest() :    # test accuracy of transcendental functions
   print('  .imag/.real with x: %g'%(bits));
   print('  .imag**2+.real**2 with 1+x**2: %g'%(bits));
 
+def mtest(repeats=10) :    # test math functions:
+# acos, acosh, asin, asinh, atan, atan2, atanh,
+# ceil, copysign, cos, cosh, degrees, erf, erfc, exp, expm1,
+# fabs, factorial, floor, fmod, frexp, fsum, gamma, gcd, hypot,
+# isclose, isfinite, isinf, isnan, ldexp, lgamma, log, log10, log1p, log2,
+# modf, pow, radians, sin, sinh, sqrt, tan, tanh, trunc
+  rel_tol = rational(1,1<<set_significance());
+  for i in xrange(repeats) :
+    u = random();
+    y = exp(log(u));
+    if not isclose(u,y,rel_tol=rel_tol) :
+      print('exp(log(%s)) ~ %s'%(u.bstr(30),y.bstr(30)));
+    x = pi*u;
+    y = acos(cos(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('acos(cos(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    x = pi*(u-half);
+    y = asin(sin(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('asin(sin(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = atan(tan(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('atan(tan(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    x = 128*u
+    y = acosh(cosh(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('acosh(cosh(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    x = 128*(u-half);
+    y = asinh(sinh(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('asinh(sinh(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = atanh(tanh(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('atanh(tanh(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    
+    
+
 
 if __name__ == '__main__' :
   print('root test (for sha2) ...');
@@ -274,6 +312,8 @@ if __name__ == '__main__' :
   xtest();
   print('approximate test ...')
   atest();
+  print('math methods test')
+  mtest();
   print('transcendental function accuracy test ...')
   for significance in xrange(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE+1,gcd(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE)) :
     set_significance(significance);
