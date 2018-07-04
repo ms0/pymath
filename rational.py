@@ -457,7 +457,7 @@ are interpreted as the terms of a regular continued fraction"""
     if not self._a :
       return self if other._a >= 0 and other._b > 0 else -self;
     if not other._a :
-      return other if other._a > 0 else -other;
+      return other if self._a > 0 else -other;
     return self.__class__(self._a*other._a,self._b*other._b);
 
   __rmul__ = __mul__
@@ -502,7 +502,8 @@ are interpreted as the terms of a regular continued fraction"""
 
   def __floordiv__(self,other) :
     """Return the floor of the quotient of the two numbers"""
-    if not self._b : return _nan;
+    if not self._b :
+      return self/other if other else _nan;
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return self.__class__(self._a//(self._b*other));
@@ -512,13 +513,11 @@ are interpreted as the terms of a regular continued fraction"""
         return self//self.__class__(other);
       except :
         return other.__class__(self)//other;
-    if not other._b : return _nan;
-    if not other : raise ZeroDivisionError;
+    if not other._b or not other: return _nan;
     return self.__class__((self._a*other._b)//(self._b*other._a));
 
   def __rfloordiv__(self,other) :
     """Return the floor of the inverse quotient of the two numbers"""
-    if not self._b : return _nan;
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return self.__class__((self._b*other)//self._a);
@@ -528,27 +527,25 @@ are interpreted as the terms of a regular continued fraction"""
         return self.__class__(other)//self;
       except :
         return other//other.__class__(self);
-    if not other._b : return _nan;
-    if not self : raise ZeroDivisionError;
-    return self.__class__((self._b*other._a)//(self._a*other._b));
+    return other//self;
 
   def __mod__(self,other) :
     """Return the remainder from floordiv"""
-    return self - self//other*other;
+    q = self//other;
+    return self - q*other if q._b else _0 if q._a else _nan;
 
   def __rmod__(self,other) :
     """Return the remainder from rfloordiv"""
-    return other - other//self*self;
+    return self.__class__(other)%self;
 
   def __divmod__(self,other) :
     """Return quotient and remainder"""
     q = self//other;
-    return (q, self-q*other);
+    return (q, self-q*other if q._b else _0 if q._a else _nan);
 
   def __rdivmod__(self,other) :
     """Return quotient and remainder"""
-    q = other//self;
-    return (q, other-q*self);
+    return (q, other-q*self if q._b else _0 if q._a else _nan);
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
@@ -974,8 +971,6 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   def __div__(self,other) :
     """Return the quotient of the two numbers"""
-    if not other :
-      raise ZeroDivisionError;
     if not isinstance(other,self.__class__) :
       try :
         other = self.__class__(other);
@@ -1274,24 +1269,32 @@ def _sin(z) :
 # math functions
 
 def exp(x) :
+  """Return e**x"""
   return rational(x).exp();
 
 def expm1(x) :
+  """Return e**x-1"""
   return exp(x)-1;
 
 def log(x,base=e) :
+  """Return the logarithm of x for the specified base;
+Return the natural logarithm if base is not specified"""
   return xrational(x).log(base) if x.imag else rational(x).log(base);
 
 def log1p(x) :
+  """Return the natural logarithm of 1+x"""
   return log(_1+x);
 
 def log10(x) :
+  """Return the base 10 logarithm of x"""
   return log(x,10);
 
 def log2(x) :
+  """Return the base 2 logarithm of x"""
   return log(x,2);
 
 def sin(x) :
+  """Return the sine of x (radians)"""
   x = rational(x);
   if not x.real._b or not x.imag._b : return _nan;
   if x.imag :
@@ -1300,6 +1303,7 @@ def sin(x) :
   return _xsin(x.real);
 
 def cos(x) :
+  """Return the cosine of x (radians)"""
   x = rational(x);
   if not x.real._b or not x.imag._b : return _nan;
   if x.imag :
@@ -1308,11 +1312,14 @@ def cos(x) :
   return _xcos(x.real);
 
 def tan(x) :
+  """Return the tangent of x (radians)"""
   x = rational(x);
   if not x.real._b or not x.imag._b : return _nan;
   return sin(x)/cos(x);
 
 def atan2(y,x) :
+  """Return the arctangent (in radians) of y/x;
+quadrant determined by signs of x and y"""
   x,y = rational(x),rational(y);
   if y.imag or x.imag :
     return atan(y/x) if x else _nan;
@@ -1320,6 +1327,7 @@ def atan2(y,x) :
   return xrational(x,y).arg();
 
 def atan(x) :
+  """Return the arctangent (in radians) of x"""
   x = rational(x);
   if x.real is _nan or not x.imag._b :
     return _nan;    #?
@@ -1330,24 +1338,29 @@ def atan(x) :
   return ((1-_i*x)/(1+_i*x)).log()*_hi;
 
 def acos(x) :
+  """Return the arccosine (in radians) of x"""
   return atan2((_1-x*x)**.5,x);
 
 def asin(x) :
+  """Return the arcsine (in radians) of x"""
   return atan2(x,(_1-x*x)**.5);
 
 def cosh(x) :
+  """Return the hyperbolic cosine of x"""
   x = rational(x);
   if not x.real :
     return cos(x.imag);
   return ((exp(x)+exp(-x))/2).approximate(1<<(_SIGNIFICANCE+8));
 
 def sinh(x) :
+  """Return the hyperbolic sine of x"""
   x = rational(x);
   if not x.real :
     return xrational(0,sin(x.imag));
   return ((exp(x)-exp(-x))/2).approximate(1<<(_SIGNIFICANCE+8));
 
 def tanh(x) :
+  """Return the hyperbolic tangent of x"""
   x = rational(x);
   if x.real is _nan or x.imag is _nan :
     return _nan;
@@ -1361,6 +1374,7 @@ def tanh(x) :
   return sinh(x)/c;
 
 def atanh(x) :
+  """Return the inverse hyperbolic tangent of x"""
   x = rational(x);
   if not x.real :
     return xrational(0,atan(x.imag));
@@ -1372,64 +1386,83 @@ def atanh(x) :
   return ((1+x)/(1-x)).log()/2;
 
 def acosh(x) :
+  """Return the inverse hyperbolic cosine of x"""
   return atanh((_1-_1/(x*x))**.5);
 
 def asinh(x) :
+  """Return the inverse hyperbolic sine of x"""
   return (1 if x.imag else sgn(x)) * atanh((_1+_1/(x*x))**-.5) if x else 0;
 
 # random math functions
 
 def degrees(x) :
+  """Convert from radians to degrees"""
   return x/qpi*45;
 
 def radians(x) :
+  """Convert from degrees to radians"""
   return x*qpi/45;
 
 def ldexp(x,i) :
+  """Return x*2**i"""
   return rational(x)<<i;
 
 def modf(x) :
+  """Return the fractional and integer parts of x,
+each with x's sign, as rationals"""
   i,f = rational(abs(x)).__divmod__(1);
-  s = sgn(x);
-  return rational(s*f,s*i)
+  s = copysign(1,x);
+  return s*f,s*i;
 
 def pow(x,y) :
+  """Return x**y"""
   return rational(x)**y;
 
 def sqrt(x) :
+  """Return x**(1/2)"""
   return rational(x)**.5;
 
 def trunc(x) :
+  """Return the truncation of x to the nearest integer toward 0; uses __trunc__"""
   return x.__trunc__();
 
 def fsum(iterable) :
+  """Return the exact sum of the values in the iterable"""
   s = _0;
   for i in iterable : s+=i;
   return i;
 
 def frexp(x) :
+  """Return (m,p) such that x=m*2**p and 1/2 <= |m| < 1, except
+return (x,0) if x is 0 or not finite"""
   x = rational(x);
   if not x._a or not x._b : return (x,0);
   e = int(log2(abs(x))//1) + 1;
   return (x>>e,e);
 
 def fmod(x,y) :
+  """Return x%y"""
   return rational(x)%y;
 
 def floor(x) :
+  """Return the largest integer not greater than x, or x if not finite"""
   return rational(x)//1;
 
 def ceil(x) :
+  """Return the smallest integer not less than x, or x if not finite"""
   return -(rational(-x)//1);
 
 def hypot(x,y) :
+  """Return sqrt(|x|**2 + |y|**2)"""
   x,y = rational(x), rational(y);
   return sqrt(x*~x + y*~y);
 
 def isnan(x) :
+  """Return True if x is nan, False otherwise"""
   return x != x;
 
 def isinf(x) :
+  """Return True if |x| is inf, False otherwise"""
   if x.imag :
     return isinf(max(abs(x.real),abs(x.imag)));
   try :
@@ -1438,20 +1471,25 @@ def isinf(x) :
     return False;
 
 def isfinite(x) :
+  """Return False if |x| is inf or nan, True otherwise"""
   return not isinf(x) and not isnan(x);
 
 def copysign(x,y) :
+  """Return |x|*s as a rational, where s is the sign of y;
+if either arg has an imaginary component, copy signs componentwise"""
   x = rational(x);
   y = rational(y);
-  if x.imag or y.imag : raise TypeError('arguments must be real')
-  x,y = x.real,y.real;
+  if isinstance(x,xrational) or isinstance(y,xrational) :
+    return xrational(copysign(x.real,y.real),copysign(x.imag,y.imag));
   if x is _nan or y is _nan : return _nan;
   return abs(x)*sgn(y._a or y._b);
 
 def fabs(x) :
+  """Return abs(x) as a rational"""
   return abs(rational(x));
 
 def erf(x) :
+  """Return the error function at x"""
   if not x : return _0;
   x = rational(x).approximate(1<<(_SIGNIFICANCE+16));
   if x.real is _nan or not x.imag._b : return _nan;    #?
@@ -1467,6 +1505,7 @@ def erf(x) :
   return t.approximate(1<<(_SIGNIFICANCE+8));
 
 def erfc(x) :
+  """Return the complementary error function at x"""
   if x.imag :
     return 1-erf(x);
   x = x.real;
@@ -1489,6 +1528,7 @@ def erfc(x) :
   return t.approximate(1<<(_SIGNIFICANCE+8));
     
 def sinc(x) :
+  """Return the sinc function at x, i.e. sin pi*x / pi*x"""
   if not x : return _1;
   x = rational(x);
   if not x.imag and not x.real._b :
@@ -1497,6 +1537,7 @@ def sinc(x) :
   return sin(x)/x;
 
 def lgamma(x) :
+  """Return the log of the gamma function at x"""
   x = rational(x);
   if not x.imag :
     if abs(x._b) == 1 :
@@ -1521,6 +1562,7 @@ def lgamma(x) :
   return t.approximate(1<<(_SIGNIFICANCE+8))-log(p);
 
 def gamma(x) :    # note gamma(x) = gamma(x+1)/x
+  """Return the gamma function at x"""
   x = rational(x);
   if not x.imag :
     x = x.real;
@@ -1528,7 +1570,7 @@ def gamma(x) :    # note gamma(x) = gamma(x+1)/x
   return rational(lgamma(x).exp());    # real if not x.imag
 
 def factorial(x) :
-  """Return x!"""
+  """Return x!, i.e., gamma(1+x)"""
   if not isint(x) or x < 0:
     n = rational(x);
     if n.imag or n._a != x or n._a < 0: return gamma(1+x);
