@@ -1555,7 +1555,7 @@ def lgamma(x) :
   u = x;
   w = x*x;
   for i in count(1) :
-    s = bernouilli(2*i)/(2*i*(2*i-1))/u;
+    s = bernoulli(2*i)/(2*i*(2*i-1))/u;
     t += s;
     if s.maxnorm()<<(_SIGNIFICANCE+8) <= t.maxnorm() : break;
     u *= w;
@@ -1593,8 +1593,8 @@ def combinations(n,k) :    # n!/(k!(n-k)!) = n*(n-1)*...(n-k+1)/k!
   for i in xrange(k,1,-1) : a//=i;
   return a;
 
-def bernouilli(k,pos=False) :
-  """Return the kth Bernouilli number; pos determines the sign of bernouilli(1)"""
+def bernoulli(k,pos=False) :
+  """Return the kth Bernoulli number; pos determines the sign of bernoulli(1)"""
   k = int(k);
   if k < 0 :
     raise ValueError('k must be nonnegative integer');

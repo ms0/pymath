@@ -267,16 +267,52 @@ def ttest() :    # test accuracy of transcendental functions
 
 def mtest(repeats=10) :    # test math functions:
 # acos, acosh, asin, asinh, atan, atan2, atanh,
-# ceil, copysign, cos, cosh, degrees, erf, erfc, exp, expm1,
-# fabs, factorial, floor, fmod, frexp, fsum, gamma, gcd, hypot,
-# isclose, isfinite, isinf, isnan, ldexp, lgamma, log, log10, log1p, log2,
-# modf, pow, radians, sin, sinh, sqrt, tan, tanh, trunc
+# ceil, copysign, cos, cosh, degrees, erf*, erfc*, exp, expm1,
+# fabs*, factorial*, floor, fmod*, frexp, fsum*, gamma*, gcd+, hypot,
+# isclose, isfinite*, isinf*, isnan*, ldexp*, lgamma, log, log10, log1p, log2,
+# modf, pow, radians, sin, sinh, sqrt, tan, tanh, trunc*
+# NOT IN math: combinations*, bernoulli*
+# *: not tested below
+# +: not explicitly tested, but integral to rational implementation
   rel_tol = rational(1,1<<set_significance());
   for i in xrange(repeats) :
     u = random();
+    x,y = floor(u),ceil(u);
+    if not x <= u <= y or y-x != 1 and y != x :
+      print('floor-u-ceil: %s <=? %s <=? %s'%(x.bstr(30),u.bstr(30),y.bstr(30)));
+    m,p = frexp(u);
+    if not (isint(p) and (not (m or p) or  .5 <= abs(m) < 1) and u == m*2**p) :
+      print('frexp: %s ~ %s*2**%s'%(u.bstr(30),m.bstr(30),p.bstr(30)));
+    y = ldexp(m,p);
+    if u != y :
+      print('ldexp(frexp(%s)) ~ %s'%(u,y));
+    x = (u-half)<<8;
+    f,i = modf(x);
+    if i+f != x or not 0<=abs(f)<1 or copysign(1,i) != copysign(1,f) :
+      print('sum(modf(%s)) ~ %s + %s'%(x.bstr(30),i.bstr(30),f.bstr(30)));
+    x = (u-half)*360;
+    y = degrees(radians(x));
+    if x != y :
+      print('degrees(radians(%s) ~ %s'%(x.btr(30),y.btr(30)));
+    y = sqrt(u)**2;
+    if not isclose(u,y,rel_tol=rel_tol) :
+      print('sqrt(%s)**2) ~ %s'%(u.bstr(30),y.bstr(30)));
     y = exp(log(u));
     if not isclose(u,y,rel_tol=rel_tol) :
       print('exp(log(%s)) ~ %s'%(u.bstr(30),y.bstr(30)));
+    y = pow(2,log2(u));
+    if not isclose(u,y,rel_tol=rel_tol) :
+      print('pow(2,(log2(%s)) ~ %s'%(u.bstr(30),y.bstr(30)));
+    y = pow(10,log10(u));
+    if not isclose(u,y,rel_tol=rel_tol) :
+      print('pow(10,(log10(%s)) ~ %s'%(u.bstr(30),y.bstr(30)));
+    x = u/(1<<128);
+    y = expm1(log1p(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('expm1(log1p(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = log1p(expm1(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('log1p(expm1(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
     x = pi*u;
     y = acos(cos(x));
     if not isclose(x,y,rel_tol=rel_tol) :
@@ -299,6 +335,15 @@ def mtest(repeats=10) :    # test math functions:
     y = atanh(tanh(x));
     if not isclose(x,y,rel_tol=rel_tol) :
       print('atanh(tanh(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    x = tau*(u-half);
+    c = cos(x);
+    s = sin(x);
+    y = hypot(c,s);
+    if not isclose(y,1) :
+      print('hypot(cos,sin(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = atan2(s,c);
+    if not isclose(x,y) :
+      print('atan2(sin,cos(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
     
     
 
