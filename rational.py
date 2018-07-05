@@ -716,7 +716,8 @@ a following >> indicates division by the indicated power of the base"""
       s[:len(s)+x] + ('.' + s[len(s)+x:] if x else ''));
 
   def arg(self,ratio=False) :
-    """Return 0 if self > 0, pi or 1/2 if self < 0, otherwise _nan"""
+    """Return 0 if self >= +0, pi or 1/2 if self <= -0 else nan; """
+    if not self : self = 1/self;
     return _0 if self._a > 0 else (_half if ratio else pi) if self._a < 0 else _nan;
 
   def log(self,base=None) :
@@ -1080,7 +1081,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       x,y = 1/x,1/y;    # treat +-0 as if +-inf, because why not?
     a = r = None;
     if not y :
-      r = rational(1-sgn(x),4);
+      r = rational(1-sgn(x),4)*sgn(y._b);
     elif not x :
       r = rational(sgn(y),4);
     elif abs(x) == abs(y) :
@@ -1133,7 +1134,9 @@ tau = 2*pi;
 hpi = pi/2;
 qpi = pi/4;
 rootpi = rational((1,1,3,2,1,1,6,1,28,13,1,1,2,18,1,1,1,83,1,4,1,2,4,1,288,1,90,1,12,1,1,7,1,3,1,6,1,2,71,9,3,1,5,36,1,2,2,1,1,1,2,5,9,8,1,7,1,2,2,1,63,1,4,3,1,6,1,1,1,5,1,9,2,5,4,1,2,1,1,2,20,1,1,2,1,10,5,2,1,100));    #,11,1,9,1,2,1,1,1,1));
+eulerconstant = rational((0,1,1,2,1,2,1,4,3,13,5,1,1,8,1,2,4,1,1,40,1,11,3,7,1,7,1,1,5,1,49,4,1,65,1,4,7,11,1,399,2,1,3,2,1,2,1,5,3,2,1,10,1,1,1,1,2,1,1,3,1,4,1,1,2,5,1,3,6,2,1,2,1,1,1,2,1,3,16,8,1,1,2,16,6,1,2,2,1,7,2,1,1,1,3,1,2,1,2,13,5,1,1,1,6));    #,1,2,1,1,11,2,5,6));
 # 263 bits :
+goldenratio = rational(1 for i in xrange(190));  # (1+root5)/2
 root2 = rational(min(i,2) for i in xrange(1,105)); # root2**2 > 2 [see froot2]
 roothalf = 1/root2;
 # 261 bits :
@@ -1187,7 +1190,7 @@ def _xsin(t) :
   t %= tau;
   r = 8*t/tau;
   if int(r) == r :
-    return (_0,roothalf,_1,roothalf,_0,-roothalf,-_1,-roothalf)[int(r)];
+    return (r,roothalf,_1,roothalf,_0,-roothalf,-_1,-roothalf)[int(r)];
   return _sin(t);
 
 def _xcos(t) :
@@ -1333,6 +1336,8 @@ def atan(x) :
     return _nan;    #?
   if not x.real._b :
     return _nan if x.imag else hpi if x.real > 0 else -hpi;
+  if not x.imag :
+    return _atan(x) if x.real else x.real;
   if not x.real and abs(x.imag)==1 :
     return xrational(_0,sgn(x.imag)*_pinf);
   return ((1-_i*x)/(1+_i*x)).log()*_hi;
@@ -1355,9 +1360,9 @@ def cosh(x) :
 def sinh(x) :
   """Return the hyperbolic sine of x"""
   x = rational(x);
-  if not x.real :
+  if not x.real and x.imag :
     return xrational(0,sin(x.imag));
-  return ((exp(x)-exp(-x))/2).approximate(1<<(_SIGNIFICANCE+8));
+  return ((exp(x)-exp(-x))/2).approximate(1<<(_SIGNIFICANCE+8)) if x else x;
 
 def tanh(x) :
   """Return the hyperbolic tangent of x"""
@@ -1366,7 +1371,7 @@ def tanh(x) :
     return _nan;
   if not x.real._b and not x.imag :
     return _1*x.a;
-  if not x.real :
+  if not x.real and x.imag :
     return xrational(0,tan(x.imag));
   c = cosh(x);
   if not c :
@@ -1376,22 +1381,24 @@ def tanh(x) :
 def atanh(x) :
   """Return the inverse hyperbolic tangent of x"""
   x = rational(x);
-  if not x.real :
-    return xrational(0,atan(x.imag));
   if not x.imag :
     x = x.real;
     if abs(x) == 1 : return sgn(x)*_pinf;
     if not x._b :
       return xrational(0,hpi*x._a) if x._a else _nan;
-  return ((1+x)/(1-x)).log()/2;
+  if not x.real :
+    return xrational(0,atan(x.imag));
+  return ((1+x)/(1-x)).log()/2 if x else x;
 
 def acosh(x) :
   """Return the inverse hyperbolic cosine of x"""
+  x = rational(x);
   return atanh((_1-_1/(x*x))**.5);
 
 def asinh(x) :
   """Return the inverse hyperbolic sine of x"""
-  return (1 if x.imag else sgn(x)) * atanh((_1+_1/(x*x))**-.5) if x else 0;
+  x = rational(x);
+  return (1 if x.imag else sgn(x)) * atanh((_1+_1/(x*x))**-.5) if x else x;
 
 # random math functions
 
@@ -1613,3 +1620,31 @@ a == b or abs(a-b) <= abs_tol or abs(a-b)/max(abs(a),abs(b)) <= rel_tol"""
   if a == b : return True;
   d = abs(a-b);
   return d <= abs_tol or d/max(abs(a),abs(b)) <= rel_tol;
+
+def integral(f,a,b,n=256,algorithm='simpson') :
+  """Return an approximation to the integral of f from a to b, using n intervals
+and specified algorithm ('midpoint','trapezoid',or 'simpson')"""
+  bits = _SIGNIFICANCE+8+(n-1).bit_length();
+  d = rational(b-a)/n;
+  if algorithm == 'midpoint' :
+    s = _0;
+    for i in range(n) :
+      s += f(a+(i+_half)*d);
+      s = s.approximate(1<<bits);
+    s *= d;
+  elif algorithm == 'trapezoid' :
+    s = rational(f(a)+f(b))/2;
+    for i in range(1,n) :
+      s += f(a+i*d);
+      s = s.approximate(1<<bits);
+    s *= d;
+  elif algorithm == 'simpson' :
+    if n%2 : raise ValueError('n must be even for simpson');
+    s = rational(f(a)+f(b))/2;
+    for i in range(1,n) :
+      s += f(a+i*d)*(1+i%2);
+      s = s.approximate(1<<bits);
+    s *= rational(2,3)*d;
+  else :
+    raise ValueError('unrecognized algorithm');
+  return s.approximate(1<<_SIGNIFICANCE+8);
