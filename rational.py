@@ -1527,11 +1527,11 @@ def erfc(x) :
     p = abs(s);
     s *= (2*i-1)/w ;    # -**i*1*3*5*...(2i-1)/2x**2i
     if abs(s) >= p :    # series began diverging
-      t *= v.exp()/rootpi/x;
-      # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i integral(x,oo) t**-2i exp(-t**2) dt
       break;
     t += s;
     if abs(s)<<(_SIGNIFICANCE+8) <= t : break;
+  t *= v.exp()/rootpi/x;
+  # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i integral(x,oo) t**-2i exp(-t**2) dt
   return t.approximate(1<<(_SIGNIFICANCE+8));
     
 def sinc(x) :
