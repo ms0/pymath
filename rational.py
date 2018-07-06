@@ -1287,7 +1287,7 @@ Return the natural logarithm if base is not specified"""
 
 def log1p(x) :
   """Return the natural logarithm of 1+x"""
-  return log(_1+x);
+  return log(_1+x) if x else rational(x);
 
 def log10(x) :
   """Return the base 10 logarithm of x"""
