@@ -233,14 +233,14 @@ are interpreted as the terms of a regular continued fraction"""
             elif not a :
               a,b = 0,int(_mcopysign(1,a));
             else :
-              x = a;
+              x = b = abs(a);
               m0,m1,n0,n1 = 0,1,1,0;    # |m0n1-m1n0| == 1 throughout
               for i in xrange(64) :
                 ix = x//1;
                 fx = x - ix;        
                 iix = int(ix);
                 m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
-                if fx == 0 or n0/n1 == a : break;
+                if fx == 0 or n0/n1 == b : break;
                 x = 1/fx;
                 if isinf(x) :    # fx was denormalized
                   c = 1;
@@ -250,7 +250,7 @@ are interpreted as the terms of a regular continued fraction"""
                     if not isinf(x) : break;
                     c += 1
                   x = int(1/fx)<<c;
-              a,b = int(n0),int(n1);
+              a,b = sgn(a)*int(n0),int(n1);
           else :
             raise TypeError('arg must be a number or an iterable of cf terms')
       else :
@@ -1168,11 +1168,12 @@ def _exp(x) :
   if not x._b : return _0 if x._a < 0 else x;
   n = x.__round__();
   x -= n;
+  en = (e**n).approximate(1<<(_SIGNIFICANCE+8));
   if x <= 0 :
     if x :
-      return e**n/_expp(-x);
-    return e**n;
-  return e**n*_expp(x);
+      return en/_expp(-x);
+    return en;
+  return (en*_expp(x));
 
 def _expp(x) :   # 0 < x <= 1/2
   x = x.approximate(1<<(_SIGNIFICANCE+16));
@@ -1277,7 +1278,7 @@ def exp(x) :
 
 def expm1(x) :
   """Return e**x-1"""
-  return exp(x)-1;
+  return exp(x)-1 if x else rational(x);
 
 def log(x,base=e) :
   """Return the logarithm of x for the specified base;
