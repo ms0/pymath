@@ -1501,7 +1501,11 @@ def erf(x) :
   if not x : return _0;
   x = rational(x).approximate(1<<(_SIGNIFICANCE+16));
   if x.real is _nan or not x.imag._b : return _nan;    #?
-  if not x.imag and not x.real._b : return rational(x.real._a);
+  if not x.imag :
+    x = x.real
+    if not x._b : return rational(x._a);
+    if abs(x) >= rational(40,3) :
+      return _1*sgn(x);
   w = -x*x;
   s = t = x;
   for i in count(1) :
@@ -1517,7 +1521,7 @@ def erfc(x) :
   if x.imag :
     return 1-erf(x);
   x = x.real;
-  if x <= 4 :
+  if x <= 5 :
     return 1-erf(x) if x >= -1 else 2-erfc(-x);
   x = rational(x).approximate(1<<(_SIGNIFICANCE+16));
   if not x._b : return _0 if x._a else _nan;
@@ -1532,7 +1536,10 @@ def erfc(x) :
     t += s;
     if abs(s)<<(_SIGNIFICANCE+8) <= t : break;
   t *= v.exp()/rootpi/x;
-  # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i integral(x,oo) t**-2i exp(-t**2) dt
+#  if abs(s) >= p :
+#    # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i! integral(x,oo) t**-2i exp(-t**2) dt
+#    f = lambda t : (-t**2).exp()/t**(2*i);
+#    t += ((((i&1)-2)*factorial(2*i)//factorial(i)/rootpi)>>(2*i-1))*integral(f,x,inf);
   return t.approximate(1<<(_SIGNIFICANCE+8));
     
 def sinc(x) :
@@ -1625,8 +1632,20 @@ a == b or abs(a-b) <= abs_tol or abs(a-b)/max(abs(a),abs(b)) <= rel_tol"""
 def integral(f,a,b,n=256,algorithm='simpson') :
   """Return an approximation to the integral of f from a to b, using n intervals
 and specified algorithm ('midpoint','trapezoid',or 'simpson')"""
+  if not isint(n) or n <= 0 : raise ValueError('n must be a positive integer');
+  a = rational(a);
+  b = rational(b);
+  d = (b-a)/n;
+  if not d or isnan(d) : return d;
+  if isinf(d) :
+    g = f;
+    def f(y) :
+      z = 1-abs(y);
+      return g(y/z)/z**2 if z else 0;
+    a = sgn(a) if isinf(a) else a/(1+abs(a));
+    b = sgn(b) if isinf(b) else b/(1+abs(b));
+    d = rational(b-a)/n;
   bits = _SIGNIFICANCE+8+(n-1).bit_length();
-  d = rational(b-a)/n;
   if algorithm == 'midpoint' :
     s = _0;
     for i in range(n) :
@@ -1641,9 +1660,9 @@ and specified algorithm ('midpoint','trapezoid',or 'simpson')"""
     s *= d;
   elif algorithm == 'simpson' :
     if n%2 : raise ValueError('n must be even for simpson');
-    s = rational(f(a)+f(b))/2;
+    s = (rational(f(a))+rational(f(b))).approximate(1<<bits)/2;
     for i in range(1,n) :
-      s += f(a+i*d)*(1+i%2);
+      s += rational(f(a+i*d))*(1+i%2);
       s = s.approximate(1<<bits);
     s *= rational(2,3)*d;
   else :
