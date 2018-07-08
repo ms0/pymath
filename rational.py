@@ -753,7 +753,10 @@ Return x with least denominator such that |(1-x/self)*accuracy| <= 1"""
     if b <= 1 : return self;
     s = sgn(a);    # make sure symmetric over negation
     a *= s;
-    if a < b : return 1/(1/self).approximate(accuracy); # make sure symmetric over inversion
+    if a == 1 : return self;
+    v = a < b;
+    if v : a,b = b,a;    # make sure symmetric over inversion
+    if b*b <= accuracy : return self;
     za,zb = a,b;
     m0,m1,n0,n1 = 0,1,1,0;
     while b :
@@ -774,12 +777,12 @@ Return x with least denominator such that |(1-x/self)*accuracy| <= 1"""
             else :
               x = i;
               if x == n :
-                return self.__class__(s*p0,p1);
+                return self.__class__(s*p1,p0) if v else self.__class__(s*p0,p1);
       else :
         r = q + (q*(q+1)*zb*zb < za*za);
         #if abs((z-r)/z*accuracy) <= 1 :
         if _checkaccuracy(accuracy,za,zb,r,1) :
-          return self.__class__(r*s);
+          return self.__class__(s,r) if v else self.__class__(s*r);
       m0,m1,n0,n1 = n0,n1,o0,o1;
       a,b = b, a-q*b;
     return self;
@@ -1435,10 +1438,48 @@ def trunc(x) :
   return x.__trunc__();
 
 def fsum(iterable) :
-  """Return the exact sum of the values in the iterable"""
+  """Return an accurate sum of the values in the iterable"""
+  pra = [];    # positive reals
+  nra = [];    # negative reals
+  pia = [];    # positive imags
+  nia = [];    # negative imags
+  for i in iterable :
+    if i.real :
+      if i.real > 0 :
+        pra.append(rational(i.real));
+      else :
+        nra.append(rational(i.real));
+    if i.imag :
+      if i.imag > 0 :
+        pia.append(rational(i.imag));
+      else :
+        nia.append(rational(i.imag));
+  rt = _fsum(pra,nra);
+  it = _fsum(pia,nia);
+  return xrational(rt,it) if it else rt;
+
+def _fsum(pa,na) :    # pa elements all >0, na elements all <0
+  # elements are sorted in increasing abolute value
+  pa.sort();
+  na.sort(reverse=True);
   s = _0;
-  for i in iterable : s+=i;
-  return i;
+  while pa and na :
+    sp = s+pa[-1];
+    sn = s+na[-1];
+    if abs(sp) > abs(sn) :
+      na.pop();
+      s = sn;
+    else :
+      pa.pop();
+      s = sp;
+  # all remaining elements have same sign
+  a = pa or na;
+  while a :
+    if abs(a[-1])<<(_SIGNIFICANCE+8+(len(a)-1).bit_length()) < abs(s) :
+      break;
+    s += a.pop();
+  return s.approximate(1<<(_SIGNIFICANCE+8));
+
 
 def frexp(x) :
   """Return (m,p) such that x=m*2**p and 1/2 <= |m| < 1, except
@@ -1629,6 +1670,8 @@ a == b or abs(a-b) <= abs_tol or abs(a-b)/max(abs(a),abs(b)) <= rel_tol"""
   d = abs(a-b);
   return d <= abs_tol or d/max(abs(a),abs(b)) <= rel_tol;
 
+_2_3 = rational(2,3);
+
 def integral(f,a,b,n=256,algorithm='simpson') :
   """Return an approximation to the integral of f from a to b, using n intervals
 and specified algorithm ('midpoint','trapezoid',or 'simpson')"""
@@ -1637,34 +1680,24 @@ and specified algorithm ('midpoint','trapezoid',or 'simpson')"""
   b = rational(b);
   d = (b-a)/n;
   if not d or isnan(d) : return d;
+  g = f;
   if isinf(d) :
-    g = f;
     def f(y) :
       z = 1-abs(y);
-      return g(y/z)/z**2 if z else 0;
+      return g(y/z)/z**2 if z else _0;
     a = sgn(a) if isinf(a) else a/(1+abs(a));
     b = sgn(b) if isinf(b) else b/(1+abs(b));
     d = rational(b-a)/n;
+  else :
+    f = lambda y: rational(g(y));
   bits = _SIGNIFICANCE+8+(n-1).bit_length();
   if algorithm == 'midpoint' :
-    s = _0;
-    for i in range(n) :
-      s += f(a+(i+_half)*d);
-      s = s.approximate(1<<bits);
-    s *= d;
+    s = fsum(f(a+(i+_half)*d) for i in range(n))*d;
   elif algorithm == 'trapezoid' :
-    s = rational(f(a)+f(b))/2;
-    for i in range(1,n) :
-      s += f(a+i*d);
-      s = s.approximate(1<<bits);
-    s *= d;
+    s = fsum(chain((f(a)/2,f(b)/2),(f(a+i*d) for i in range(1,n))))*d;
   elif algorithm == 'simpson' :
     if n%2 : raise ValueError('n must be even for simpson');
-    s = (rational(f(a))+rational(f(b))).approximate(1<<bits)/2;
-    for i in range(1,n) :
-      s += rational(f(a+i*d))*(1+i%2);
-      s = s.approximate(1<<bits);
-    s *= rational(2,3)*d;
+    s = fsum(chain((f(a)/2,f(b)/2),(f(a+i*d)*(1+i%2) for i in range(1,n))))*(_2_3*d)
   else :
     raise ValueError('unrecognized algorithm');
-  return s.approximate(1<<_SIGNIFICANCE+8);
+  return s.approximate(1<<(_SIGNIFICANCE+8));

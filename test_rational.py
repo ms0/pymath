@@ -211,6 +211,8 @@ def sigbits(computed,actual=1) :
   return -abs(1-computed/actual).log(2);
 
 half=rational(1,2);
+zero=rational(0);
+one=rational(1);
 
 def ttest() :    # test accuracy of transcendental functions
   # try values at maximum of series range:
@@ -276,7 +278,7 @@ def mtest(repeats=10) :    # test math functions:
 # +: not explicitly tested, but integral to rational implementation
   rel_tol = rational(1,1<<set_significance());
   for i in xrange(repeats) :
-    u = random();
+    u = rational(random());
     x,y = floor(u),ceil(u);
     if not x <= u <= y or y-x != 1 and y != x :
       print('floor-u-ceil: %s <=? %s <=? %s'%(x.bstr(30),u.bstr(30),y.bstr(30)));
