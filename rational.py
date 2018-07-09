@@ -191,12 +191,13 @@ Methods:
   __divmod__, __rdivmod__, __lshift__, __rshift__
   __pow__, __rpow__, log, exp, cf, approximate"""
 
-  def __new__(cls,a=0,b=1) :
+  def __new__(cls,a=0,b=1,_gcd_=True) :
     """Create a rational number equal to a/b; 0/0 is nan; a/0 is sgn(a)*inf, 0/-1 is -0
-If a is a float or rational (and b==1), return the simplest possible rational
+If a is a float or rational (and b==1), return the simplest rational whose float is a
 If a is a string (and b==1), it is interpreted in liberalized bstr() and/or str() format
 If a is iterable (and b==1), its elements, which must be numbers,
-are interpreted as the terms of a regular continued fraction"""
+are interpreted as the terms of a regular continued fraction
+_gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     if not isint(a) or not isint(b) :
       if b == 1 :
         if isinstance(a,(rational,xrational)) :
@@ -262,9 +263,10 @@ are interpreted as the terms of a regular continued fraction"""
         a,b = 0,sgn(b);
       else :
         if b < 0 : a,b = -a,-b;
-        g = gcd(a,b);
-        a = int(a//g);
-        b = int(b//g);
+        if _gcd_ :
+          g = gcd(a,b);
+          a = int(a//g);
+          b = int(b//g);
     if not a :
       try :
         return _0 if b > 0 else _m0 if b else _nan;
@@ -279,7 +281,8 @@ are interpreted as the terms of a regular continued fraction"""
     self._a,self._b = a,b;
     return self;
 
-  def __init__(self,a=0,b=1) :
+  def __init__(self,a=0,b=1,_gcd_=True) :
+    """Do nothing--all the work has been done by __new__"""
     return;
 
   def __str__(self) :
@@ -397,11 +400,11 @@ are interpreted as the terms of a regular continued fraction"""
 
   def __neg__(self) :
     """Return -self"""
-    return self.__class__(-self._a,self._b if self._a else -self._b);
+    return self.__class__(-self._a,self._b if self._a else -self._b,0);
 
   def __abs__(self) :
     """Return |self|"""
-    return self.__class__(-self._a,self._b) if self._a < 0 else self or _0;
+    return self.__class__(-self._a,self._b,0) if self._a < 0 else self or _0;
 
   maxnorm = __abs__
 
@@ -562,8 +565,8 @@ are interpreted as the terms of a regular continued fraction"""
       other = other._a;
     if isint(other) :
       if other < 0 :
-        return self.__class__(self._b**-other,self._a**-other);
-      return self.__class__(self._a**other,self._b**other);
+        return self.__class__(self._b**-other,self._a**-other,0);
+      return self.__class__(self._a**other,self._b**other,0);
     if not isinstance(other,self.__class__) :
       raise TypeError('exponent must be a number');
     if not other._b :    # non-finite power
@@ -606,7 +609,7 @@ are interpreted as the terms of a regular continued fraction"""
     pa = ra**d == a;  # a has an exact root?
     pb = rb**d == b;  # b has an exact root?
     if pa and pb :
-      return self.__class__(ra**r*ac,rb**r*bc);    # exact result
+      return self.__class__(ra**r*ac,rb**r*bc,0);    # exact result
     return _exp(self.__class__(a,b).log()*r/d)*ac/bc;
 
   def __rpow__(self,other) :
@@ -777,12 +780,12 @@ Return x with least denominator such that |(1-x/self)*accuracy| <= 1"""
             else :
               x = i;
               if x == n :
-                return self.__class__(s*p1,p0) if v else self.__class__(s*p0,p1);
+                return self.__class__(s*p1,p0,0) if v else self.__class__(s*p0,p1,0);
       else :
         r = q + (q*(q+1)*zb*zb < za*za);
         #if abs((z-r)/z*accuracy) <= 1 :
         if _checkaccuracy(accuracy,za,zb,r,1) :
-          return self.__class__(s,r) if v else self.__class__(s*r);
+          return self.__class__(s,r,0) if v else self.__class__(s*r);
       m0,m1,n0,n1 = n0,n1,o0,o1;
       a,b = b, a-q*b;
     return self;
@@ -823,6 +826,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     return self;
 
   def __init__(self,real=0,imag=0) :
+    """Do nothing--all the work has been done by __new__"""
     return;
 
   def __str__(self) :
@@ -1547,24 +1551,28 @@ def erf(x) :
     if not x._b : return rational(x._a);
     if abs(x) >= rational(40,3) :
       return _1*sgn(x);
+  return _erf(x);
+
+def _erf(x,a=0) :
   w = -x*x;
   s = t = x;
   for i in count(1) :
     s *= w/i;
     u = s/(2*i+1);
     t += u;
-    if u.maxnorm()<<(_SIGNIFICANCE+8) <= t.maxnorm() : break;
+    if u.maxnorm()<<(a+_SIGNIFICANCE+8) <= t.maxnorm() : break;
   t *= 2/rootpi;
-  return t.approximate(1<<(_SIGNIFICANCE+8));
+  return t.approximate(1<<(a+_SIGNIFICANCE+8));
 
 def erfc(x) :
   """Return the complementary error function at x"""
   if x.imag :
     return 1-erf(x);
-  x = x.real;
-  if x <= 5 :
-    return 1-erf(x) if x >= -1 else 2-erfc(-x);
-  x = rational(x).approximate(1<<(_SIGNIFICANCE+16));
+  x = rational(x.real).approximate(1<<(_SIGNIFICANCE+16));
+  if x <= 4 :
+    if x <= 0 :
+      return 1+erf(-x) if x else _1;
+    return 1-_erf(x,max(0,x*x*log2e+log2(x)+log2(rootpi)).__ceil__());
   if not x._b : return _0 if x._a else _nan;
   v = -x*x;
   w = 2*v;
@@ -1573,14 +1581,14 @@ def erfc(x) :
     p = abs(s);
     s *= (2*i-1)/w ;    # -**i*1*3*5*...(2i-1)/2x**2i
     if abs(s) >= p :    # series began diverging
-      break;
+      return 1-_erf(x,(x*x*log2e+log2(x)+log2(rootpi)).__ceil__());
     t += s;
     if abs(s)<<(_SIGNIFICANCE+8) <= t : break;
   t *= v.exp()/rootpi/x;
 #  if abs(s) >= p :
 #    # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i! integral(x,oo) t**-2i exp(-t**2) dt
-#    f = lambda t : (-t**2).exp()/t**(2*i);
-#    t += ((((i&1)-2)*factorial(2*i)//factorial(i)/rootpi)>>(2*i-1))*integral(f,x,inf);
+#    f = lambda t : (x**2-t**2).exp()/(t/x)**(2*i);
+#    t += ((((i&1)-2)*factorial(2*i)//factorial(i)/rootpi)>>(2*i-1))*integral(f,x,inf)*(-x**2).exp()/x**(2*i);
   return t.approximate(1<<(_SIGNIFICANCE+8));
     
 def sinc(x) :
@@ -1658,8 +1666,8 @@ def bernoulli(k,pos=False) :
   if not 0 <= p <= 1 :
     raise ValueError('pos must be True or False');
   s = _0;
-  for i in range(k+1) :
-    for j in range(i+1) :
+  for i in xrange(k+1) :
+    for j in xrange(i+1) :
       s += (1-((j&1)<<1)) * combinations(i,j) * rational((j+p)**k,i+1);
   return s;
 
@@ -1692,12 +1700,12 @@ and specified algorithm ('midpoint','trapezoid',or 'simpson')"""
     f = lambda y: rational(g(y));
   bits = _SIGNIFICANCE+8+(n-1).bit_length();
   if algorithm == 'midpoint' :
-    s = fsum(f(a+(i+_half)*d) for i in range(n))*d;
+    s = fsum(f(a+(i+_half)*d) for i in xrange(n))*d;
   elif algorithm == 'trapezoid' :
-    s = fsum(chain((f(a)/2,f(b)/2),(f(a+i*d) for i in range(1,n))))*d;
+    s = fsum(chain((f(a)/2,f(b)/2),(f(a+i*d) for i in xrange(1,n))))*d;
   elif algorithm == 'simpson' :
     if n%2 : raise ValueError('n must be even for simpson');
-    s = fsum(chain((f(a)/2,f(b)/2),(f(a+i*d)*(1+i%2) for i in range(1,n))))*(_2_3*d)
+    s = fsum(chain((f(a)/2,f(b)/2),(f(a+i*d)*(1+i%2) for i in xrange(1,n))))*(_2_3*d)
   else :
     raise ValueError('unrecognized algorithm');
   return s.approximate(1<<(_SIGNIFICANCE+8));
