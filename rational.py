@@ -1462,28 +1462,51 @@ def fsum(iterable) :
   it = _fsum(pia,nia);
   return xrational(rt,it) if it else rt;
 
+def insert_upright(a,x) :
+  """Return where to insert item x in list a, assuming a is sorted lo to hi"""
+  lo = 0;
+  hi = len(a);
+  while lo < hi :
+    m = (lo+hi)//2;
+    if x < a[m] :
+      hi = m;
+    else :
+      lo = m+1;
+  a.insert(lo,x);
+
+def insert_downright(a,x):
+  """Return where to insert item x in list a, assuming a is sorted hi to lo"""
+  lo = 0;
+  hi = len(a);
+  while lo < hi :
+    m = (lo+hi)//2;
+    if x > a[m] :
+      hi = m;
+    else :
+      lo = m+1;
+  a.insert(lo,x);
+
 def _fsum(pa,na) :    # pa elements all >0, na elements all <0
-  # elements are sorted in increasing abolute value
+  # elements are sorted in increasing absolute value
   pa.sort();
   na.sort(reverse=True);
-  s = _0;
   while pa and na :
-    sp = s+pa[-1];
-    sn = s+na[-1];
-    if abs(sp) > abs(sn) :
-      na.pop();
-      s = sn;
-    else :
-      pa.pop();
-      s = sp;
+    s = pa.pop()+na.pop();
+    if s < 0 :
+      insert_downright(na,s);
+    elif s :
+      insert_upright(pa,s);
   # all remaining elements have same sign
   a = pa or na;
+  try :
+    s = a.pop();
+  except :
+    return _0;
   while a :
     if abs(a[-1])<<(_SIGNIFICANCE+8+(len(a)-1).bit_length()) < abs(s) :
       break;
     s += a.pop();
   return s.approximate(1<<(_SIGNIFICANCE+8));
-
 
 def frexp(x) :
   """Return (m,p) such that x=m*2**p and 1/2 <= |m| < 1, except
