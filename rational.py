@@ -1171,6 +1171,10 @@ def _checkaccuracy(a,za,zb,ra,rb) :    # assume za,zb,ra,rb all positive
   d = za*rb;
   return abs(a*(d-zb*ra)) <= d;    # abs(z-r)/z*a <= 1
 
+def _isinsignificant(term,total,significance) :
+  """Return True if abs(term)<<significance <= abs(total)"""
+  return abs(term._a*total._b) <= abs(term._b*total._a)>>significance;
+
 def _exp(x) :
   if not x._b : return _0 if x._a < 0 else x;
   n = x.__round__();
@@ -1189,7 +1193,7 @@ def _expp(x) :   # 0 < x <= 1/2
   for i in count(1) :
     s *= x/i;
     t += s;
-    if s<<_SIGNIFICANCE <= t : break;
+    if _isinsignificant(s,t,_SIGNIFICANCE) : break;
   return 1+t.approximate(1<<(_SIGNIFICANCE+8));
 
 def _xsin(t) :
@@ -1230,7 +1234,7 @@ def _atan(z) :
   for i in count(3,2) :
     s *= w;
     t += s/i;
-    if abs(s)<<_SIGNIFICANCE <= z : break;
+    if _isinsignificant(s,z,_SIGNIFICANCE) : break;
   return t.approximate(1<<(_SIGNIFICANCE+8));
 
 def _ln(z) :
@@ -1257,7 +1261,7 @@ def _mln1p(x) :    # z = 1-x; -ln z, for v2/2 < z < 1
   for i in count(2) :
     s *= x;
     t += s/i;
-    if s<<_SIGNIFICANCE <= x : break;
+    if _isinsignificant(s,x,_SIGNIFICANCE) : break;
   return t.approximate(1<<(_SIGNIFICANCE+8));
 
 def _sin(z) :
@@ -1272,7 +1276,7 @@ def _sin(z) :
   for i in count(3,2) :
     s *= w/(i*(i-1));
     t += s;
-    if abs(s)<<(_SIGNIFICANCE+5) <= abs(z) : break;
+    if _isinsignificant(s,z,_SIGNIFICANCE+5) : break;
   for i in xrange(3) :
     t = 3*t - 4*t**3;
   return t.approximate(1<<(_SIGNIFICANCE+8));
@@ -1503,8 +1507,7 @@ def _fsum(pa,na) :    # pa elements all >0, na elements all <0
   except :
     return _0;
   while a :
-    if abs(a[-1])<<(_SIGNIFICANCE+8+(len(a)-1).bit_length()) < abs(s) :
-      break;
+    if _isinsignificant(a[-1],s,_SIGNIFICANCE+8+bit_length(len(a)-1)) : break;
     s += a.pop();
   return s.approximate(1<<(_SIGNIFICANCE+8));
 
@@ -1572,18 +1575,19 @@ def erf(x) :
   if not x.imag :
     x = x.real
     if not x._b : return rational(x._a);
-    if abs(x) >= rational(40,3) :
+    if x*x*log2e > _SIGNIFICANCE+7 :    # erfc(|x|) <= (exp(-x*x)+exp(-2x*x))/2
       return _1*sgn(x);
   return _erf(x);
 
-def _erf(x,a=0) :
+def _erf(x,a=0) :    # if a, adjust significance for erfc = 1 - erf
+  if a : a = max(-_SIGNIFICANCE,(x*x*log2e+log2(x)+log2(rootpi)).__ceil__());
   w = -x*x;
   s = t = x;
   for i in count(1) :
     s *= w/i;
     u = s/(2*i+1);
     t += u;
-    if u.maxnorm()<<(a+_SIGNIFICANCE+8) <= t.maxnorm() : break;
+    if _isinsignificant(u.maxnorm(),t.maxnorm(),a+_SIGNIFICANCE) : break;
   t *= 2/rootpi;
   return t.approximate(1<<(a+_SIGNIFICANCE+8));
 
@@ -1595,23 +1599,22 @@ def erfc(x) :
   if x <= 4 :
     if x <= 0 :
       return 1+erf(-x) if x else _1;
-    return 1-_erf(x,max(0,x*x*log2e+log2(x)+log2(rootpi)).__ceil__());
+    return 1-_erf(x,True);
   if not x._b : return _0 if x._a else _nan;
   v = -x*x;
   w = 2*v;
   s = t = 1;
   for i in count(1) :
-    p = abs(s);
-    s *= (2*i-1)/w ;    # -**i*1*3*5*...(2i-1)/2x**2i
-    if abs(s) >= p :    # series began diverging
-      return 1-_erf(x,(x*x*log2e+log2(x)+log2(rootpi)).__ceil__());
+    r = (2*i-1)/w ;
+    if -r._a >= r._b :    # series began diverging
+#      # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i! integral(x,oo) t**-2i exp(-t**2) dt
+#      f = lambda t : (x**2-t**2).exp()/(t/x)**(2*i);
+#      return (t+((((i&1)-2)*factorial(2*i)//factorial(i)/rootpi)>>(2*i-1))*integral(f,x,inf)*(-x**2).exp()/x**(2*i))*v.exp()/rootpi/x;
+      return 1-_erf(x,True);
+    s *= r;    # -**i*1*3*5*...(2i-1)/(2x)**(2i)
     t += s;
-    if abs(s)<<(_SIGNIFICANCE+8) <= t : break;
+    if _isinsignificant(s,t,_SIGNIFICANCE) : break;
   t *= v.exp()/rootpi/x;
-#  if abs(s) >= p :
-#    # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i! integral(x,oo) t**-2i exp(-t**2) dt
-#    f = lambda t : (x**2-t**2).exp()/(t/x)**(2*i);
-#    t += ((((i&1)-2)*factorial(2*i)//factorial(i)/rootpi)>>(2*i-1))*integral(f,x,inf)*(-x**2).exp()/x**(2*i);
   return t.approximate(1<<(_SIGNIFICANCE+8));
     
 def sinc(x) :
@@ -1635,7 +1638,7 @@ def lgamma(x) :
     return -sinc(z).log()-lgamma(1+z);
   p = 1;
   x = x.approximate(1<<(_SIGNIFICANCE+16));
-  while x.real < 32 :
+  while x.real < 32 :    # this increases required intermediate significance
     p *= x;
     x += 1;
   t = x.log() * (x-_half) - x + _half*tau.log();
@@ -1644,17 +1647,18 @@ def lgamma(x) :
   for i in count(1) :
     s = bernoulli(2*i)/(2*i*(2*i-1))/u;
     t += s;
-    if s.maxnorm()<<(_SIGNIFICANCE+8) <= t.maxnorm() : break;
+    if _isinsignificant(s.maxnorm(),t.maxnorm(),_SIGNIFICANCE+8) : break;
     u *= w;
-  return t.approximate(1<<(_SIGNIFICANCE+8))-log(p);
+  return (t-p.log()).approximate(1<<(_SIGNIFICANCE+8));
 
 def gamma(x) :    # note gamma(x) = gamma(x+1)/x
   """Return the gamma function at x"""
   x = rational(x);
   if not x.imag :
     x = x.real;
-    if abs(x._b) == 1 : return factorial(x._a-1) if x > 0 else _pinf;
-  return rational(lgamma(x).exp());    # real if not x.imag
+    if abs(x._b) == 1 :
+      return rational(factorial(x._a-1)) if x > 0 else _pinf;
+  return lgamma(x).exp();    # real if not x.imag
 
 def factorial(x) :
   """Return x!, i.e., gamma(1+x)"""
@@ -1721,7 +1725,6 @@ and specified algorithm ('midpoint','trapezoid',or 'simpson')"""
     d = rational(b-a)/n;
   else :
     f = lambda y: rational(g(y));
-  bits = _SIGNIFICANCE+8+(n-1).bit_length();
   if algorithm == 'midpoint' :
     s = fsum(f(a+(i+_half)*d) for i in xrange(n))*d;
   elif algorithm == 'trapezoid' :

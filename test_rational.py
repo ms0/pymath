@@ -269,13 +269,13 @@ def ttest() :    # test accuracy of transcendental functions
 
 def mtest(repeats=10) :    # test math functions:
 # acos, acosh, asin, asinh, atan, atan2, atanh,
-# ceil, copysign, cos, cosh, degrees, erf*, erfc*, exp, expm1,
-# fabs*, factorial*, floor, fmod*, frexp, fsum*, gamma*, gcd+, hypot,
+# ceil, copysign, cos, cosh, degrees, erf, erfc, exp, expm1,
+# fabs*, factorial*, floor, fmod*, frexp, fsum, gamma, gcd+, hypot,
 # isclose, isfinite*, isinf*, isnan*, ldexp*, lgamma, log, log10, log1p, log2,
 # modf, pow, radians, sin, sinh, sqrt, tan, tanh, trunc*
-# NOT IN math: combinations*, bernoulli*
+# NOT IN math: combinations*, bernoulli*, integral
 # *: not tested below
-# +: not explicitly tested, but integral to rational implementation
+# +: not explicitly tested, but is integral to rational implementation
   rel_tol = rational(1,1<<set_significance());
   for i in xrange(repeats) :
     u = rational(random());
@@ -341,13 +341,155 @@ def mtest(repeats=10) :    # test math functions:
     c = cos(x);
     s = sin(x);
     y = hypot(c,s);
-    if not isclose(y,1) :
+    if not isclose(y,1,rel_tol=rel_tol) :
       print('hypot(cos,sin(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
     y = atan2(s,c);
-    if not isclose(x,y) :
+    if not isclose(x,y,rel_tol=rel_tol) :
       print('atan2(sin,cos(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
-    
-    
+    x = 16*u + 1;
+    y = gamma(x);
+    z = gamma(x+1);
+    if not isclose(x*y,z,rel_tol=rel_tol) :
+      print('x, x*gamma(x) ~ gamma(x+1): %s, %s ~ %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
+    y = log(y);
+    z = lgamma(x);
+    if not isclose(y,z,rel_tol=rel_tol) :
+      print('x, ln(gamma(x) ~ lgamma(x): %s, %s ~ %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
+    x = 16*u;
+    y = erf(x);
+    z = erfc(x);
+    if not isclose(y+z,1,rel_tol=rel_tol) :
+      print('x, erf(x) + erfc(x) ~ 1 : %s, %s+%s = %s'%(x.bstr(30),y.bstr(30),z.bstr(30),(y+z).bstr(30)));
+    x = integral(lambda x:x**3,u-1,u); # tests fsum as well
+    y = (u**4-(u-1)**4)/4;
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('integral(x**3,%s,%s) = %s ~ %s'%(u-1,u,x,y));
+
+def stest(repeats=10) :
+  u = rational(random());
+  sig = set_significance();
+  dig = int(ceil(sig/log2(10)));
+  rel_tol = rational(1,1<<sig);
+  set_significance(sig);
+  x = u-half;
+  y = exp(x);
+  set_significance(sig+10);
+  z = exp(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('exp(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = u
+  y = log(x);
+  set_significance(sig+10);
+  z = log(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('log(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = u*tau;
+  y = sin(x);
+  set_significance(sig+10);
+  z = sin(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('sin(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  y = cos(x);
+  set_significance(sig+10);
+  z = cos(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('cos(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  y = tan(x);
+  set_significance(sig+10);
+  z = tan(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('tan(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = 2*u-1;
+  y = asin(x);
+  set_significance(sig+10);
+  z = asin(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('asin(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  y = acos(x);
+  set_significance(sig+10);
+  z = acos(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('acos(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = u;
+  y = atan(x);
+  set_significance(sig+10);
+  z = atan(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('atan(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  y = atanh(x);
+  set_significance(sig+10);
+  z = atanh(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('atanh(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = 8*u;
+  y = sinh(x);
+  set_significance(sig+10);
+  z = sinh(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('sinh(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  y = cosh(x);
+  set_significance(sig+10);
+  z = cosh(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('cosh(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = 8*u;
+  y = tanh(x);
+  set_significance(sig+10);
+  z = tanh(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('tanh(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = 8*(u-half);
+  y = asinh(x);
+  set_significance(sig+10);
+  z = asinh(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('asinh(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = 1+8*u;
+  y = acosh(x);
+  set_significance(sig+10);
+  z = acosh(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('acosh(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = 1+u;
+  y = gamma(x);
+  set_significance(sig+10);
+  z = gamma(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('gamma(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  y = lgamma(x);
+  set_significance(sig+10);
+  z = lgamma(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('lgamma(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  x = 16*u;
+  y = erf(x);
+  set_significance(sig+10);
+  z = erf(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('erf(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
+  y = erfc(x);
+  set_significance(sig+10);
+  z = erfc(x);
+  if not isclose(y,z,rel_tol=rel_tol) :
+    print('erfc(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+
 
 
 if __name__ == '__main__' :
@@ -361,6 +503,8 @@ if __name__ == '__main__' :
   atest();
   print('math methods test')
   mtest();
+  print('significance test')
+  stest();
   print('transcendental function accuracy test ...')
   for significance in xrange(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE+1,gcd(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE)) :
     set_significance(significance);
