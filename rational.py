@@ -1229,7 +1229,7 @@ def _atan(z) :
     return qpi - _atan((1-z)/(1+z)) if z != -1 else qpi;
   # 0 <= z <= v2-1
   z = z.approximate(1<<(_SIGNIFICANCE+16));
-  w = -z*z;
+  w = (-z*z).approximate(1<<(_SIGNIFICANCE+16));
   s = t = z;
   for i in count(3,2) :
     s *= w;
@@ -1271,7 +1271,7 @@ def _sin(z) :
   # -hpi <= z <= hpi
   z /= 27;
   z = z.approximate(1<<(_SIGNIFICANCE+16));
-  w = -z*z;
+  w = (-z*z).approximate(1<<(_SIGNIFICANCE+16));
   s = t = z;
   for i in count(3,2) :
     s *= w/(i*(i-1));
@@ -1585,7 +1585,7 @@ _twoslashrootpi = 2/_rootpi;
 
 def _erf(x,a=0) :    # if a, adjust significance for erfc = 1 - erf
   if a : a = max(-_SIGNIFICANCE,(x*x*log2e+log2(x)+log2(rootpi)).__ceil__());
-  w = -x*x;
+  w = (-x*x).approximate(1<<(a+_SIGNIFICANCE+16));
   s = t = x;
   for i in count(1) :
     s *= w/i;
@@ -1605,7 +1605,7 @@ def erfc(x) :
   if x*x*log2e < _SIGNIFICANCE+_half :
     return 1-_erf(x,True);    # series diverges before reaching significance
   if not x._b : return _0 if x._a else _nan;
-  v = -x*x;
+  v = (-x*x).approximate(1<<(_SIGNIFICANCE+16));
   w = 2*v;
   s = t = 1;
   for i in count(1) :
@@ -1647,7 +1647,7 @@ def lgamma(x) :
     x += 1;
   t = x.log() * (x-_half) - x + _half*tau.log();
   u = x;
-  w = x*x;
+  w = (x*x).approximate(1<<(_SIGNIFICANCE+16));
   for i in count(1) :
     s = bernoulli(2*i)/(2*i*(2*i-1))/u;
     t += s;
