@@ -1579,6 +1579,10 @@ def erf(x) :
       return _1*sgn(x);
   return _erf(x);
 
+#550 bits: (for _erf used to compute erfc)
+_rootpi = rational((1,1,3,2,1,1,6,1,28,13,1,1,2,18,1,1,1,83,1,4,1,2,4,1,288,1,90,1,12,1,1,7,1,3,1,6,1,2,71,9,3,1,5,36,1,2,2,1,1,1,2,5,9,8,1,7,1,2,2,1,63,1,4,3,1,6,1,1,1,5,1,9,2,5,4,1,2,1,1,2,20,1,1,2,1,10,5,2,1,100,11,1,9,1,2,1,1,1,1,3,2,2,3,1,2,7,1,7,2,2,2,11,1,1,2,9,1,9,2,1,1,3,1,1,1,2,1,3,3,1,7,2,1,4,12,5,3,2,1,1,2,2,3,5,2,49,1,1,3,1,3,1,23,1,5,1,2,1,4,1,8,1,1,2,1,1,49,1)); #,16,2,1,3,1,4,25,1,1,1,13,1,19,23,1,13,1,2,1,1,4,4,1,1,1,20,2,4,2,6,5,4,3,7,1,2,25,16));
+_twoslashrootpi = 2/_rootpi;
+
 def _erf(x,a=0) :    # if a, adjust significance for erfc = 1 - erf
   if a : a = max(-_SIGNIFICANCE,(x*x*log2e+log2(x)+log2(rootpi)).__ceil__());
   w = -x*x;
@@ -1588,7 +1592,7 @@ def _erf(x,a=0) :    # if a, adjust significance for erfc = 1 - erf
     u = s/(2*i+1);
     t += u;
     if _isinsignificant(u.maxnorm(),t.maxnorm(),a+_SIGNIFICANCE) : break;
-  t *= 2/rootpi;
+  t *= _twoslashrootpi;
   return t.approximate(1<<(a+_SIGNIFICANCE+8));
 
 def erfc(x) :
@@ -1596,10 +1600,10 @@ def erfc(x) :
   if x.imag :
     return 1-erf(x);
   x = rational(x.real).approximate(1<<(_SIGNIFICANCE+16));
-  if x <= 4 :
-    if x <= 0 :
-      return 1+erf(-x) if x else _1;
-    return 1-_erf(x,True);
+  if x <= 0 :
+    return 1+erf(-x) if x else _1;
+  if x*x*log2e < _SIGNIFICANCE+_half :
+    return 1-_erf(x,True);    # series diverges before reaching significance
   if not x._b : return _0 if x._a else _nan;
   v = -x*x;
   w = 2*v;
@@ -1610,8 +1614,8 @@ def erfc(x) :
 #      # + (-1)**i/rootpi/2**(2i-1)*(2i)!/i! integral(x,oo) t**-2i exp(-t**2) dt
 #      f = lambda t : (x**2-t**2).exp()/(t/x)**(2*i);
 #      return (t+((((i&1)-2)*factorial(2*i)//factorial(i)/rootpi)>>(2*i-1))*integral(f,x,inf)*(-x**2).exp()/x**(2*i))*v.exp()/rootpi/x;
-      return 1-_erf(x,True);
-    s *= r;    # -**i*1*3*5*...(2i-1)/(2x)**(2i)
+      return 1-_erf(x,True);    # series diverged before reaching significance
+    s *= r;    # -**i*1*3*5*...(2i-1)/2**i/x**(2i)
     t += s;
     if _isinsignificant(s,t,_SIGNIFICANCE) : break;
   t *= v.exp()/rootpi/x;
