@@ -27,9 +27,11 @@ random=R.random;
 R.seed(0);    # for test reproducibility
 
 def ceq(c,v=()) :
+  """Evaluate expression c using tuple of values v; print if nonzero"""
   if not eval(c) : print(c,v);
 
 def roottest(numbers=None,roots=(2,3),nbits=(32,64)) :
+  """Test calculation of square and cube roots used in sha.py"""
   if not numbers :
     from sha2 import P
     numbers = P;
@@ -49,6 +51,7 @@ def roottest(numbers=None,roots=(2,3),nbits=(32,64)) :
             break;
 
 def testops(v) :    # v is vector of 3 values to be tested
+  """Test operators using 3-vector of values"""
   ceq('v[0]-v[0] == 0',v[:1])
   ceq('v[0]+-v[0] == 0',v[:1])
   ceq('not v[0] or v[0]/v[0] == 1',v[:1])
@@ -69,6 +72,7 @@ def testops(v) :    # v is vector of 3 values to be tested
     ceq('not v[0] or abs(((v[0]*~v[0])-abs(v[0])**2)/(v[0]*~v[0]))<<set_significance() < 1',v[:1])
 
 def ratspectest() :
+  """Test operations on nan and signed zeroes and infinities"""
   p0 = rational();
   m0 = -p0;
   pinf = rational(1,0);
@@ -185,36 +189,58 @@ def ratspectest() :
     ceq('v[0] is v[1]/v[0]',(nan,x));
 
 def rattest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
+  """Test rational operators"""
   ratspectest()
   for i in xrange(repeats) :
     testops(tuple(rational(randint(*nrange),randint(*drange)) for j in xrange(3)));
   
 def xtest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
+  """Test xrational operators"""
   for i in xrange(repeats) :
     testops(tuple(xrational(rational(randint(*nrange),randint(*drange)),
                             rational(randint(*nrange),randint(*drange))) for j in xrange(3)));
 
-def atest() :    # test approximate
-  # verify that relative difference is within requested accuracy
-  print('Approximations to e:')
-  for a in range(0,257,32) :
-    print('Bits of significance requested %d, actual %.2f'%(
-        a, -abs(1 - e.approximate(1<<a)/e).log(2)));
-  print('Approximations to pi:')
-  for a in range(0,257,32) :
-    print('Bits of significance requested %d, actual %.2f'%(
-        a, -abs(1 - pi.approximate(1<<a)/pi).log(2)));
-
 def sigbits(computed,actual=1) :
+  """Return number of significant bits of computed relative to actual"""
   if not actual :
     return 0 if computed != actual else inf;
   return -abs(1-computed/actual).log(2);
+
+def approximatebits(x,a,r) :
+  """Return 9-character string showing actual number of signficant bits
+in x.approximate(1<<a) compared to hi-precision reference value r"""
+  xa = sigbits(x.approximate(1<<a),r);
+  return '%9.2f'%(xa) if isfinite(xa) else ' '*9;
+
+# higher-precision reference values for constants defined in rational.py
+_e = rational(chain((2,1),chain.from_iterable((2*i,1,1) for i in xrange(1,40))));
+_log2e = rational((1,2,3,1,6,3,1,1,2,1,1,1,1,3,10,1,1,1,2,1,1,1,1,3,2,3,1,13,7,4,1,1,1,7,2,4,1,1,2,5,14,1,10,1,4,2,18,3,1,4,1,6,2,7,3,3,1,13,3,1,4,4,1,3,1,1,1,1,2,17,3,1,2,32,1,1,1,1,3,1,4,5,1,1,4,1,3,9,8,1,1,7,1,1,1,1,1,1,1,4,5,4,32,1,19,2,1,1,52,43,1,1,7,2,1,3,28));
+_pi = rational((3,7,15,1,292,1,1,1,2,1,3,1,14,2,1,1,2,2,2,2,1,84,2,1,1,15,3,13,1,4,2,6,6,99,1,2,2,6,3,5,1,1,6,8,1,7,1,2,3,7,1,2,1,1,12,1,1,1,3,1,1,8,1,1,2,1,6,1,1,5,2,2,3,1,2,4,4,16,1,161,45,1,22,1,2,2,1,4,1,2,24,1,2,1,3,1,2,1,1));
+_rootpi = rational((1,1,3,2,1,1,6,1,28,13,1,1,2,18,1,1,1,83,1,4,1,2,4,1,288,1,90,1,12,1,1,7,1,3,1,6,1,2,71,9,3,1,5,36,1,2,2,1,1,1,2,5,9,8,1,7,1,2,2,1,63,1,4,3,1,6,1,1,1,5,1,9,2,5,4,1,2,1,1,2,20,1,1,2,1,10,5,2,1,100,11,1,9,1,2,1,1,1,1));
+_eulerconstant = rational((0,1,1,2,1,2,1,4,3,13,5,1,1,8,1,2,4,1,1,40,1,11,3,7,1,7,1,1,5,1,49,4,1,65,1,4,7,11,1,399,2,1,3,2,1,2,1,5,3,2,1,10,1,1,1,1,2,1,1,3,1,4,1,1,2,5,1,3,6,2,1,2,1,1,1,2,1,3,16,8,1,1,2,16,6,1,2,2,1,7,2,1,1,1,3,1,2,1,2,13,5,1,1,1,6,1,2,1,1,11,2,5,6));
+_goldenratio = rational(1 for i in xrange(250));  # (1+root5)/2
+_root2 = rational(min(i,2) for i in xrange(1,151));
+
+def atest() :    # test approximate
+  """Test approximate()"""
+  # verify that relative difference is within requested accuracy
+  print('bits requested    e       pi     rootpi    log2e    root2  goldenratio');
+  for a in range(0,321,32) :
+    print('%7d     %s%s%s%s%s%s'%(a,
+                                approximatebits(e,a,_e),
+                                approximatebits(pi,a,_pi),
+                                approximatebits(rootpi,a,_rootpi),
+                                approximatebits(log2e,a,_log2e),
+                                approximatebits(root2,a,_root2),
+                                approximatebits(goldenratio,a,_goldenratio)));
 
 half=rational(1,2);
 zero=rational(0);
 one=rational(1);
 
-def ttest() :    # test accuracy of transcendental functions
+def ttest(significance,header=True) :
+  """Test accuracy of exp and log for real and complex values"""
+  set_significance(significance);
   # try values at maximum of series range:
   # exp: (imaginary arg tests sin and cos) [0,1/2]
   # ln: (v2/2,1)
@@ -228,46 +254,55 @@ def ttest() :    # test accuracy of transcendental functions
   ceq('xrational(0,1).arg()==hpi');
   ceq('xrational(-1,0).arg()==pi');
   ceq('xrational(1,1).arg()==qpi');
-  print('(3**.5)**2 should be 3, #bits of agreement is %g'%(sigbits((3**half)**2,3)));
-  print('half.exp()**2 should be e, #bits of agreement is %g'%(sigbits(half.exp()**2,e)));
-  i = xrational(0,1);
-  l2ri = lambda c:(-abs(c.real).log(2),-abs(c.imag).log(2));
-  print('((e**(i*tau/3))**3 should be 1, #bits of agreement is %g real, %g imag'%(l2ri(1-(e**(i*tau/3))**3)));
-  print('(i*tau/3).exp()**3 should be 1, #bits of agreement is %g real, %g imag'%(l2ri(1-(i*tau/3).exp()**3)));
-  print('i.exp()**tau should be 1, #bits of agreement is %g real, %g imag'%(l2ri(1-i.exp()**tau)));
-  print('tau.exp()**i should be 1, #bits of agreement is %g real, %g imag'%(l2ri(1-tau.exp()**i)));
+  if header :
+    print('sig      exp(.5)**2            exp(i)**tau    exp(log(x))   exp(i*arg(1+ix)');
+    print(' | (3**.5)**2|  exp(i*tau/3)**3     |   log(exp(x))| arg(exp(ix)   |');
+#         'ddd   d.dd  d.dd  (d.dd,d.dd)  (d.dd,d.dd)  d.dd  d.dd  d.dd  (d.dd,d.dd)'   
   # tests of exp, ln, sin, atan ...
   # exp(ln x) = x, ln(exp(x)) = x
   # exp(ix) = cos(x) + i sin(x)
   # arg(x+iy) = atan(y/x)
   # i.e., (i*x).exp().arg() = x and abs((i*x).exp()) = 1
-  bits = inf;
+  i = xrational(0,1);
+  l2ri = lambda c:(-abs(c.real).log(2),-abs(c.imag).log(2));
+  r = [];
+  r.append(sigbits((3**half)**2,3));
+  r.append(sigbits(half.exp()**2,e));
+  r.append(l2ri(1-(i*tau/3).exp()**3));
+  r.append(l2ri(1-i.exp()**tau));
+  bits = inf;    #  log(exp(x)) ~ x
   for n in xrange(16) :
     x = rational(n+1,32);
     bits = min(bits,sigbits(x.exp().log(),x));
-  print('min bits of agreement of ln(exp(x)) with x: %g'%(bits));
-  bits = inf;
+  r.append(bits);
+  bits = inf;    # exp(log(x)) ~ x
   for n in xrange(16) :
     x = (1-roothalf)*(n+1)/16;
     bits = min(bits,sigbits(x.log().exp(),x));
-  print('min bits of agreement of exp(ln(x)) with x: %g'%(bits));
+  r.append(bits);
   bits = inf;
-  for n in xrange(1,11) :
+  for n in xrange(1,11) :    # arg(exp(ix) ~ x
     x = rational(n,11)*hpi;
     bits = min(bits,sigbits((i*x).exp().arg(),x));
-  print('min bits of agreement of arg(exp(ix)) with x: %g'%(bits));
-  bits = inf;
-  mbits = inf;
+  r.append(bits);
+  bits = inf;    # exp(i*arg(1+ix)): imag/real ~ x
+  mbits = inf;   # exp(i*arg(1+ix)): imag**2+real**2 = 1
   for n in xrange(8) :
     x = rational(n+1,8)*froot2;
     z = ((1+i*x).arg()*i).exp();
     bits = min(bits,sigbits(z.imag/z.real,x));
-    mbits = min(mbits,sigbits(z*~z,1+x*x));
-  print('min bits of agreement of (i*arg(1+ix)).exp() ...');
-  print('  .imag/.real with x: %g'%(bits));
-  print('  .imag**2+.real**2 with 1+x**2: %g'%(bits));
+    mbits = min(mbits,sigbits(z*~z));
+  r.append((mbits,bits));
+  def b(x) :
+    try :
+      x = iter(x);
+      return '(%s)'%(','.join(b(i) for i in x));
+    except :
+      return (x-significance).bstr(3);
+  print('%3d+  '%(significance)+'  '.join(map(b,r)));
 
-def mtest(repeats=10) :    # test math functions:
+def mtest(repeats=10) :
+  """Test math functions using random real arguments"""
 # acos, acosh, asin, asinh, atan, atan2, atanh,
 # ceil, copysign, cos, cosh, degrees, erf, erfc, exp, expm1,
 # fabs*, factorial*, floor, fmod*, frexp, fsum, gamma, gcd+, hypot,
@@ -366,6 +401,7 @@ def mtest(repeats=10) :    # test math functions:
       print('integral(x**3,%s,%s) = %s ~ %s'%(u-1,u,x,y));
 
 def stest(repeats=10) :
+  """Test math functions against higher-significance results"""
   u = rational(random());
   sig = set_significance();
   dig = int(ceil(sig/log2(10)));
@@ -507,6 +543,4 @@ if __name__ == '__main__' :
   stest();
   print('transcendental function accuracy test ...')
   for significance in xrange(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE+1,gcd(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE)) :
-    set_significance(significance);
-    print('   significance = %d:'%(significance));
-    ttest();
+    ttest(significance,significance==MIN_SIGNIFICANCE);
