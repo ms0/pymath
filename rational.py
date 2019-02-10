@@ -315,6 +315,12 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       return _0;
     raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
 
+  def __dir__(self) :
+    d = dir(self.__class__)
+    d.append('numerator');
+    d.append('denominator');
+    return d;
+
   def __lt__(self,other) :
     """Return True iff self < other """
     if self is _nan : return False;
@@ -864,6 +870,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     if name == 'imag' :
       return self._b;
     raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+
   def __dir__(self) :
     d = dir(self.__class__)
     d.append('real');
