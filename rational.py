@@ -285,6 +285,10 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     """Do nothing--all the work has been done by __new__"""
     return;
 
+  def __reduce__(self) :
+    # return tuple for pickling rational"""
+    return (rational,(self._a,self._b));
+
   def __str__(self) :
     """Return a string showing the rational number as a fraction or integer"""
     return '%d/%d'%(self._a,self._b) if abs(self._b) != 1 else '%s%d'%((self._b<0)*'-',self._a);
@@ -790,6 +794,10 @@ Return x with least denominator such that |(1-x/self)*accuracy| <= 1"""
       a,b = b, a-q*b;
     return self;
 
+def _xrat(a,b,c,d) :
+  """Return xrational given numerator and denominator of real and of imag"""
+  return xrational(rational(a,b),rational(c,d));
+
 class xrational(object) :
   """Complex Rational number class
 Instance variables:
@@ -829,6 +837,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Do nothing--all the work has been done by __new__"""
     return;
 
+  def __reduce__(self) :
+    """Return tuple for pickling xrational"""
+    return (_xrat,(self._a._a,self._a._b,self._b._a,self._b._b));
+
   def __str__(self) :
     """Return a string showing the complex rational number"""
     return '%s%s%si'%(self._a,
@@ -852,6 +864,13 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     if name == 'imag' :
       return self._b;
     raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+  def __dir__(self) :
+    d = list(self.__dict__.keys());
+    d.remove('_a');
+    d.remove('_b');
+    d.append('real');
+    d.append('imag');
+    return d;
 
   def __eq__(self,other) :
     """Return True iff self == other"""
