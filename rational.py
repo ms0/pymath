@@ -865,9 +865,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       return self._b;
     raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
   def __dir__(self) :
-    d = list(self.__dict__.keys());
-    d.remove('_a');
-    d.remove('_b');
+    d = dir(self.__class__)
     d.append('real');
     d.append('imag');
     return d;
