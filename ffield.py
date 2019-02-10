@@ -583,6 +583,16 @@ over the subfield. Raise an exception if m does not divide self.n.
   v = map(G,v);
   return (G(1),)+tuple(-(v*M.inverse))[::-1];
 
+def create(p,n,poly,x=None) :
+  """Return an ffield instance or, if x present, an instance of an ffield instance"""
+  F = ffield(p,n,poly);
+  return F if x is None else F(x);
+
+def __reduce__(self) :
+  """Return tuple for pickling"""
+  return (create,(self.p,self.n,self.poly,self.x));
+
+_ffield = {}; # (p,n,poly) -> ffield
 
 class ffield(type) :
   """Class to create finite field class for GF(p**n)
@@ -617,7 +627,8 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __bool__, __nonzero__, __eq__, __ne__,
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
-         __pow__, minpoly
+         __pow__, minpoly,
+         __reduce__
 """
 
   def __new__(cls,q,*args,**kwargs) :
@@ -673,6 +684,11 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
     _tupoly = (1,)+(n+_nzi)*(0,)+tupoly;
     if not isirreducible(_tupoly[1:],p) :
       raise ValueError('Composite poly');
+    x = (p,n,poly);
+    try :
+      return _ffield[x];
+    except :
+      pass;
     d = dict(p=p,n=n,poly=poly,_tupoly=_tupoly,_nzi=_nzi,
              __init__=__init__,
              __getattr__=__getattr__,
@@ -702,6 +718,7 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
              __rtruediv__=__rdiv__,
              __pow__=__pow__,
              minpoly = minpoly,
+             __reduce__=__reduce__,
             );
     # need to define all the relevant operators:
     # comparisons: only == and !=
@@ -719,10 +736,15 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
             'GF%d_%s'%(p,zits[poly] if p <= 36 else str(poly)) if n == 1 else
             'GF%d_%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p <= 36 else
             'GF%d_%d_%s'%(p,n,'_'.join(['%d'%(c) for c in tupoly])));
-    return type.__new__(cls,name,(),d);
+    _ffield[x] = f = type.__new__(cls,name,(),d);
+    return f;
 
   def __init__(self,*args,**kwargs) :
     return;
+
+  def __reduce__(self) :
+    """Return tuple for pickling"""
+    return (create,(self.p,self.n,self.poly));
 
   __getattr__ = __getattr__
 
