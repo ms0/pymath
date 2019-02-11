@@ -319,6 +319,8 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     d = dir(self.__class__)
     d.append('numerator');
     d.append('denominator');
+    d.append('real');
+    d.append('imag');
     return d;
 
   def __lt__(self,other) :
