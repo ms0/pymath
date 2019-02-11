@@ -583,14 +583,14 @@ over the subfield. Raise an exception if m does not divide self.n.
   v = map(G,v);
   return (G(1),)+tuple(-(v*M.inverse))[::-1];
 
-def create(p,n,poly,x=None) :
+def _create(p,n,poly,x=None) :
   """Return an ffield instance or, if x present, an instance of an ffield instance"""
   F = ffield(p,n,poly);
   return F if x is None else F(x);
 
 def __reduce__(self) :
   """Return tuple for pickling"""
-  return (create,(self.p,self.n,self.poly,self.x));
+  return (_create,(self.p,self.n,self.poly,self.x));
 
 _ffield = {}; # (p,n,poly) -> ffield
 
@@ -744,7 +744,7 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
 
   def __reduce__(self) :
     """Return tuple for pickling"""
-    return (create,(self.p,self.n,self.poly));
+    return (_create,(self.p,self.n,self.poly));
 
   __getattr__ = __getattr__
 
