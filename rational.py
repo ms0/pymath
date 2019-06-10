@@ -1437,7 +1437,7 @@ def acosh(x) :
 def asinh(x) :
   """Return the inverse hyperbolic sine of x"""
   x = rational(x);
-  return -_i*asin(i*x) if x.imag else sgn(x)*atanh((_1+_1/(x*x))**-.5) if x else x;
+  return -_i*asin(_i*x) if x.imag else sgn(x)*atanh((_1+_1/(x*x))**-.5) if x else x;
 
 # random math functions
 
