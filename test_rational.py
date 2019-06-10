@@ -308,9 +308,10 @@ def mtest(repeats=10) :
 # fabs*, factorial*, floor, fmod*, frexp, fsum, gamma, gcd+, hypot,
 # isclose, isfinite*, isinf*, isnan*, ldexp*, lgamma, log, log10, log1p, log2,
 # modf, pow, radians, sin, sinh, sqrt, tan, tanh, trunc*
-# NOT IN math: combinations*, bernoulli*, integral
+# NOT IN math: combinations-, bernoulli-, integral
 # *: not tested below
 # +: not explicitly tested, but is integral to rational implementation
+# -: tested as part of lgamma computation
   rel_tol = rational(1,1<<set_significance());
   for i in xrange(repeats) :
     u = rational(random());
@@ -399,6 +400,44 @@ def mtest(repeats=10) :
     y = (u**4-(u-1)**4)/4;
     if not isclose(x,y,rel_tol=rel_tol) :
       print('integral(x**3,%s,%s) = %s ~ %s'%(u-1,u,x,y));
+  x = qpi;
+  y = 2*atan(rational(2,11))+3*atan(rational(1,7));
+  if not isclose(x,y,rel_tol=rel_tol) :
+    print('2*atan(2/11)+3*atan(1/7)=%s ~ pi/4 (%s)'%(y.bstr(30),x.bstr(30)));
+  # out-of-range real args...
+  # acosh(0), acosh(-1), asin(2), asin(-2), acos(2), acos(-2)
+  for f,finv,x in ((tanh,atanh,2),(tanh,atanh,-2),(cosh,acosh,0),(cosh,acosh,-1),(sin,asin,2),(sin,asin,-2),(cos,acos,2),(cos,acos,-2)) :
+    x = rational(x);
+    y = f(finv(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('%s(%s(%s)) ~ %s'%(f.__name__,finv.__name__,x.bstr(30),y.bstr(30)));
+
+def mxtest(repeats=10) :
+  """Test trig functions with random complex args"""
+# cos, sin, tan, cosh, sinh, tanh
+  rel_tol = rational(1,1<<set_significance());
+  for i in xrange(repeats) :
+    u = rational(random());
+    v = rational(random());
+    x = 2*v*exp(tau*(u-half));
+    y = tan(atan(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('tan(atan(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = cos(acos(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('cos(acos(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = sin(asin(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('sin(asin(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = tanh(atanh(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('tanh(atanh(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = cosh(acosh(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('cosh(acosh(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
+    y = sinh(asinh(x));
+    if not isclose(x,y,rel_tol=rel_tol) :
+      print('sinh(asinh(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
 
 def stest(repeats=10) :
   """Test math functions against higher-significance results"""
@@ -537,10 +576,12 @@ if __name__ == '__main__' :
   xtest();
   print('approximate test ...')
   atest();
-  print('math methods test')
+  print('math methods test');
   mtest();
-  print('significance test')
+  print('trig(complex) test');
+  mxtest();
+  print('significance test');
   stest();
-  print('transcendental function accuracy test ...')
+  print('transcendental function accuracy test ...');
   for significance in xrange(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE+1,gcd(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE)) :
     ttest(significance,significance==MIN_SIGNIFICANCE);

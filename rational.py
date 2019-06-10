@@ -1363,9 +1363,10 @@ def atan2(y,x) :
 quadrant determined by signs of x and y"""
   x,y = rational(x),rational(y);
   if y.imag or x.imag :
-    return atan(y/x) if x else _nan;
-  x,y = x.real, y.real;
-  return xrational(x,y).arg();
+    a = atan(y/x) if x else _nan;
+    return a - copysign(pi,a.real) if (x.real and x.real < 0 or 
+                                       y.real and (a.real < 0) != (y.real < 0)) else a;
+  return xrational(x.real,y.real).arg();
 
 def atan(x) :
   """Return the arctangent (in radians) of x"""
@@ -1431,12 +1432,12 @@ def atanh(x) :
 def acosh(x) :
   """Return the inverse hyperbolic cosine of x"""
   x = rational(x);
-  return atanh((_1-_1/(x*x))**.5);
+  return _i*acos(x) if x.imag or x<1 else atanh((_1-_1/(x*x))**.5);
 
 def asinh(x) :
   """Return the inverse hyperbolic sine of x"""
   x = rational(x);
-  return (1 if x.imag else sgn(x)) * atanh((_1+_1/(x*x))**-.5) if x else x;
+  return -_i*asin(i*x) if x.imag else sgn(x)*atanh((_1+_1/(x*x))**-.5) if x else x;
 
 # random math functions
 
