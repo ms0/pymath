@@ -419,7 +419,7 @@ def mxtest(repeats=10) :
   for i in xrange(repeats) :
     u = rational(random());
     v = rational(random());
-    x = 2*v*exp(tau*(u-half));
+    x = 2*v*exp(xrational(0,tau*(u-half)));
     y = tan(atan(x));
     if not isclose(x,y,rel_tol=rel_tol) :
       print('tan(atan(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
