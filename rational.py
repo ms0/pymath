@@ -1337,20 +1337,18 @@ def log2(x) :
 def sin(x) :
   """Return the sine of x (radians)"""
   x = rational(x);
-  if not x.real._b or not x.imag._b : return _nan;
-  if x.imag :
-    ix = _i*x;
-    return (((-ix).exp()-ix.exp())*_hi).approximate(1<<(_SIGNIFICANCE+8));
-  return _xsin(x.real);
+  r = x.real;
+  i = x.imag;
+  if not r._b or not i._b : return _nan;
+  return xrational(_xsin(r)*cosh(i),_xcos(r)*sinh(i)).approximate(1<<(_SIGNIFICANCE+8)) if i else _xsin(r);
 
 def cos(x) :
   """Return the cosine of x (radians)"""
   x = rational(x);
-  if not x.real._b or not x.imag._b : return _nan;
-  if x.imag :
-    ix = _i*x;
-    return (((-ix).exp()+ix.exp())*_half).approximate(1<<(_SIGNIFICANCE+8));
-  return _xcos(x.real);
+  r = x.real;
+  i = x.imag;
+  if not r._b or not i._b : return _nan;
+  return xrational(_xcos(r)*cosh(i),-_xsin(r)*sinh(i)).approximate(1<<(_SIGNIFICANCE+8)) if i else _xcos(r);
 
 def tan(x) :
   """Return the tangent of x (radians)"""
