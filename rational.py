@@ -52,11 +52,14 @@ def sgn(x) :
   """Return the sign of x as an integer: -1, 0, or +1"""
   return -1 if x < 0 else 1 if x > 0 else _nan if x else 0;
 
-def gcd(x,y) :
-  """Return the [nonnegative] greatest common divisor of x and y"""
-  while y :
-    x,y = y, x%y;
-  return abs(x);
+try :
+  from math import gcd
+except :
+  def gcd(x,y) :
+    """Return the [nonnegative] greatest common divisor of x and y"""
+    while y :
+      x,y = y, x%y;
+    return abs(x);
 
 def root(a,n) :
   """Return the nth root of a, where a and n are positive integers"""
