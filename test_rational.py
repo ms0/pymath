@@ -20,11 +20,33 @@ else :
 
 from random import Random
 from rational import *
+from timeit import timeit, default_timer
+
+try :
+  from timer import process_time
+except :
+  process_time = default_timer;
 
 R=Random();
 randint=R.randint;
-random=R.random;
+def random() :
+  """Return a random rational uniformly distributed in [0,1]"""
+  s = set_significance();
+  h = (s+1)//2;
+  a = R.getrandbits(h);
+  b = R.getrandbits(h);
+  if a > b: a,b=b,a;
+  return rational(a,b);
+
 R.seed(0);    # for test reproducibility
+
+def timing(name,stmt,repeats=16,nargs=1,plex=0) :
+  """Print time taken by stmt with nargs random real or complex args"""
+  t = timeit(
+    stmt='for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
+    setup='from rational import rational,xrational,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma\nfrom test_rational import random\nr=[xrational(random(),random()) if %d else random() for _ in %s(%d)]'%(plex,xrange.__name__,repeats*nargs),
+    timer=process_time,number=1);
+  print('%s\t%f'%(name,t/repeats));
 
 def ceq(c,v=()) :
   """Evaluate expression c using tuple of values v; print if nonzero"""
@@ -314,7 +336,7 @@ def mtest(repeats=10) :
 # -: tested as part of lgamma computation
   rel_tol = rational(1,1<<set_significance());
   for i in xrange(repeats) :
-    u = rational(random());
+    u = random();
     x,y = floor(u),ceil(u);
     if not x <= u <= y or y-x != 1 and y != x :
       print('floor-u-ceil: %s <=? %s <=? %s'%(x.bstr(30),u.bstr(30),y.bstr(30)));
@@ -390,7 +412,7 @@ def mtest(repeats=10) :
     y = log(y);
     z = lgamma(x);
     if not isclose(y,z,rel_tol=rel_tol) :
-      print('x, ln(gamma(x) ~ lgamma(x): %s, %s ~ %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
+      print('x, ln(gamma(x)) ~ lgamma(x): %s, %s ~ %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
     x = 16*u;
     y = erf(x);
     z = erfc(x);
@@ -417,8 +439,8 @@ def mxtest(repeats=10) :
 # cos, sin, tan, cosh, sinh, tanh
   rel_tol = rational(1,1<<set_significance());
   for i in xrange(repeats) :
-    u = rational(random());
-    v = rational(random());
+    u = random();
+    v = random();
     x = 2*v*exp(xrational(0,tau*(u-half)));
     y = tan(atan(x));
     if not isclose(x,y,rel_tol=rel_tol) :
@@ -441,7 +463,7 @@ def mxtest(repeats=10) :
 
 def stest(repeats=10) :
   """Test math functions against higher-significance results"""
-  u = rational(random());
+  u = random();
   sig = set_significance();
   dig = int(ceil(sig/log2(10)));
   rel_tol = rational(1,1<<sig);
@@ -564,7 +586,58 @@ def stest(repeats=10) :
   z = erfc(x);
   if not isclose(y,z,rel_tol=rel_tol) :
     print('erfc(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+  set_significance(sig);
 
+def timingtest() :
+  """Timing test"""
+  timing('abs(real)','abs(r[i])',4096);
+  timing('abs(complex)','abs(r[i])',plex=1);
+  timing('real    +','r[i]+r[i+1]',4096,nargs=2);
+  timing('complex +','r[i]+r[i+1]',4096,nargs=2,plex=1);
+  timing('real    *','r[i]*r[i+1]',4096,nargs=2);
+  timing('complex *','r[i]*r[i+1]',4096,nargs=2,plex=1);
+  timing('real    **','r[i]**r[i+1]',nargs=2);
+  timing('complex **','r[i]**r[i+1]',nargs=2,plex=1);
+  timing('1/real   ','1/r[i]',4096);
+  timing('1/complex','1/r[i]',4096,plex=1);
+  timing('real**-1','r[i]**-1',4096);
+  timing('complex**-1','r[i]**-1',4096,plex=1);
+  timing('exp(real)','exp(r[i])');
+  timing('exp(complex)','exp(r[i])',plex=1);
+  timing('log(real)','log(r[i])');
+  timing('log(complex)','log(r[i])',plex=1);
+  timing('sin(real)','sin(r[i])');
+  timing('sin(complex)','sin(r[i])',plex=1);
+  timing('cos(real)','cos(r[i])');
+  timing('cos(complex)','cos(r[i])',plex=1);
+  timing('tan(real)','tan(r[i])');
+  timing('tan(complex)','tan(r[i])',plex=1);
+  timing('asin(real)','asin(r[i])');
+  timing('asin(complex)','asin(r[i])',plex=1);
+  timing('acos(real)','acos(r[i])');
+  timing('acos(complex)','acos(r[i])',plex=1);
+  timing('atan(real)','atan(r[i])');
+  timing('atan(complex)','atan(r[i])',plex=1);
+  timing('sinh(real)','sinh(r[i])');
+  timing('sinh(complex)','sinh(r[i])',plex=1);
+  timing('cosh(real)','cosh(r[i])');
+  timing('cosh(complex)','cosh(r[i])',plex=1);
+  timing('tanh(real)','tanh(r[i])');
+  timing('tanh(complex)','tanh(r[i])',plex=1);
+  timing('asinh(real)','asinh(r[i])');
+  timing('asinh(complex)','asinh(r[i])',plex=1);
+  timing('acosh(real)','acosh(1/r[i])');
+  timing('acosh(complex)','acosh(r[i])',plex=1);
+  timing('atanh(real)','atanh(r[i])');
+  timing('atanh(complex)','atanh(r[i])',plex=1);
+  timing('erf(real)','erf(r[i])');
+  timing('erf(complex)','erf(r[i])',plex=1);
+  timing('erfc(real)','erfc(r[i])');
+  timing('erfc(complex)','erfc(r[i])',plex=1);
+  timing('gamma(real)','gamma(r[i])');
+  timing('gamma(complex)','gamma(r[i])',plex=1);
+  timing('lgamma(real)','lgamma(r[i])');
+  timing('lgamma(complex)','lgamma(r[i])',plex=1);
 
 
 if __name__ == '__main__' :
@@ -582,6 +655,8 @@ if __name__ == '__main__' :
   mxtest();
   print('significance test');
   stest();
+  print('timing test');
+  timingtest();
   print('transcendental function accuracy test ...');
   for significance in xrange(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE+1,gcd(MIN_SIGNIFICANCE,MAX_SIGNIFICANCE)) :
     ttest(significance,significance==MIN_SIGNIFICANCE);

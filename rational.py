@@ -499,7 +499,7 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     """Return the inverse quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
-        return self.__class__(other*self._b,self._a if self._b or other >= 0 else -self._a)
+        return self.__class__(other*self._b,self._a if self._b or other >= 0 else -self._a,_gcd_=abs(other)!=1)
       try :
         return self.__class__(other)/self;
       except :
@@ -1390,16 +1390,27 @@ def asin(x) :
 def cosh(x) :
   """Return the hyperbolic cosine of x"""
   x = rational(x);
-  if not x.real :
-    return cos(x.imag);
-  return ((exp(x)+exp(-x))/2).approximate(1<<(_SIGNIFICANCE+8));
+  r = x.real;
+  i = x.imag;
+  if i :
+    return cos(xrational(i,-r)) if r else cos(i);
+  y = exp(r);
+  return ((y+1/y)/2).approximate(1<<(_SIGNIFICANCE+8));
 
 def sinh(x) :
   """Return the hyperbolic sine of x"""
   x = rational(x);
-  if not x.real and x.imag :
-    return xrational(0,sin(x.imag));
-  return ((exp(x)-exp(-x))/2).approximate(1<<(_SIGNIFICANCE+8)) if x else x;
+  r = x.real;
+  i = x.imag;
+  if i :
+    if r :
+      y = sin(xrational(i,-r));
+      return xrational(-y.imag,y.real);
+    return xrational(0,sin(i));
+  if x :
+    y = exp(x);
+    return ((y-1/y)/2).approximate(1<<(_SIGNIFICANCE+8));
+  return x;
 
 def tanh(x) :
   """Return the hyperbolic tangent of x"""
