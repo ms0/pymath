@@ -1673,7 +1673,7 @@ def lgamma(x) :
   """Return the log of the gamma function at x"""
   x = rational(x);
   if not x.imag :
-    if abs(x._b) == 1 :
+    if abs(x._b) == 1 and x._a <= MAX_SIGNIFICANCE:
       return log(factorial(x._a-1)) if x._a > 0 else _pinf ;
     if not x._b : return x;
   if x.real <= 0 :
@@ -1692,7 +1692,7 @@ def lgamma(x) :
     t += s;
     if _isinsignificant(s.maxnorm(),t.maxnorm(),_SIGNIFICANCE+8) : break;
     u *= w;
-  return (t-p.log()).approximate(1<<(_SIGNIFICANCE+8));
+  return (t-log(p)).approximate(1<<(_SIGNIFICANCE+8));
 
 def gamma(x) :    # note gamma(x) = gamma(x+1)/x
   """Return the gamma function at x"""
