@@ -741,7 +741,7 @@ a following >> indicates division by the indicated power of the base"""
   def log(self,base=None) :
     """Return the log of the number as a rational"""
     base = self.__class__(base) if base != None else e;
-    if not base.real._b or base.imag or base <= 0 or base == 1 : raise ValueError('bad base');
+    if base.imag or not base._b or base <= 0 or base == 1 : raise ValueError('bad base');
     d = _ln(base);
     return xrational(_ln(-self)/d,pi/d) if self._a < 0 or self._b < 0 else _ln(self)/d;
 
@@ -1132,7 +1132,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
   def log(self,base=None) :
     """Return the log of the number as an xrational"""
     base = rational(base) if base != None else e;
-    if not base.real._b or base.imag or base <= 0 or base == 1 : raise ValueError('bad base');
+    if base.imag or not base._b or base <= 0 or base == 1 : raise ValueError('bad base');
     if not self : return _pinf if base < 1 else _minf;
     d = _ln(base);
     return self.__class__(_ln(abs(self))/d,self.arg()/d);
@@ -1669,16 +1669,20 @@ def sinc(x) :
   x *= pi;
   return sin(x)/x;
 
-def lgamma(x) :
-  """Return the log of the gamma function at x"""
+def lgamma(x,base=e) :
+  """Return the log of the gamma function at x for the specified base"""
   x = rational(x);
+  base = rational(base);
+  if base.imag or not base._b or base <= 0 or base == 1 : raise ValueError('bad base');
   if not x.imag :
-    if abs(x._b) == 1 and x._a <= MAX_SIGNIFICANCE:
-      return log(factorial(x._a-1)) if x._a > 0 else _pinf ;
-    if not x._b : return x;
+    if abs(x._b) == 1 :
+      if x._a <= MAX_SIGNIFICANCE :
+        return log(factorial(x._a-1),base) if x._a > 0 else _nan;
+    elif not x._b :
+      return (_pinf if base > 1 else _minf) if x > 0 else _nan;
   if x.real <= 0 :
     z = 1-x;
-    return -sinc(z).log()-lgamma(1+z);
+    return -sinc(z).log(base)-lgamma(1+z,base);
   p = 1;
   x = x.approximate(1<<(_SIGNIFICANCE+16));
   while x.real < 32 :    # this increases required intermediate significance
@@ -1692,7 +1696,7 @@ def lgamma(x) :
     t += s;
     if _isinsignificant(s.maxnorm(),t.maxnorm(),_SIGNIFICANCE+8) : break;
     u *= w;
-  return (t-log(p)).approximate(1<<(_SIGNIFICANCE+8));
+  return (t-log(p)).approximate(1<<(_SIGNIFICANCE+8))/log(base);
 
 def gamma(x) :    # note gamma(x) = gamma(x+1)/x
   """Return the gamma function at x"""
@@ -1700,7 +1704,7 @@ def gamma(x) :    # note gamma(x) = gamma(x+1)/x
   if not x.imag :
     x = x.real;
     if abs(x._b) == 1 :
-      return rational(factorial(x._a-1)) if x > 0 else _pinf;
+      return rational(factorial(x._a-1)) if x > 0 else _nan;
   return lgamma(x).exp();    # real if not x.imag
 
 def factorial(x) :
