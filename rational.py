@@ -1705,7 +1705,7 @@ def gamma(x) :    # note gamma(x) = gamma(x+1)/x
     x = x.real;
     if abs(x._b) == 1 :
       return rational(factorial(x._a-1)) if x > 0 else _nan;
-  return lgamma(x).exp();    # real if not x.imag
+  return rational(lgamma(x).exp());    # real if not x.imag
 
 def factorial(x) :
   """Return x!, i.e., gamma(1+x)"""
