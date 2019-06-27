@@ -461,6 +461,22 @@ def mxtest(repeats=10) :
     if not isclose(x,y,rel_tol=rel_tol) :
       print('sinh(asinh(%s)) ~ %s'%(x.bstr(30),y.bstr(30)));
 
+def gtest(repeats=64) :
+  """Test lgamma with random complex args"""
+  rel_tol = rational(1,1<<set_significance());
+  for i in xrange(repeats) :
+    x = xrational(512*(random()-.5),8*(random()-.5));
+    y = lgamma(x+1)-lgamma(x);
+    if y.imag :
+      y = xrational(y.real,(y.imag+pi)%tau-pi);
+    z = log(x);
+    if z.imag :
+      z = xrational(z.real,(z.imag+pi)%tau-pi);
+    if not (isclose(z.real,y.real,rel_tol=2*rel_tol) and
+            isclose(z.imag,y.imag,rel_tol=0,abs_tol = tau*rel_tol)) :
+      print('(lgamma(z+1)-lgamma(z=%s)).exp() ~ %s'
+            %(x.bstr(30),y.exp().bstr(30)));
+
 def stest(repeats=10) :
   """Test math functions against higher-significance results"""
   u = random();
@@ -653,6 +669,8 @@ if __name__ == '__main__' :
   mtest();
   print('trig(complex) test');
   mxtest();
+  print('lgamma test');
+  gtest();
   print('significance test');
   stest();
   print('timing test');
