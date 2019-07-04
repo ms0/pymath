@@ -4,7 +4,7 @@ from __future__ import division
 
 import sys
 
-from math import log as _mlog, copysign as _mcopysign
+from math import log as _mlog, modf as _mmodf, ldexp as _mldexp, copysign as _mcopysign
 from itertools import chain, count
 
 if sys.version_info[0] < 3 :
@@ -17,6 +17,9 @@ if sys.version_info[0] < 3 :
     """Return True iff rational"""
     return isinstance(x,(int,long,rational,xrational));
 
+  _fround = round;
+  _round = lambda x : x if isint(x) else int(_fround(x));
+
 else :
 
   xrange = range;
@@ -28,6 +31,8 @@ else :
   def isrational(x) :
     """Return True iff rational"""
     return isinstance(x,(int,rational,xrational));
+
+  _round = round;
 
 try :
   int.bit_length;
@@ -63,9 +68,15 @@ except :
 
 def root(a,n) :
   """Return the nth root of a, where a and n are positive integers"""
-  l = log2(a)/n;
+  try :
+    l = _mlog(a,2)/n;
+  except OverflowError :
+    l = 0;
   if l < 1 : return 1;
-  r = int(_half+2**l);
+  lf,li = _mmodf(l);
+  li = int(li);
+  d = min(li,sys.float_info.mant_dig+1);
+  r = _round(_mldexp(2**lf,d))<<(li-d);
   while True :
     if r**n == a : return r;
     ro = r;
