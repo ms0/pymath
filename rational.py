@@ -65,7 +65,7 @@ def root(a,n) :
   """Return the nth root of a, where a and n are positive integers"""
   l = log2(a)/n;
   if l < 1 : return 1;
-  r = int(round(2**l));
+  r = int(_half+2**l);
   while True :
     if r**n == a : return r;
     ro = r;
