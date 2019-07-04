@@ -63,14 +63,9 @@ except :
 
 def root(a,n) :
   """Return the nth root of a, where a and n are positive integers"""
-  l = _mlog(a,2)/n;
+  l = log2(a)/n;
   if l < 1 : return 1;
-  try :
-    r = int(round(2**l));
-  except :    # too big
-    il = int(l)-52;
-    fl = l - il;
-    r = int(round(2**fl))<<52;
+  r = int(round(2**l));
   while True :
     if r**n == a : return r;
     ro = r;
