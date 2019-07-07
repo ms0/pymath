@@ -33,7 +33,9 @@ def random() :
   """Return a random rational uniformly distributed in [0,1]"""
   s = set_significance();
   h = (s+1)//2;
-  a = R.getrandbits(h);
+  while True :
+    a = R.getrandbits(h);
+    if a : break;
   b = R.getrandbits(h);
   if a > b: a,b=b,a;
   return rational(a,b);
@@ -44,7 +46,7 @@ def timing(name,stmt,repeats=16,nargs=1,plex=0) :
   """Print time taken by stmt with nargs random real or complex args"""
   t = timeit(
     stmt='for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
-    setup='from rational import rational,xrational,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma\nfrom test_rational import random\nr=[xrational(random(),random()) if %d else random() for _ in %s(%d)]'%(plex,xrange.__name__,repeats*nargs),
+    setup='from rational import rational,xrational,set_significance,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma\nfrom test_rational import random\nr=[xrational(2*random()-1,2*random()-1) if %d else 2*random()-1 for _ in %s(%d)]\nu=[(1+x.real)/2 for x in r]'%(plex,xrange.__name__,repeats*nargs),
     timer=process_time,number=1);
   print('%s\t%f'%(name,t/repeats));
 
@@ -607,21 +609,22 @@ def stest(repeats=10) :
 
 def timingtest() :
   """Timing test"""
-  timing('abs(real)','abs(r[i])',4096);
+  timing('abs(real)','abs(r[i])',16384);
   timing('abs(complex)','abs(r[i])',plex=1);
   timing('real    +','r[i]+r[i+1]',4096,nargs=2);
   timing('complex +','r[i]+r[i+1]',4096,nargs=2,plex=1);
   timing('real    *','r[i]*r[i+1]',4096,nargs=2);
   timing('complex *','r[i]*r[i+1]',4096,nargs=2,plex=1);
-  timing('real    **','r[i]**r[i+1]',nargs=2);
+  timing('real    **','u[i]**r[i+1]',nargs=2);
   timing('complex **','r[i]**r[i+1]',nargs=2,plex=1);
-  timing('1/real   ','1/r[i]',4096);
+  timing('1/real   ','1/r[i]',16384);
   timing('1/complex','1/r[i]',4096,plex=1);
-  timing('real**-1','r[i]**-1',4096);
+  timing('real**-1','r[i]**-1',16384);
   timing('complex**-1','r[i]**-1',4096,plex=1);
+  timing('approximate','r[i].approximate(1<<(set_significance()-8))',4096);
   timing('exp(real)','exp(r[i])');
   timing('exp(complex)','exp(r[i])',plex=1);
-  timing('log(real)','log(r[i])');
+  timing('log(real)','log(u[i])');
   timing('log(complex)','log(r[i])',plex=1);
   timing('sin(real)','sin(r[i])');
   timing('sin(complex)','sin(r[i])',plex=1);
@@ -643,7 +646,7 @@ def timingtest() :
   timing('tanh(complex)','tanh(r[i])',plex=1);
   timing('asinh(real)','asinh(r[i])');
   timing('asinh(complex)','asinh(r[i])',plex=1);
-  timing('acosh(real)','acosh(1/r[i])');
+  timing('acosh(real)','acosh(1/u[i])');
   timing('acosh(complex)','acosh(r[i])',plex=1);
   timing('atanh(real)','atanh(r[i])');
   timing('atanh(complex)','atanh(r[i])',plex=1);
@@ -651,9 +654,9 @@ def timingtest() :
   timing('erf(complex)','erf(r[i])',plex=1);
   timing('erfc(real)','erfc(r[i])');
   timing('erfc(complex)','erfc(r[i])',plex=1);
-  timing('gamma(real)','gamma(r[i])');
+  timing('gamma(real)','gamma(u[i])');
   timing('gamma(complex)','gamma(r[i])',plex=1);
-  timing('lgamma(real)','lgamma(r[i])');
+  timing('lgamma(real)','lgamma(u[i])');
   timing('lgamma(complex)','lgamma(r[i])',plex=1);
 
 
