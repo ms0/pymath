@@ -45,8 +45,9 @@ R.seed(0);    # for test reproducibility
 def timing(name,stmt,repeats=16,nargs=1,plex=0) :
   """Print time taken by stmt with nargs random real or complex args"""
   t = timeit(
-    stmt='for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
-    setup='from rational import rational,xrational,set_significance,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma\nfrom test_rational import random\nr=[xrational(2*random()-1,2*random()-1) if %d else 2*random()-1 for _ in %s(%d)]\nu=[(1+x.real)/2 for x in r]'%(plex,xrange.__name__,repeats*nargs),
+    stmt=stmt if not '[i]' in stmt else
+    'for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
+    setup='from rational import rational,xrational,set_significance,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma,fsum\nfrom test_rational import random\nr=[xrational(2*random()-1,2*random()-1) if %d else 2*random()-1 for _ in %s(%d)]\nu=[(1+x.real)/2 for x in r]'%(plex,xrange.__name__,repeats*nargs),
     timer=process_time,number=1);
   print('%s\t%f'%(name,t/repeats));
 
@@ -606,6 +607,12 @@ def stest(repeats=10) :
     if not isclose(y,z,rel_tol=rel_tol) :
       print('erfc(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
     set_significance(sig);
+    y = fsum(rational((-1)**i,i+1) for i in xrange(4096));
+    set_significance(sig+10);
+    z = fsum(rational((-1)**i,i+1) for i in xrange(4096));
+    if not isclose(y,z,rel_tol=rel_tol) :
+      print('fsum(1-1/2+1/3-...): %s ~ %s'%(y.bstr(dig),z.bstr(dig+3)));
+    set_significance(sig);
 
 def timingtest() :
   """Timing test"""
@@ -658,7 +665,9 @@ def timingtest() :
   timing('gamma(complex)','gamma(r[i])',plex=1);
   timing('lgamma(real)','lgamma(u[i])');
   timing('lgamma(complex)','lgamma(r[i])',plex=1);
-
+  timing('fsum(unsigned)','fsum(u)',4096);
+  timing('fsum(real)', 'fsum(r)',4096);
+  timing('fsum(complex)','fsum(r)',4096,plex=1);
 
 if __name__ == '__main__' :
   print('root test (for sha2) ...');

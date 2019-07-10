@@ -1552,8 +1552,9 @@ def _fsum(pa,na) :    # pa elements all >0, na elements all <0
   except :
     return _0;
   while a :
-    if _isinsignificant(a[-1],s,_SIGNIFICANCE+8+bit_length(len(a)-1)) : break;
-    s += a.pop();
+    t = _SIGNIFICANCE+8+bit_length(len(a)-1);
+    if _isinsignificant(a[-1],s,t) : break;
+    s = (s + a.pop()).approximate(1<<t);
   return s.approximate(1<<(_SIGNIFICANCE+8));
 
 def frexp(x) :
