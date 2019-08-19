@@ -246,8 +246,7 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
               x = b = abs(a);
               m0,m1,n0,n1 = 0,1,1,0;    # |m0n1-m1n0| == 1 throughout
               for i in xrange(64) :
-                ix = x//1;
-                fx = x - ix;        
+                ix,fx = divmod(x,1);
                 iix = int(ix);
                 m0,m1,n0,n1 = n0,n1,m0+iix*n0,m1+iix*n1;
                 if fx == 0 or n0/n1 == b : break;
@@ -762,10 +761,11 @@ a following >> indicates division by the indicated power of the base"""
   def cfg(self) :
     """Return a generator of the terms of the regular continued fraction for the number"""
     a,b = self._a,self._b;
+    if not b and a != 1 : raise ValueError('no cf for nan nor -inf');
     while b :
-      q = int(a//b);    # turn long into int if possible
-      yield q;
-      a,b = b,int(a-q*b);
+      q,r = divmod(a,b);
+      yield int(q);    # long->int if possible
+      a,b = b,int(r);  # long->int if possible
 
   def approximate(self,accuracy=None) :
     """If accuracy is unspecified, or self is an integer, return self; else
