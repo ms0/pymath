@@ -784,32 +784,9 @@ zits='0123456789abcdefghijklmnopqrstuvwxyz';
 # div (all versions) is same, and uses pow(-1) = pow(p**n-2); divide by zero raises Error
 # no rdiv? but rmul
 
-
 # NOTE, if polynomial is not irreducible, the class is still a ring.
 # We can still multiply polynomials mod poly
 # We can still perform gcd.
-
-def gcd(a,b):
-  """Return the gcd of integers a and b"""
-#  want ua + vb = g
-#  have u[i]*a + v[i]*b = r[i]
-#  u[-2] = 1, v[-2] = 0, r[-2] = a
-#  u[-1] = 0, v[-1] = 1, r[-1] = b
-#  if r[n-2] = q*r[n-1] + r[n],
-#  un = u[n-2]-q*u[n-1]
-#  vn = v[n-2]-q*v[n-1]
-  while b :
-    a,b = b, a-a//b*b;
-  return a;
-
-def xgcd(a,b) :
-  """Return g,u,v, where g = ua+vb is the gcd of integers a and b"""
-  u0,v0,u1,v1 = 1,0,0,1;
-  while b :
-    q = a//b;
-    a,b = b,a-q*b;
-    u0,v0,u1,v1 = u1,v1,u0-q*u1,v0-q*v1;
-  return a,u0,v0;
 
 # modular polynomial functions
 # polynomials represented as tuples of mod p integers, hi to lo

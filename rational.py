@@ -1390,11 +1390,11 @@ def atan(x) :
 
 def acos(x) :
   """Return the arccosine (in radians) of x"""
-  return atan2((_1-x*x)**.5,x);
+  return atan2((_1-x*x)**_half,x);
 
 def asin(x) :
   """Return the arcsine (in radians) of x"""
-  return atan2(x,(_1-x*x)**.5);
+  return atan2(x,(_1-x*x)**_half);
 
 def cosh(x) :
   """Return the hyperbolic cosine of x"""
@@ -1450,12 +1450,12 @@ def atanh(x) :
 def acosh(x) :
   """Return the inverse hyperbolic cosine of x"""
   x = rational(x);
-  return _i*acos(x) if x.imag or x<1 else atanh((_1-_1/(x*x))**.5);
+  return _i*acos(x) if x.imag or x<1 else atanh((_1-_1/(x*x))**_half);
 
 def asinh(x) :
   """Return the inverse hyperbolic sine of x"""
   x = rational(x);
-  return -_i*asin(_i*x) if x.imag else sgn(x)*atanh((_1+_1/(x*x))**-.5) if x else x;
+  return -_i*asin(_i*x) if x.imag else sgn(x)*atanh((_1+_1/(x*x))**-_half) if x else x;
 
 # random math functions
 
@@ -1484,7 +1484,7 @@ def pow(x,y) :
 
 def sqrt(x) :
   """Return x**(1/2)"""
-  return rational(x)**.5;
+  return rational(x)**_half;
 
 def trunc(x) :
   """Return the truncation of x to the nearest integer toward 0; uses __trunc__"""
