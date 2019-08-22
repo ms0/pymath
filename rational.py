@@ -197,7 +197,7 @@ Methods:
   __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
-  __divmod__, __rdivmod__, __lshift__, __rshift__
+  __divmod__, __rdivmod__, __lshift__, __rshift__,
   __pow__, __rpow__, log, exp, cf, approximate"""
 
   def __new__(cls,a=0,b=1,_gcd_=True) :
@@ -675,14 +675,16 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     except :
       return self;
 
-  def __round__(self,n=0,base=10) :
+  def __round__(self,n=None,base=10) :
     """Return the round of the number"""
-    if not isint(n) :
+    if not isint(n or 0) :
       raise TypeError('n must be an integer');
     if not isint(base) or base < 2 :
       raise ValueError('base must be an integer > 1');
     try :
-      if not n : return -int(_half-self) if self._a < 0 else int(_half+self);
+      if not n :
+        v = -int(_half-self) if self._a < 0 else int(_half+self);
+        return self.__class__(v) if isint(n) else v;
       base2absn = base**abs(n);
       return ((self.__class__(int((self/base2absn - _half)*base2absn)) if self._a < 0 else
                self.__class__(int((self/base2absn + _half)*base2absn))) if n < 0 else
@@ -824,10 +826,10 @@ Methods:
   __new__, __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
    __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm,
-  __float__, __complex__,
+  __int__, __float__, __complex__, __trunc__, __round__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
-  __divmod__, __rdivmod__, __lshift__, __rshift__
+  __divmod__, __rdivmod__, __lshift__, __rshift__,
   __pow__, __rpow__, log, exp, arg, approximate"""
 
   def __new__(cls,real=0,imag=0) :
@@ -954,6 +956,13 @@ If real is a string (and imag==0), return xrational(rational(real))"""
   def maxnorm(self) :
     """Return max(|self._a|,|self._b|)"""
     return max(abs(self._a),abs(self._b));
+
+  def __int__(self) :
+    """Return the integer part of the number if real"""
+    if self._b : raise TypeError('complex');
+    return int(self._a);
+
+  __trunc__ = __int__
 
   def __float__(self) :
     """Return a floating point approximation to the number if real"""
@@ -1092,10 +1101,9 @@ If real is a string (and imag==0), return xrational(rational(real))"""
         s *= s;
       return x;
     if not self : return _nan if other.imag or other < 0 else _0;
-    try :
-      return (self.__class__(other)*self.log()).exp();
-    except :
-      return exp(other*self.log());
+    p = exp(other*self.log());
+    a = p.approximate(1<<MIN_SIGNIFICANCE);
+    return a if isclose(a,p,rational(1,16<<_SIGNIFICANCE)) else p;
 
   def __rpow__(self,other) :
     try :
@@ -1110,6 +1118,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
   def __rshift__(self,other) :
     """Return the quotient of self and 2**other, for other an integer"""
     return self.__class__(self._a>>other,self._b>>other) if other >= 0 else self<<-other;
+
+  def __round__(self,n=0,base=10) :
+    """Return result of separately rounding real and imaginary parts"""
+    return self.__class__(self._a.__round__(n,base),self._b.__round__(n,base));
 
   def bstr(self,n=5,base=10) :
     """Return a string representation of self, using rational.bstr"""
@@ -1756,7 +1768,12 @@ def isclose(a,b,rel_tol=rational(1e-9), abs_tol=0) :
   """Return True if a is close in value to b; False otherwise:
 a == b or abs(a-b) <= abs_tol or abs(a-b)/max(abs(a),abs(b)) <= rel_tol"""
   if a == b : return True;
-  d = abs(a-b);
+  d = a-b;
+  if isinstance(d,xrational) :    # avoid expensive xrational abs
+    d = d._a**2 + d._b**2 ;
+    return d <= abs_tol**2 or \
+           d/max(a.real**2 + a.imag**2, b.real**2 + b.imag**2) <= rel_tol**2;
+  d = abs(d);
   return d <= abs_tol or d/max(abs(a),abs(b)) <= rel_tol;
 
 _2_3 = rational(2,3);
