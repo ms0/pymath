@@ -363,21 +363,39 @@ any * scalar :  scalar multiply
       b.__v[i] = other*b.__v[i];
     return b;
 
-  def __itruediv__(self,b) :
-    """Multiply self by b**-1"""
-    return self.__imul__(b**-1);
+  def _scalardiv(self,b) :
+    """Divide self by scalar b"""
+    for i in xrange(len(self.__v)) :
+      self.__v[i] /= b ;
+    return self;
+
+  def __itruediv__(self,other) :
+    """Divide self by other"""
+    if isinstance(other,matrix) :
+      if len(matrix.__v) == 1 :
+        return self._scalardiv(other.__v[0]);
+      if len(self.__dims) == 2 and self.__dims[0] == self.__dims[1] :
+        return self.__imul__(other**-1);
+      raise TypeError('only square matrices can be divisors');
+    elif islistlike(other) :
+      if len(other) == 1 :
+        return self._scalardiv(other[0]);
+      raise TypeError('only square matrices can be divisors');
+    else :
+      return self._scalardiv(other);
+    return self.__imul__(other**-1);
 
   __idiv__ = __itruediv__;
 
-  def __truediv__(self,b) :
-    """Return the product self*b**-1"""
-    return matrix(self).__itruediv__(b);
+  def __truediv__(self,other) :
+    """Return the quotient self/other"""
+    return matrix(self).__itruediv__(other);
 
   __div__ = __truediv__;
 
-  def __rtruediv__(self,b) :
-    """Return the product b*self**-1"""
-    return b*self.inverse;
+  def __rtruediv__(self,other) :
+    """Return the product other*self**-1"""
+    return other*self.inverse;
 
   __rdiv__ = __rtruediv__;
 

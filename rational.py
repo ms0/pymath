@@ -214,9 +214,19 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
         if isinstance(a,str) :
           return _parserat(a);
         try :
-          a = iter(a);
+          c = iter(a);
+          try :
+            a.__call__;  # polynomial ?
+            raise ValueError('callable');
+          except AttributeError:
+            pass;
+          try :
+            a.dims;  # matrix ?
+            raise ValueError('dimensioned');
+          except AttributeError:
+            pass;
           m0,m1,n0,n1 = 0,1,1,0;    # |m0n1-m1n0| == 1 throughout
-          for i in a :
+          for i in c :
             if not isrational(i) :
               try :
                 i = rational(i);
@@ -231,6 +241,8 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
               a,b = -a,-b;
           else :
             return n0/n1;
+        except ValueError :
+          raise TypeError('iterable must not have additional structure');
         except TypeError :
           if a.imag :
             return xrational(a);
@@ -437,7 +449,10 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       try :
         return self+self.__class__(other);
       except :
-        return other.__class__(self)+other;
+        try :
+          return other.__class__(self)+other;
+        except :
+          return NotImplemented;
     if not other._b :
       return other if other._a and self is not -other else _nan;
     if not self._a :
@@ -453,7 +468,10 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       try :
         return self-self.__class__(other);
       except :
-        return other.__class__(self)-other;
+        try :
+          return other.__class__(self)-other;
+        except :
+          return NotImplemented;
     if not other._b :
       return -other if other._a and self is not other else _nan;
     if not other._a :
@@ -475,7 +493,10 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       try :
         return self*self.__class__(other);
       except :
-        return other.__class__(self)*other;
+        try :
+          return other.__class__(self)*other;
+        except :
+          return NotImplemented;
     if not self._a and not other._b or not other._a and not self._b : return _nan;
     if not self._a :
       return self if other._a >= 0 and other._b > 0 else -self;
@@ -494,7 +515,10 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       try :
         return self/self.__class__(other);
       except :
-        return other.__class__(self)/other;
+        try :
+          return other.__class__(self)/other;
+        except :
+          return NotImplemented;
     a,b = self._a*other._b,self._b*other._a;
     if not a and not b : return _nan;
     if not self._a :
@@ -535,7 +559,10 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       try :
         return self//self.__class__(other);
       except :
-        return other.__class__(self)//other;
+        try :
+          return other.__class__(self)//other;
+        except :
+          return NotImplemented;
     if not other._b or not other: return _nan;
     return self.__class__((self._a*other._b)//(self._b*other._a));
 
@@ -981,7 +1008,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       except :
         if isinstance(other,(float,complex)) :
           return complex(self._a+other.real,self._b+other.imag);
-        return other.__class__(self) + other;
+        try :
+          return other.__class__(self) + other;
+        except :
+          return NotImplemented;
     return self.__class__(self._a+other._a,self._b+other._b);
 
   __radd__ = __add__
@@ -994,7 +1024,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       except :
         if isinstance(other,(float,complex)) :
           return complex(self._a-other.real,self._b-other.imag);
-        return other.__class__(self) - other;
+        try :
+          return other.__class__(self) - other;
+        except :
+          return NotImplemented;
     return self.__class__(self._a-other._a,self._b-other._b);
 
   def __rsub__(self,other) :
@@ -1016,7 +1049,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
           return (complex(self._a*other.real,self._a*other.imag) if not self._b else
                   complex(-self._b*other.imag, self._b*other.real) if not self._a else
                   complex(self._a*other.real-self._b*other.imag,self._a*other.imag+self._b*other.real));
-        return other.__class__(self)*other;
+        try :
+          return other.__class__(self)*other;
+        except :
+          return NotImplemented;
     return self.__class__(self._a*other._a-self._b*other._b,self._a*other._b+self._b*other._a);
 
   __rmul__ = __mul__
@@ -1029,7 +1065,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       except :
         if isinstance(other,(float,complex)) :
           other = complex(other);
-        return other.__class__(self)/other;
+        try :
+          return other.__class__(self)/other;
+        except :
+          return NotImplemented;
     d = other._a**2 + other._b**2;
     return self.__class__((self._a*other._a+self._b*other._b)/d,(self._b*other._a-self._a*other._b)/d);
 
