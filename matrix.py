@@ -381,9 +381,7 @@ any * scalar :  scalar multiply
       if len(other) == 1 :
         return self._scalardiv(other[0]);
       raise TypeError('only square matrices can be divisors');
-    else :
-      return self._scalardiv(other);
-    return self.__imul__(other**-1);
+    return self._scalardiv(other);
 
   __idiv__ = __itruediv__;
 
