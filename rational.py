@@ -17,6 +17,10 @@ if sys.version_info[0] < 3 :
     """Return True iff rational"""
     return isinstance(x,(int,long,rational,xrational));
 
+  def isstring(x) :
+    """Return True iff a string"""
+    return isinstance(x,(str,unicode));
+
   _fround = round;
   _round = lambda x : x if isint(x) else int(_fround(x));
 
@@ -31,6 +35,10 @@ else :
   def isrational(x) :
     """Return True iff rational"""
     return isinstance(x,(int,rational,xrational));
+
+  def isstring(x) :
+    """Return True iff a string"""
+    return isinstance(x,str);                      
 
   _round = round;
 
@@ -103,7 +111,9 @@ def _parsenum(s,b=10) :
       break;
   else :
     i+=1;
-  if not i-(p!=None) : raise ValueError('number must have at least one zit');
+  if not i-(p!=None) :
+    if p == None and s[0] == 'i' : return 1,s;
+    raise ValueError('number must have at least one zit');
   return rational(n)/b**(i-1-p) if p != None else n,s[i:];
 
 def _parsebasenum(s) :
@@ -211,7 +221,7 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       if b == 1 :
         if isinstance(a,(rational,xrational)) :
           return a if a.imag else a.real;
-        if isinstance(a,str) :
+        if isstring(a) :
           return _parserat(a);
         try :
           c = iter(a);
@@ -291,12 +301,12 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       try :
         return _0 if b > 0 else _m0 if b else _nan;
       except :
-        pass;    # happens exactly once!
+        pass;    # happens exactly once for each of (+0,-0,nan)!
     elif not b :
       try :
         return _minf if a < 0 else _pinf;
       except :
-        pass;
+        pass;    # happens exactly once for each of (+inf,-inf)!
     self = super(rational,cls).__new__(cls);
     self._a,self._b = a,b;
     return self;
@@ -315,7 +325,7 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
 
   def __repr__(self) :
     """Return a string showing the rational number"""
-    return 'rational(%s)'%(self);
+    return "rational('%s')"%(self);
 
   def __hash__(self) :
     """Return a hash for the rational number; if an integer, use that integer's hash"""
@@ -867,7 +877,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       if isinstance(real,xrational) : return real;
       if isinstance(real,complex) :
         real,imag = real.real, real.imag;
-      if isinstance(real,str) :
+      if isstring(real) :
         return xrational(rational(real));
     try :
       real = rational(real);
@@ -889,13 +899,14 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   def __str__(self) :
     """Return a string showing the complex rational number"""
-    return '%s%s%si'%(self._a,
-                      '' if self._b._a < 0 or self._b._b < 0 else '+',
-                      self._b) if self._b is not _0 else '%s'%(self._a);
+    return '%s%s%si'%(
+      '' if self._a is _0 else self._a,
+      '' if self._a is _0 or self._b._a < 0 or self._b._b < 0 else '+',
+      self._b) if self._b is not _0 else '%s'%(self._a);
 
   def __repr__(self) :
     """Return a string showing the rational number"""
-    return 'xrational(%s)'%(self);
+    return "xrational('%s')"%(self);
 
   def __hash__(self) :
     """Return a hash for the xrational number; if an integer, use that integer's hash"""
