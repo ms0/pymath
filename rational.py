@@ -203,7 +203,7 @@ Instance variables:
 Methods:
   __new__, __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-  __pos__, __neg__, __abs__, __invert__, maxnorm,
+  __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm,
   __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
@@ -439,6 +439,7 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     return self;
 
   __invert__ = __pos__
+  conjugate = __invert__
 
   def __neg__(self) :
     """Return -self"""
