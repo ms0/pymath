@@ -86,8 +86,9 @@ class matrix() :    # multidimensional array
 Instance variables:
   dims: a tuple giving the dimensions of the array
   tr or trace: the trace of the [square] matrix
-  squeeze: an array with the same elements but all length-1 dimensions removed
+  squeeze: an array with the same elements but all 1s in dims removed
   T or transpose: the transpose of the matrix [of dimension <= 2]
+  H or conjugate_transpose: the Hermitian transpose of the matrix [dim <= 2]
   det or determinant: the determinant of the [square] matrix
   inverse: the inverse of the [square] matrix
   rank: the rank of the matrix (may be wrong if any float or complex elements)
@@ -618,9 +619,9 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
 
     # transpose #
 
-    if name == 'T' or name == 'transpose' :
-      # if 2D, return transposed matrix
-      # if 1D, return self
+    if name == 'T' or name == 'transpose' or name == 'H' or name == 'conjugate_transpose' :
+      # if 2D, return transposed matrix (or its conjugate)
+      # if 1D, return copy of self (or its conjugate)
       # else, raise exception
       s = matrix(self);
       if len(s.__dims) == 2 :
@@ -628,10 +629,10 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
         for c in xrange(s.__dims[1]) :    # column of the result
           # copy a row to a column:
           s.__v[s.__dims[0]*c:s.__dims[0]*(c+1)] = self.__v[c::self.__dims[0]];
-        return s;
-      if len(s.__dims) == 1 :
-        return s;
-      raise AttributeError('transpose not defined for >=3D matrices');
+      elif len(s.__dims) != 1 :
+        raise AttributeError('transpose not defined for >=3D matrices');
+      if name[0].upper() != 'T' : s.map(lambda x:x.conjugate());
+      return s;
 
     # rank #
 
