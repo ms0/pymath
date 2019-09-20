@@ -68,14 +68,22 @@ def nzpolymul(f,g) :
       fg[i+j] += f[i]*g[j];
   return fg;
 
-def nzpolypow(b,e) :
+def nzpolypow(b,e,m=None) :
   n = (1 << (bit_length(e)-1)) >> 1;
-  x = b;
-  while n :
-    x = nzpolymul(x,x);
-    if e&n :
-      x = nzpolymul(x,b);
-    n >>= 1;
+  if m :
+    x = b = nzpolydivrem(b,m)[1];
+    while n :
+      x = nzpolydivrem(nzpolymul(x,x),m)[1];
+      if e&n :
+        x = nzpolydivrem(nzpolymul(x,b),m)[1];
+      n >>= 1;
+  else :
+    x = b;
+    while n :
+      x = nzpolymul(x,x);
+      if e&n :
+        x = nzpolymul(x,b);
+      n >>= 1;
   return x;
 
 def nzpolydivrem(f,g) :
@@ -321,17 +329,21 @@ indices larger than the degree give 0; indices < 0 raise exception;
     if not other : return polynomial();
     return polynomial(other)%self;
 
-  def __pow__(f,e) :
-    """Return polynomial f raised to integer e: f**e"""
+  def __pow__(f,e,m=None) :
+    """Return polynomial f raised to integer e: f**e; if m, mod polynomial m"""
     if not isint(e) :
       raise TypeError('Exponent must be an integer');
+    if not (m is None or isinstance(m,polynomial) and m.degree > 0) :
+      raise TypeError('Modulus must be polynomial of degree > 0')
     if f.degree <= 0 :
       return polynomial(f[0]**e);
     if e <= 0:
       if e :
+        if m :
+          raise ValueError('2nd arg cannot be negative when 3rd arg specified');
         return rationalfunction(f[f.degree].__class__(1),polynomial(*nzpolypow(f._p,-e)));
       return polynomial(f[f.degree].__class__(1));
-    return polynomial(*nzpolypow(f._p,e));
+    return polynomial(*nzpolypow(f._p,e,m and m._p));
 
   def derivative(self,k=1) :    # kth derivative
     """Return the kth derivative of self"""
