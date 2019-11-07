@@ -47,7 +47,7 @@ def timing(name,stmt,repeats=16,nargs=1,plex=0) :
   t = timeit(
     stmt=stmt if not '[i]' in stmt else
     'for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
-    setup='from rational import rational,xrational,set_significance,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma,fsum\nfrom test_rational import random\nr=[xrational(2*random()-1,2*random()-1) if %d else 2*random()-1 for _ in %s(%d)]\nu=[(1+x.real)/2 for x in r]'%(plex,xrange.__name__,repeats*nargs),
+    setup='from rational import rational,xrational,qrational,set_significance,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma,fsum\nfrom test_rational import random\nr=[qrational(2*random()-1,2*random()-1,2*random()-1,2*random()-1) if %d > 1 else xrational(2*random()-1,2*random()-1) if %d else 2*random()-1 for _ in %s(%d)]\nu=[(1+x.real)/2 for x in r]'%(plex,plex,xrange.__name__,repeats*nargs),
     timer=process_time,number=1);
   print('%s\t%f'%(name,t/repeats));
 
@@ -86,7 +86,8 @@ def testops(v) :    # v is vector of 3 values to be tested
   ceq('1*v[0] == v[0]',v[:1])
   ceq('-1*v[0] == -v[0]',v[:1])
   ceq('v[0]+v[1] == v[1]+v[0]',v[:2])
-  ceq('v[0]*v[1] == v[1]*v[0]',v[:2])
+  if not isinstance(v[2],qrational) :
+    ceq('v[0]*v[1] == v[1]*v[0]',v[:2])
   ceq('not v[1] or v[0]/v[1]*v[1] == v[0]',v[:2])
   ceq('v[0]-v[1]+v[1] == v[0]',v[:2])
   ceq('(v[0]+v[1])+v[2] == v[0]+(v[1]+v[2])',v)
@@ -223,6 +224,14 @@ def xtest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
   """Test xrational operators"""
   for i in xrange(repeats) :
     testops(tuple(xrational(rational(randint(*nrange),randint(*drange)),
+                            rational(randint(*nrange),randint(*drange))) for j in xrange(3)));
+
+def qtest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
+  """Test qrational operators"""
+  for i in xrange(repeats) :
+    testops(tuple(qrational(rational(randint(*nrange),randint(*drange)),
+                            rational(randint(*nrange),randint(*drange)),
+                            rational(randint(*nrange),randint(*drange)),
                             rational(randint(*nrange),randint(*drange))) for j in xrange(3)));
 
 def sigbits(computed,actual=1) :
@@ -618,21 +627,37 @@ def timingtest() :
   """Timing test"""
   timing('abs(real)','abs(r[i])',16384);
   timing('abs(complex)','abs(r[i])',plex=1);
+  timing('abs(quatern)','abs(r[i])',plex=2);
+  timing('abs2(real)','r[i].abs2()',16384);
+  timing('abs2(complex)','r[i].abs2()',plex=1);
+  timing('abs2(quatern)','r[i].abs2()',plex=2);
+  timing('maxnorm(real)','r[i].maxnorm()',16384);
+  timing('maxnorm(comp)','r[i].maxnorm()',plex=1);
+  timing('maxnorm(quat)','r[i].maxnorm()',plex=2);
   timing('real    +','r[i]+r[i+1]',4096,nargs=2);
   timing('complex +','r[i]+r[i+1]',4096,nargs=2,plex=1);
+  timing('quatern +','r[i]+r[i+1]',4096,nargs=2,plex=2);
   timing('real    *','r[i]*r[i+1]',4096,nargs=2);
   timing('complex *','r[i]*r[i+1]',4096,nargs=2,plex=1);
+  timing('quatern *','r[i]*r[i+1]',4096,nargs=2,plex=2);
+  timing('real    /','r[i]/r[i+1]',4096,nargs=2);
+  timing('complex /','r[i]/r[i+1]',4096,nargs=2,plex=1);
+  timing('quatern /','r[i]/r[i+1]',4096,nargs=2,plex=2);
   timing('real    **','u[i]**r[i+1]',nargs=2);
   timing('complex **','r[i]**r[i+1]',nargs=2,plex=1);
   timing('1/real   ','1/r[i]',16384);
   timing('1/complex','1/r[i]',4096,plex=1);
+  timing('1/quatern','1/r[i]',4096,plex=2);
   timing('real**-1','r[i]**-1',16384);
   timing('complex**-1','r[i]**-1',4096,plex=1);
+  timing('quatern**-1','r[i]**-1',4096,plex=2);
   timing('approximate','r[i].approximate(1<<(set_significance()-8))',4096);
   timing('exp(real)','exp(r[i])');
   timing('exp(complex)','exp(r[i])',plex=1);
+  timing('exp(quatern)','exp(r[i])',plex=2);
   timing('log(real)','log(u[i])');
   timing('log(complex)','log(r[i])',plex=1);
+  timing('log(quatern)','log(r[i])',plex=2);
   timing('sin(real)','sin(r[i])');
   timing('sin(complex)','sin(r[i])',plex=1);
   timing('cos(real)','cos(r[i])');
@@ -668,6 +693,7 @@ def timingtest() :
   timing('fsum(unsigned)','fsum(u)',4096);
   timing('fsum(real)', 'fsum(r)',4096);
   timing('fsum(complex)','fsum(r)',4096,plex=1);
+  timing('fsum(quatern)','fsum(r)',4096,plex=2);
 
 if __name__ == '__main__' :
   print('root test (for sha2) ...');
@@ -676,6 +702,8 @@ if __name__ == '__main__' :
   rattest();
   print('xrational test ...');
   xtest();
+  print('qrational test ...');
+  qtest();
   print('approximate test ...')
   atest();
   print('math methods test');

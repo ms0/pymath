@@ -112,7 +112,7 @@ def _parsenum(s,b=10) :
   else :
     i+=1;
   if not i-(p!=None) :
-    if p == None and s[0] == 'i' : return 1,s;
+    if p == None and s[0] in 'ijk' : return 1,s;
     raise ValueError('number must have at least one zit');
   return rational(n)/b**(i-1-p) if p != None else n,s[i:];
 
@@ -175,35 +175,42 @@ def _parsesignednum(s) :
   return q*rational(n),s;
 
 def _parserat(s) :
+  rijk = [_0,_0,_0,_0];
+  t = -1;
   s = s.strip().lower();
-  a,s = _parsesignednum(s);
-  s = s.lstrip();
-  if s :
-    if s[0] in '*i' :
+  while True :
+    a,s = _parsesignednum(s);
+    s = s.lstrip();
+    if s and s[0] in '*ijk' :
       if s[0] == '*' :
         s = s[1:].lstrip();
-      if s == 'i' :
-        return xrational(0,a);
-      raise ValueError('real part terminates as if imaginary')
-    b,s = _parsesignednum(s);
+      try :
+        x = 'ijk'.index(s[0]);
+        s = s[1:].lstrip();
+      except :
+        raise ValueError('improper termination');
+    else :
+      x = -1;
+    if t > x :
+      raise ValueError('out of order or duplicate component');
+    t = x+1;
+    rijk[t] = a;
     if s :
-      if s[0] == '*' :
-        s = s[1:].lstrip();
-      if s == 'i' :
-        return xrational(a,b);
-    raise ValueError('improper imaginary portion')
-  return rational(a);
+      continue;
+    if t < 2 :
+      return xrational(*rijk[:2]);
+    return qrational(*rijk);
 
 class rational(object) :
   """Rational number class
-Instance variables:
+Instance variables (read only):
   a or numerator: the numerator, an integer
   b or denominator: the denominator, a positive integer (except -1 for -0)
   Note that gcd(a,b) == 1.
 Methods:
-  __new__, __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
+  __new__, __init__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-  __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm,
+  __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm, abs2,
   __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
@@ -212,7 +219,10 @@ Methods:
 
   def __new__(cls,a=0,b=1,_gcd_=True) :
     """Create a rational number equal to a/b; 0/0 is nan; a/0 is sgn(a)*inf, 0/-1 is -0
-If a is a float or rational (and b==1), return the simplest rational whose float is a
+If a is a float (and b==1), return the simplest rational whose float is a
+If a is a rational, or an xrational with a.imag!=0, (and b==1), return a
+If a is an xrational with a.imag==0, (and b==1), return a.real
+If a is a qrational with a.i==a.j==a.k==0, (and b==1), return a.real
 If a is a string (and b==1), it is interpreted in liberalized bstr() and/or str() format
 If a is iterable (and b==1), its elements, which must be numbers,
 are interpreted as the terms of a regular continued fraction
@@ -221,6 +231,8 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
       if b == 1 :
         if isinstance(a,(rational,xrational)) :
           return a if a.imag else a.real;
+        if isinstance(a,qrational) :
+          return a if a.i or a.j or a.k else a.real;
         if isstring(a) :
           return _parserat(a);
         try :
@@ -327,8 +339,32 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     """Return a string showing the rational number"""
     return "rational('%s')"%(self);
 
+  def bstr(self,n=5,base=10) :
+    """Return an n-digit string representation of self in the specified base;
+if the base is not ten, it is included as a decimal number followed by a number sign;
+a following << indicates multiplication by the indicated power of the base;
+a following >> indicates division by the indicated power of the base"""
+    if not (isint(n) and n > 0) :
+      raise ValueError('n must be a positive integer');
+    if not (isint(base) and 2 <= base <= 36) :
+      raise ValueError('base must be an integer in [2,36]')
+    if self._b <= 0 :
+      return '-0' if self._b else '-inf' if self._a < 0 else 'inf' if self._a else 'nan';
+    if not self : return '0';
+    t,x = self.tonx(n,base);
+    t = abs(t);
+    s = [];
+    while t :
+      s.append('0123456789abcdefghijklmnopqrstuvwxyz'[t%base]);
+      t //= base;
+    s = ''.join(s[::-1]);
+    return ('-' if self < 0 else '') + (str(base)+'#' if base != 10 else '') + ( 
+      s + '<<' + str(x) if x > 0 else
+      '.' + s + '>>' + str(-x-len(s)) if -x > len(s) else
+      s[:len(s)+x] + ('.' + s[len(s)+x:] if x else ''));
+
   def __hash__(self) :
-    """Return a hash for the rational number; if an integer, use that integer's hash"""
+    """Return a hash for the rational number; if convertible to float, use that hash"""
     try :
       return hash(self._a) if self._b == 1 else hash(self._a/self._b);
     except :
@@ -450,6 +486,10 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     return self.__class__(-self._a,self._b,0) if self._a < 0 else self or _0;
 
   maxnorm = __abs__
+
+  def abs2(self) :
+    """Return self*self"""
+    return self*self;
 
   def __add__(self,other) :
     """Return the sum of the two numbers"""
@@ -611,6 +651,10 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
     if self is _nan : return _nan;
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
     if other.imag :
       try :
         return xrational(self)**other;
@@ -672,17 +716,18 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
 
   def __rpow__(self,other) :
     try :
-      return self.__class__(other)**self;
+      other = self.__class__(other);
     except :
-      return other**other.__class__(self);
+      return NotImplemented;
+    return self.__class__(other)**self;
 
   def __lshift__(self,other) :
     """Return the product of self and 2**other, for other an integer"""
-    return self.__class__(self._a<<other,self._b) if other >= 0 else self>>-other;
+    return self.__class__(self._a<<other,self._b) if other > 0 else self>>-other if other else self;
 
   def __rshift__(self,other) :
     """Return the quotient of self and 2**other, for other an integer"""
-    return self.__class__(self._a,self._b<<other) if other >= 0 else self<<-other;
+    return self.__class__(self._a,self._b<<other) if other > 0 else self<<-other if other else self;
 
   def __float__(self) :
     """Return a floating point approximation to the number"""
@@ -753,30 +798,6 @@ Return (t,x) with base**(n-1) <= |t| < base**n and |t-self/base**x| <= 1/2"""
       t //= base;
       x += 1;
     return (sgn(self)*t,x+1-n);
-
-  def bstr(self,n=5,base=10) :
-    """Return an n-digit string representation of self in the specified base;
-if the base is not ten, it is included as a decimal number followed by a number sign;
-a following << indicates multiplication by the indicated power of the base;
-a following >> indicates division by the indicated power of the base"""
-    if not (isint(n) and n > 0) :
-      raise ValueError('n must be a positive integer');
-    if not (isint(base) and 2 <= base <= 36) :
-      raise ValueError('base must be an integer in [2,36]')
-    if self._b <= 0 :
-      return '-0' if self._b else '-inf' if self._a < 0 else 'inf' if self._a else 'nan';
-    if not self : return '+0';
-    t,x = self.tonx(n,base);
-    t = abs(t);
-    s = [];
-    while t :
-      s.append('0123456789abcdefghijklmnopqrstuvwxyz'[t%base]);
-      t //= base;
-    s = ''.join(s[::-1]);
-    return ('-' if self < 0 else '') + (str(base)+'#' if base != 10 else '') + ( 
-      s + '<<' + str(x) if x > 0 else
-      '.' + s + '>>' + str(-x-len(s)) if -x > len(s) else
-      s[:len(s)+x] + ('.' + s[len(s)+x:] if x else ''));
 
   def arg(self,ratio=False) :
     """Return 0 if self >= +0, pi or 1/2 if self <= -0 else nan; """
@@ -857,13 +878,13 @@ def _xrat(a,b,c,d) :
 
 class xrational(object) :
   """Complex Rational number class
-Instance variables:
+Instance variables (read only):
   real: the real part, a rational
   imag: the imaginary part, a rational
 Methods:
-  __new__, __init__, __hash__, __repr__, __str__, __bool__, __nonzero__,
+  __new__, __init__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-   __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm,
+   __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm, abs2,
   __int__, __float__, __complex__, __trunc__, __round__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
@@ -873,9 +894,14 @@ Methods:
   def __new__(cls,real=0,imag=0) :
     """Create a complex number equal to real+imag*i; real and imag are converted to rational
 If real is complex or xrational (and imag==0), return the corresponding xrational
+If real is qrational (and imag==0), return real unless real.j and real.k are 0,
+  in which case return xrational(real.real, real.i)
 If real is a string (and imag==0), return xrational(rational(real))"""
     if imag == 0 :
       if isinstance(real,xrational) : return real;
+      if isinstance(real,qrational) :
+        if real.j or real.k : return real;
+        real,imag = real.real, real.i;
       if isinstance(real,complex) :
         real,imag = real.real, real.imag;
       if isstring(real) :
@@ -906,11 +932,17 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       self._b) if self._b is not _0 else '%s'%(self._a);
 
   def __repr__(self) :
-    """Return a string showing the rational number"""
+    """Return a string showing the complex rational number"""
     return "xrational('%s')"%(self);
 
+  def bstr(self,n=5,base=10) :
+    """Return a string representation of self, using rational.bstr"""
+    return self._a.bstr(n,base) + \
+      ('+' if self._b is _0 or self._b._a > 0 else '') + \
+      self._b.bstr(n,base) + ('i' if base <= 10 else '*i');
+
   def __hash__(self) :
-    """Return a hash for the xrational number; if an integer, use that integer's hash"""
+    """Return a hash for the xrational number; if convertible to complex, use that hash"""
     try :
       return hash(complex(self._a,self._b));
     except :
@@ -931,42 +963,43 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   def __eq__(self,other) :
     """Return True iff self == other"""
-    if not isinstance(other,self.__class__) :
-      try :
-        other = self.__class__(other);
-      except :
-        return NotImplemented;
-    return self._a == other._a and self._b == other._b;
+    if isstring(other) :
+      return False;
+    try :
+      other = self.__class__(other);
+      return self._a == other._a and self._b == other._b;
+    except :
+      return NotImplemented;
 
   def __ne__(self,other) :
     """Return True iff self != other"""
-    if not isinstance(other,self.__class__) :
-      try :
-        other = self.__class__(other);
-        if not isinstance(other,self.__class__) : raise NotImplemented;
-      except :
-        return NotImplemented;
-    return self._a != other._a or self._b != other._b;
+    if isstring(other) :
+      return True;
+    try :
+      other = self.__class__(other);
+      return self._a != other._a or self._b != other._b;
+    except :
+      return NotImplemented;
 
   def __lt__(self,other) :
     if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return self._a < other;
+    return other > self._a;
 
   def __le__(self,other) :
     if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return self._a <= other;
+    return other >= self._a;
 
   def __gt__(self,other) :
     if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return self._a > other;
+    return other < self._a;
 
   def __ge__(self,other) :
     if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return self._a >= other;
+    return other <= self._a;
 
   def __bool__(self) :
     """Return True iff self != 0"""
@@ -990,11 +1023,15 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   def __abs__(self) :
     """Return |self|"""
-    return (self._a**2+self._b**2)**_half;
+    return (self._a*self._a+self._b*self._b)**_half;
 
   def maxnorm(self) :
     """Return max(|self._a|,|self._b|)"""
     return max(abs(self._a),abs(self._b));
+
+  def abs2(self) :
+    """Return |self|**2"""
+    return self._a*self._a+self._b*self._b;
 
   def __int__(self) :
     """Return the integer part of the number if real"""
@@ -1018,12 +1055,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       try :
         other = self.__class__(other);
       except :
-        if isinstance(other,(float,complex)) :
-          return complex(self._a+other.real,self._b+other.imag);
-        try :
-          return other.__class__(self) + other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     return self.__class__(self._a+other._a,self._b+other._b);
 
   __radd__ = __add__
@@ -1034,12 +1066,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       try :
         other = self.__class__(other);
       except :
-        if isinstance(other,(float,complex)) :
-          return complex(self._a-other.real,self._b-other.imag);
-        try :
-          return other.__class__(self) - other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     return self.__class__(self._a-other._a,self._b-other._b);
 
   def __rsub__(self,other) :
@@ -1047,9 +1074,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     try :
       return self.__class__(other)-self;
     except :
-      if isinstance(other,(float,complex)) :
-        return complex(other.real-self._a,other.imag-self._b);
-      return other - other.__class__(self);
+      return NotImplemented;
 
   def __mul__(self,other) :
     """Return the product of the two numbers"""
@@ -1057,14 +1082,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       try :
         other = self.__class__(other);
       except :
-        if isinstance(other,(float,complex)) :
-          return (complex(self._a*other.real,self._a*other.imag) if not self._b else
-                  complex(-self._b*other.imag, self._b*other.real) if not self._a else
-                  complex(self._a*other.real-self._b*other.imag,self._a*other.imag+self._b*other.real));
-        try :
-          return other.__class__(self)*other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     return self.__class__(self._a*other._a-self._b*other._b,self._a*other._b+self._b*other._a);
 
   __rmul__ = __mul__
@@ -1075,27 +1093,16 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       try :
         other = self.__class__(other);
       except :
-        if isinstance(other,(float,complex)) :
-          other = complex(other);
-        try :
-          return other.__class__(self)/other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     d = other._a**2 + other._b**2;
     return self.__class__((self._a*other._a+self._b*other._b)/d,(self._b*other._a-self._a*other._b)/d);
 
   def __rdiv__(self,other) :
     """Return the inverse quotient of the two numbers"""
-    if not isinstance(other,self.__class__) :
-      try :
-        other = self.__class__(other);
-      except :
-        if isinstance(other,(float,complex)) :
-          return (complex(other.real/self._a, other.imag/self._a) if not self._b else
-                  complex(other.imag/self._b, -other.real/self._b) if not self._a else
-                  other*(1/self));
-        return other/other.__class__(self);
-    return other/self;
+    try :
+      return self.__class__(other)/self;
+    except :
+      return NotImplemented;
 
   __truediv__ = __div__
   __rtruediv__ = __rdiv__
@@ -1130,7 +1137,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
-    other = rational(other);
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
     if not other.imag :
       other = other.real;
       if not other._b :
@@ -1157,27 +1167,24 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     return a if isclose(a,p,rational(1,16<<_SIGNIFICANCE)) else p;
 
   def __rpow__(self,other) :
+    """Return a power of a number; integer powers give exact answer"""
     try :
-      return self.__class__(other)**self;
+      other = self.__class__(other);
     except :
-      return other**other.__class__(self);
+      return NontImplemented;
+    return other**self;
 
   def __lshift__(self,other) :
     """Return the product of self and 2**other, for other an integer"""
-    return self.__class__(self._a<<other,self._b<<other) if other >= 0 else self>>-other;
+    return self.__class__(self._a<<other,self._b<<other) if other > 0 else self>>-other if other else self;
 
   def __rshift__(self,other) :
     """Return the quotient of self and 2**other, for other an integer"""
-    return self.__class__(self._a>>other,self._b>>other) if other >= 0 else self<<-other;
+    return self.__class__(self._a>>other,self._b>>other) if other > 0 else self<<-other if other else self;
 
   def __round__(self,n=0,base=10) :
     """Return result of separately rounding real and imaginary parts"""
     return self.__class__(self._a.__round__(n,base),self._b.__round__(n,base));
-
-  def bstr(self,n=5,base=10) :
-    """Return a string representation of self, using rational.bstr"""
-    return self._a.bstr(n,base) + ('+' if self._b > 0 else '') + \
-      self._b.bstr(n,base) + ('i' if base <= 10 else '*i');
 
   def arg(self,ratio=False) :
     """Return the argument of self; if ratio, as a fraction of 2pi"""
@@ -1215,7 +1222,355 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     return self.__class__(c and m*c,s and m*s);
     
   def approximate(self,accuracy=None) :
+    """Return result of applying rational.approximate to real and imaginary parts"""
     return self.__class__(self._a.approximate(accuracy),self._b.approximate(accuracy));
+
+class qrational(object):
+  """Quaternion class
+Instance variables (read only):
+   real or r or scalar or s: the real (scalar) part, a rational
+   vector or v: the vector part, a tuple of rationals
+   imag or i,j,k: the respective components of the vector part, each a rational
+   sv or rv: (s,i,j,k), a tuple of rationals
+Methods:
+  __new__, __init__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
+  __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
+   __pos__, __neg__, __abs__, __invert__, conjugate, versor, maxnorm, abs2,
+  __int__, __float__, __complex__, __trunc__, __round__,
+  __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
+  __truediv__, __rtruediv__, __lshift__, __rshift__,
+  __pow__, __rpow__, log, exp, approximate"""
+
+  def __new__(cls,*args) :
+    """Create a quaternion, internally a tuple of 4 rationals
+If no arg, return the zero quaternion
+If a single arg,
+  if a qrational, it is returned
+  if a string, it is interpreted in liberalized bstr() and/or str() format,
+    and the resulting quaternion is returned
+  otherwise, the single arg is replaced by its .real and .imag attributes
+Now, the args must be real, and are converted to rationals
+If two args, the quaternion args[0] + i*args[1] is returned
+If three args, the vector quaternion i*args[0] + j*args[1] + k*args[2] is returned
+If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is returned"""
+    self = super(qrational,cls).__new__(cls);
+    if not args : args = (_0,);
+    if len(args) == 1 :
+      if isinstance(args[0],qrational) :
+        return args[0];
+      if isstring(args[0]) :
+        return qrational(rational(args[0]));
+      args = (args[0].real,args[0].imag);
+    for a in args :
+      if a.imag or isinstance(a,qrational) and (a.j or a.k) :
+        raise TypeError('arguments must be real')
+    if len(args) == 2 :
+      self.__v = (rational(args[0]),rational(args[1]),_0,_0);
+    elif len(args) == 3 :
+      self.__v = (_0,rational(args[0]),rational(args[1]),rational(args[2]));
+    elif len(args) == 4 :
+      self.__v = (rational(args[0]),rational(args[1]),rational(args[2]),rational(args[3]));
+    else :
+      raise TypeError('too many arguments');
+    return self;
+
+  def __init__(self,*args) :
+    """Do nothing--all the work has been done by __new__"""
+    return;
+
+  def __str__(self) :
+    """Return a string showing the rational quaternion"""
+    return '%s%s%si%s%sj%s%sk'%(
+      '' if self.__v[0] is _0 else self.__v[0],
+      '' if self.__v[0] is _0 or self.__v[1]._a < 0 or self.__v[1]._b < 0 else '+',
+      self.__v[1],
+      '' if self.__v[2]._a < 0 or self.__v[2]._b < 0 else '+',
+      self.__v[2],
+      '' if self.__v[3]._a < 0 or self.__v[3]._b < 0 else '+',
+      self.__v[3]
+      ) if self.__v[1] is not _0 or self.__v[2] is not _0 or self.__v[3] is not 0 else '%s'%(self.__v[0]);
+
+  def __repr__(self) :
+    """Return a string showing the rational quaternion"""
+    return "qrational('%s')"%(self);
+
+  def bstr(self,n=5,base=10) :
+    """Return a string representation of self, using rational.bstr"""
+    return self.__v[0].bstr(n,base) + \
+      ('+' if self.__v[1] is _0 or self.__v[1]._a > 0 else '') + \
+      self.__v[1].bstr(n,base) + ('i' if base <= 10 else '*i') + \
+      ('+' if self.__v[2] is _0 or self.__v[2]._a > 0 else '') + \
+      self.__v[2].bstr(n,base) + ('j' if base <= 10 else '*j') + \
+      ('+' if self.__v[3] is _0 or self.__v[3]._a > 0 else '') + \
+      self.__v[3].bstr(n,base) + ('k' if base <= 10 else '*k');
+
+  def __hash__(self) :
+    """Return a hash for the quaternion; if convertible to complex, use that hash"""
+    if not any(self.__v[2:]) :    # real or complex
+      try :
+        return hash(complex(*self.__v[0:2])) if self.__v[1] else hash(self.__v[0]);
+      except :
+        pass;
+    return hash(tuple(self.__v));
+
+  def __getattr__(self,name) :
+    if name in ('sv','rv') :
+      return self.__v;
+    if name in ('s','r','real','scalar'):
+      return self.__v[0];
+    if name in ('v','vector') :
+      return self.__v[1:];
+    if name in ('i','imag') :
+      return self.__v[1];
+    if name == 'j' :
+      return self.__v[2];
+    if name == 'k' :
+      return self.__v[3];
+    raise AttributeError('quaternion object has no attribute '+name);
+
+  def __bool__(self) :
+    return any(self.__v);
+
+  __nonzero__ = __bool__
+
+  def __eq__(self,other) :
+    if isstring(other) :
+      return False;
+    try :
+      return self.__v == self.__class__(other).__v;
+    except :
+      return NotImplemented;
+
+  def __ne__(self,other) :
+    if isstring(other) :
+      return True;
+    try :
+      return self.__v != self.__class__(other).__v;
+    except :
+      return NotImplemented;
+
+  def __lt__(self,other) :
+    if any(self.__v[1:]) :
+      raise TypeError('no ordering relation is defined for quaternions');
+    return self.__v[0] < other;
+
+  def __le__(self,other) :
+    if any(self.__v[1:]) :
+      raise TypeError('no ordering relation is defined for quaternions');
+    return self.__v[0] <= other;
+
+  def __gt__(self,other) :
+    if any(self.__v[1:]) :
+      raise TypeError('no ordering relation is defined for quaternions');
+    return self.__v[0] > other;
+
+  def __ge__(self,other) :
+    if any(self.__v[1:]) :
+      raise TypeError('no ordering relation is defined for quaternions');
+    return self.__v[0] >= other;
+
+  def __pos__(self) :
+    """Return self"""
+    return self;
+
+  def __neg__(self) :
+    """Return -self"""
+    return self.__class__(-self.__v[0],-self.__v[1],-self.__v[2],-self.__v[3]);
+
+  def __invert__(self) :
+    """Return conjugate of self"""
+    return self.__class__(self.__v[0],-self.__v[1],-self.__v[2],-self.__v[3]);
+
+  conjugate = __invert__
+
+  def __abs__(self) :
+    """Return |self|"""
+    return (self.__v[0]*self.__v[0]+self.__v[1]*self.__v[1]+
+            self.__v[2]*self.__v[2]+self.__v[3]*self.__v[3])**.5;
+
+  def maxnorm(self) :
+    """Return max absolute value of components of self"""
+    return max(abs(a) for a in self.__v);
+
+  def abs2(self) :
+    """Return |self|**2"""
+    return (self.__v[0]*self.__v[0]+self.__v[1]*self.__v[1]+
+            self.__v[2]*self.__v[2]+self.__v[3]*self.__v[3]);    
+
+  def versor(self) :
+    """Return self/|self|, or 1 if zero"""
+    a = abs(self);
+    return self.__class__(*(x/a for x in self.__v) if a else (1,));
+
+  def __int__(self) :
+    """Return the integer part of the number if real"""
+    if any(self.__v[1:]) : raise TypeError('not real');
+    return int(self.__v[0]);
+
+  __trunc__ = __int__
+
+  def __float__(self) :
+    """Return a floating point approximation to the number if real"""
+    if any(self.__v[1:]) : raise TypeError('not real');
+    return float(self.__v[0]);
+
+  def __complex__(self) :
+    """Return a floating point [i.e., complex] approximation to the number if complex"""
+    if any(self.__v[2:]) : raise TypeError('not complex');
+    return complex(*self.__v[:2]);
+
+  def __add__(self,other) :
+    """Return the sum of the two numbers"""
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
+    return self.__class__(*(x+y for x,y in zip(self.__v,other.__v)));
+
+  __radd__ = __add__;
+
+  __iadd__ = __add__;
+
+  def __sub__(self,other) :
+    """Return the difference of the two numbers"""
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
+    return self.__class__(*(x-y for x,y in zip(self.__v,other.__v)));
+
+  __isub__ = __sub__;
+ 
+  def __rsub__(self,other) :
+    """Return the difference of the swapped two numbers"""
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
+    return self.__class__(*(x-y for x,y in zip(other.__v,self.__v)));
+
+  def __mul__(self,other) :
+    """Return the product of the two numbers"""
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
+    return self.__class__(
+      self.__v[0]*other.__v[0]-self.__v[1]*other.__v[1]-self.__v[2]*other.__v[2]-self.__v[3]*other.__v[3],
+      self.__v[0]*other.__v[1]+self.__v[1]*other.__v[0]+self.__v[2]*other.__v[3]-self.__v[3]*other.__v[2],
+      self.__v[0]*other.__v[2]+self.__v[2]*other.__v[0]+self.__v[3]*other.__v[1]-self.__v[1]*other.__v[3],
+      self.__v[0]*other.__v[3]+self.__v[3]*other.__v[0]+self.__v[1]*other.__v[2]-self.__v[2]*other.__v[1]);
+
+  __imul__ = __mul__;
+
+  def __rmul__(self,other) :
+    """Return the swapped product of the two numbers"""    
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
+    return self.__class__(
+      other.__v[0]*self.__v[0]-other.__v[1]*self.__v[1]-other.__v[2]*self.__v[2]-other.__v[3]*self.__v[3],
+      other.__v[0]*self.__v[1]+other.__v[1]*self.__v[0]+other.__v[2]*self.__v[3]-other.__v[3]*self.__v[2],
+        other.__v[0]*self.__v[2]+other.__v[2]*self.__v[0]+other.__v[3]*self.__v[1]-other.__v[1]*self.__v[3],
+        other.__v[0]*self.__v[3]+other.__v[3]*self.__v[0]+other.__v[1]*self.__v[2]-other.__v[2]*self.__v[1]);
+
+
+  # danger: a*b**-1 != b**-1*a ?
+  def __truediv__(self,other) :
+    """Return the quotient of the two numbers"""
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
+    return self.__mul__(other.__pow__(-1));
+
+  def __rtruediv__(self,other) :
+    """Return the swapped quotient of the two numbers"""
+    try :
+      other = self.__class__(other);
+    except :
+      return NotImplemented;
+    return other.__truediv__(self);
+
+  __itruediv__ = __truediv__
+
+  __div__ = __truediv__
+  __rdiv__ = __rtruediv__
+  __idiv__ = __itruediv__
+
+  def __pow__(self,other) :
+    """Return a number raised to a power; integer powers give exact answer"""
+    r = other.real;
+    if not self :      # special case zero
+      if r > 0 : return self;
+      if not r : return self.__class__(_1);
+      raise ZeroDivisionError('0 cannot be raised to a negative power');
+    if r!=other or int(r)!=r :    # non integer power
+      # a**x = exp(log(a)*x)
+      return (self.log()*other).exp();
+    r = int(r);    # integer power
+    if not any(self.__v[1:]) :
+      return self.__class__(self.__v[0]**r);        #real
+    if r < 0 :
+      a = self.__v[0]*self.__v[0] + self.__v[1]*self.__v[1] + \
+          self.__v[2]*self.__v[2] + self.__v[3]*self.__v[3];
+      q = self.__class__(self.__v[0]/a, -self.__v[1]/a, -self.__v[2]/a, -self.__v[3]/a);
+      r = -r;
+    else :
+      q = self;
+    result = self.__class__(1,0,0,0);
+    while r :
+      if r&1 : result *= q;
+      r >>= 1;        
+      if not r : break;
+      q *= q;
+    return result;
+
+  __ipow__ = __pow__
+
+  def __rpow__(self,other) :
+    """Return a power of a number; integer powers give exact answer"""
+    try:
+      other = self.__class__(other);
+    except:
+      return NotImplemented;
+    return other.__pow__(self);
+
+  def __lshift__(self,other) :
+    """Return the product of self and 2**other, for other an integer"""
+    return self.__class__(*(a<<other for a in self.__v)) if other > 0 else self>>-other if other else self;
+
+  def __rshift__(self,other) :
+    """Return the quotient of self and 2**other, for other an integer"""
+    return self.__class__(*(a>>other for a in self.__v)) if other > 0 else self<<-other if other else self;
+
+  def __round__(self,n=0,base=10) :
+    """Return result of separately rounding all parts"""
+    return self.__class__(*(a.__round__(n,base) for a in self.__v));
+
+  def exp(self) :
+    """Return exp(self)"""
+    ea = exp(self.__v[0]);
+    av = sqrt(self.__v[1]*self.__v[1]+
+              self.__v[2]*self.__v[2]+
+              self.__v[3]*self.__v[3]);
+    s = ea*sin(av)/av if av else 1;
+    return self.__class__(ea*cos(av),s*self.__v[1],s*self.__v[2],s*self.__v[3]);
+
+  def log(self,base=None) :
+    """Return the log of self to the given base (default e)"""
+    a = abs(self);
+    av = self.__v[1]*self.__v[1]+self.__v[2]*self.__v[2]+self.__v[3]*self.__v[3];
+    if not av :
+      return self.__class__(a.log(base));
+    av = sqrt(av);
+    ac = (acos(self.__v[0]/a)/av)/log(base or e);
+    return self.__class__(a.log(base),ac*self.__v[1],ac*self.__v[2],ac*self.__v[3]);
+    
+  def approximate(self,accuracy=None) :
+    """Return result of applying rational.approximate to each component of self"""
+    return self.__class__(*(a.approximate(accuracy) for a in self.__v));
 
 _0=rational(0);
 _1=rational(1);
@@ -1392,7 +1747,7 @@ def expm1(x) :
 def log(x,base=e) :
   """Return the logarithm of x for the specified base;
 Return the natural logarithm if base is not specified"""
-  return xrational(x).log(base) if x.imag else rational(x).log(base);
+  return rational(x).log(base);
 
 def log1p(x) :
   """Return the natural logarithm of 1+x"""
@@ -1557,8 +1912,12 @@ def fsum(iterable) :
   """Return an accurate sum of the values in the iterable"""
   pra = [];    # positive reals
   nra = [];    # negative reals
-  pia = [];    # positive imags
-  nia = [];    # negative imags
+  pia = [];    # positive imags or is
+  nia = [];    # negative imags or is
+  pja = [];    # positive js
+  nja = [];    # negative js
+  pka = [];    # positive ks
+  nka = [];    # negative ks
   for i in iterable :
     if i.real :
       if i.real > 0 :
@@ -1570,9 +1929,20 @@ def fsum(iterable) :
         pia.append(rational(i.imag));
       else :
         nia.append(rational(i.imag));
+    if isinstance(i,qrational) :
+      if i.j > 0 :
+        pja.append(i.j);
+      else :
+        nja.append(i.j);
+      if i.k > 0 :
+        pka.append(i.k);
+      else :
+        nka.append(i.k);
   rt = _fsum(pra,nra);
   it = _fsum(pia,nia);
-  return xrational(rt,it) if it else rt;
+  jt = _fsum(pja,nja);
+  kt = _fsum(pka,nka);
+  return qrational(rt,it,jt,kt) if jt or kt else xrational(rt,it) if it else rt;
 
 def insert_upright(a,x) :
   """Return where to insert item x in list a, assuming a is sorted lo to hi"""
@@ -1820,10 +2190,10 @@ def isclose(a,b,rel_tol=rational(1e-9), abs_tol=0) :
 a == b or abs(a-b) <= abs_tol or abs(a-b)/max(abs(a),abs(b)) <= rel_tol"""
   if a == b : return True;
   d = a-b;
-  if isinstance(d,xrational) :    # avoid expensive xrational abs
-    d = d._a**2 + d._b**2 ;
+  if isinstance(d,(xrational,qrational)) :    # avoid expensive xrational abs
+    d = d.abs2();
     return d <= abs_tol**2 or \
-           d/max(a.real**2 + a.imag**2, b.real**2 + b.imag**2) <= rel_tol**2;
+           d/max(a.abs2(),b.abs2()) <= rel_tol**2;
   d = abs(d);
   return d <= abs_tol or d/max(abs(a),abs(b)) <= rel_tol;
 
