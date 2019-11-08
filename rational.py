@@ -939,7 +939,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return a string representation of self, using rational.bstr"""
     return self._a.bstr(n,base) + \
       ('+' if self._b is _0 or self._b._a > 0 else '') + \
-      self._b.bstr(n,base) + ('i' if base <= 10 else '*i');
+      self._b.bstr(n,base) + ('i' if base <= 16 else '*i');
 
   def __hash__(self) :
     """Return a hash for the xrational number; if convertible to complex, use that hash"""
@@ -1298,11 +1298,11 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     """Return a string representation of self, using rational.bstr"""
     return self.__v[0].bstr(n,base) + \
       ('+' if self.__v[1] is _0 or self.__v[1]._a > 0 else '') + \
-      self.__v[1].bstr(n,base) + ('i' if base <= 10 else '*i') + \
+      self.__v[1].bstr(n,base) + ('i' if base <= 16 else '*i') + \
       ('+' if self.__v[2] is _0 or self.__v[2]._a > 0 else '') + \
-      self.__v[2].bstr(n,base) + ('j' if base <= 10 else '*j') + \
+      self.__v[2].bstr(n,base) + ('j' if base <= 16 else '*j') + \
       ('+' if self.__v[3] is _0 or self.__v[3]._a > 0 else '') + \
-      self.__v[3].bstr(n,base) + ('k' if base <= 10 else '*k');
+      self.__v[3].bstr(n,base) + ('k' if base <= 16 else '*k');
 
   def __hash__(self) :
     """Return a hash for the quaternion; if convertible to complex, use that hash"""
