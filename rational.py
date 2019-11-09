@@ -495,15 +495,10 @@ a following >> indicates division by the indicated power of the base"""
     """Return the sum of the two numbers"""
     if self is _nan : return _nan;
     if not isinstance(other,self.__class__) :
-      if other.imag :
-        return xrational(self)+other;
       try :
-        return self+self.__class__(other);
+        return self.__class__(other).__radd__(self);
       except :
-        try :
-          return other.__class__(self)+other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     if not other._b :
       return other if other._a and self is not -other else _nan;
     if not self._a :
@@ -517,12 +512,9 @@ a following >> indicates division by the indicated power of the base"""
     if self is _nan : return _nan;
     if not isinstance(other,self.__class__) :
       try :
-        return self-self.__class__(other);
+        return self.__class__(other).__rsub__(self);
       except :
-        try :
-          return other.__class__(self)-other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     if not other._b :
       return -other if other._a and self is not other else _nan;
     if not other._a :
@@ -534,7 +526,7 @@ a following >> indicates division by the indicated power of the base"""
     try :
       return self.__class__(other)-self;
     except :
-      return other-other.__class__(self);
+      return NotImplemented;
 
   def __mul__(self,other) :
     """Return the product of the two numbers"""
@@ -544,10 +536,7 @@ a following >> indicates division by the indicated power of the base"""
       try :
         return self*self.__class__(other);
       except :
-        try :
-          return other.__class__(self)*other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     if not self._a and not other._b or not other._a and not self._b : return _nan;
     if not self._a :
       return self if other._a >= 0 and other._b > 0 else -self;
@@ -566,10 +555,7 @@ a following >> indicates division by the indicated power of the base"""
       try :
         return self/self.__class__(other);
       except :
-        try :
-          return other.__class__(self)/other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     a,b = self._a*other._b,self._b*other._a;
     if not a and not b : return _nan;
     if not self._a :
@@ -586,7 +572,7 @@ a following >> indicates division by the indicated power of the base"""
       try :
         return self.__class__(other)/self;
       except :
-        return other/other.__class__(self);
+        return NotImplemented;
     a,b =self._b*other._a,self._a*other._b;
     if not a and not b : return _nan;
     if not other._a :
@@ -605,15 +591,10 @@ a following >> indicates division by the indicated power of the base"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return self.__class__(self._a//(self._b*other));
-      if isinstance(other,complex) :
-        return xrational(self)//other;
       try :
         return self//self.__class__(other);
       except :
-        try :
-          return other.__class__(self)//other;
-        except :
-          return NotImplemented;
+        return NotImplemented;
     if not other._b or not other: return _nan;
     return self.__class__((self._a*other._b)//(self._b*other._a));
 
@@ -622,12 +603,10 @@ a following >> indicates division by the indicated power of the base"""
     if not isinstance(other,self.__class__) :
       if isint(other) :
         return self.__class__((self._b*other)//self._a);
-      if isinstance(other,complex) :
-        return other//xrational(self);
       try :
         return self.__class__(other)//self;
       except :
-        return other//other.__class__(self);
+        return NotImplemented;
     return other//self;
 
   def __mod__(self,other) :
@@ -646,6 +625,7 @@ a following >> indicates division by the indicated power of the base"""
 
   def __rdivmod__(self,other) :
     """Return quotient and remainder"""
+    q = other//self;
     return (q, other-q*self if q._b else _0 if q._a else _nan);
 
   def __pow__(self,other) :
@@ -655,17 +635,14 @@ a following >> indicates division by the indicated power of the base"""
       other = self.__class__(other);
     except :
       return NotImplemented;
-    if other.imag :
-      return xrational(self)**other;
-    other = other.real;
-    if isinstance(other,self.__class__) and abs(other._b) == 1 :
+    if not other.real is other :
+      return other.__rpow__(self);
+    if abs(other._b) == 1 :
       other = other._a;
     if isint(other) :
       if other < 0 :
         return self.__class__(self._b**-other,self._a**-other,0);
       return self.__class__(self._a**other,self._b**other,0);
-    if not isinstance(other,self.__class__) :
-      raise TypeError('exponent must be a number');
     if not other._b :    # non-finite power
       return _nan if other is _nan \
         else _1 if self == 1 else _pinf if (self > 1) == (other._a > 0) else _0;
@@ -1048,7 +1025,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return the sum of the two numbers"""
     if not isinstance(other,self.__class__) :
       try :
-        other = self.__class__(other);
+        return self+self.__class__(other);
       except :
         return NotImplemented;
     return self.__class__(self._a+other._a,self._b+other._b);
@@ -1059,7 +1036,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return the difference of the two numbers"""
     if not isinstance(other,self.__class__) :
       try :
-        other = self.__class__(other);
+        return self-self.__class__(other);
       except :
         return NotImplemented;
     return self.__class__(self._a-other._a,self._b-other._b);
@@ -1075,7 +1052,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return the product of the two numbers"""
     if not isinstance(other,self.__class__) :
       try :
-        other = self.__class__(other);
+       return self*self.__class__(other);
       except :
         return NotImplemented;
     return self.__class__(self._a*other._a-self._b*other._b,self._a*other._b+self._b*other._a);
@@ -1086,7 +1063,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return the quotient of the two numbers"""
     if not isinstance(other,self.__class__) :
       try :
-        other = self.__class__(other);
+        return self/self.__class__(other);
       except :
         return NotImplemented;
     d = other._a**2 + other._b**2;
@@ -1106,19 +1083,19 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
     def __floordiv__(self,other) :
       """Return the floor of the real part of self/other"""
-      return self.__class__((self/other)._a.__floor__());
+      return self.__class__((self/other).real.__floor__());
 
     def __rfloordiv__(self,other) :
       """Return the floor of the real part of other/self"""
-      return self.__class__((other/self)._a.__floor__());
+      return self.__class__((other/self).real.__floor__());
 
     def __mod__(self,other) :
       """Return the remainder from floordiv"""
-      return self - self//other*other;
+      return self-self//other*other;
 
     def __rmod__(self,other) :
       """Return the remainder from rfloordiv"""
-      return other - other//self*self;
+      return other-other//self*self;
 
     def __divmod__(self,other) :
       """Return quotient and remainder"""
@@ -1133,31 +1110,30 @@ If real is a string (and imag==0), return xrational(rational(real))"""
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
     try :
-      other = self.__class__(other);
+      other = rational(other);
     except :
       return NotImplemented;
-    if not other.imag :
-      other = other.real;
-      if not other._b :
-        if not other._b : return _nan;
-        b = other._a;
-        return _1 if b == 1 else _0 if (b<1)==(other>0) else _pinf;
-    if isinstance(other,rational) and abs(other._b) == 1 :
-      other = other._a;
+    if other is other.real :
+      if not other : return _1;
+      if not other._b :    # nan or +-inf
+        if self.imag or self.real < 0 or other is _nan: return _nan;
+        a = self.real;
+        return _1 if a == 1 else _0 if (a<1)==(other>0) else _pinf;
+      if other._b == 1 :
+        other = other._a;
     if isint(other) :
-      if not self : return self._a**other;
+      if not self : return _0**other;
       if other < 0 :
         return (1/self)**-other;
       x = self.__class__(_1);
-      s = self;
       while other :
-        if other&1 : x*=s;
+        if other&1 : x*=self;
         other >>= 1;
         if not other : break;
-        s *= s;
+        self *= self;
       return x;
     if not self : return _nan if other.imag or other < 0 else _0;
-    p = exp(other*self.log());
+    p = (self.log()*other).exp();
     a = p.approximate(1<<MIN_SIGNIFICANCE);
     return a if isclose(a,p,rational(1,16<<_SIGNIFICANCE)) else p;
 
@@ -1496,31 +1472,35 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
-    r = other.real;
-    if not self :      # special case zero
-      if r > 0 : return self;
-      if not r : return self.__class__(_1);
-      raise ZeroDivisionError('0 cannot be raised to a negative power');
-    if r!=other or int(r)!=r :    # non integer power
-      # a**x = exp(log(a)*x)
-      return (self.log()*other).exp();
-    r = int(r);    # integer power
-    if not any(self.__v[1:]) :
-      return self.__class__(self.__v[0]**r);        #real
-    if r < 0 :
-      a = self.__v[0]*self.__v[0] + self.__v[1]*self.__v[1] + \
-          self.__v[2]*self.__v[2] + self.__v[3]*self.__v[3];
-      q = self.__class__(self.__v[0]/a, -self.__v[1]/a, -self.__v[2]/a, -self.__v[3]/a);
-      r = -r;
-    else :
-      q = self;
-    result = self.__class__(1,0,0,0);
-    while r :
-      if r&1 : result *= q;
-      r >>= 1;        
-      if not r : break;
-      q *= q;
-    return result;
+    try :
+      other = rational(other);
+    except :
+      return NotImplemented;
+    if other is other.real :
+      if not self :      # special case zero
+        return self.__class__(_0**other);
+      if abs(other._b) == 1 :    # integer power
+        r = other._a;
+        if not any(self.__v[1:]) :        # real
+          return self.__class__(self.__v[0]**r);
+        if r < 0 :
+          a = self.__v[0]*self.__v[0] + self.__v[1]*self.__v[1] + \
+              self.__v[2]*self.__v[2] + self.__v[3]*self.__v[3];
+          q = self.__class__(self.__v[0]/a, -self.__v[1]/a, -self.__v[2]/a, -self.__v[3]/a);
+          r = -r;
+        else :
+          q = self;
+        if r==1 : return q;
+        result = self.__class__(_1,_0,_0,_0);
+        while r :
+          if r&1 : result *= q;
+          r >>= 1;        
+          if not r : break;
+          q *= q;
+        return result;
+    p = (self.log()*other).exp();    # a**x = exp(log(a)*x)
+    a = p.approximate(1<<MIN_SIGNIFICANCE);
+    return a if isclose(a,p,rational(1,16<<_SIGNIFICANCE)) else p;
 
   __ipow__ = __pow__
 
