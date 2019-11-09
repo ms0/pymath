@@ -656,13 +656,8 @@ a following >> indicates division by the indicated power of the base"""
     except :
       return NotImplemented;
     if other.imag :
-      try :
-        return xrational(self)**other;
-      except :
-        return exp(other*self.log());
+      return xrational(self)**other;
     other = other.real;
-    if isinstance(other,float) :
-      other = self.__class__(other);
     if isinstance(other,self.__class__) and abs(other._b) == 1 :
       other = other._a;
     if isint(other) :
@@ -719,7 +714,7 @@ a following >> indicates division by the indicated power of the base"""
       other = self.__class__(other);
     except :
       return NotImplemented;
-    return self.__class__(other)**self;
+    return other**self;
 
   def __lshift__(self,other) :
     """Return the product of self and 2**other, for other an integer"""
@@ -984,22 +979,22 @@ If real is a string (and imag==0), return xrational(rational(real))"""
   def __lt__(self,other) :
     if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return other > self._a;
+    return self._a < other;
 
   def __le__(self,other) :
     if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return other >= self._a;
+    return self._a <= other;
 
   def __gt__(self,other) :
     if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return other < self._a;
+    return self._a > other;
 
   def __ge__(self,other) :
     if self._b :
       raise TypeError('no ordering relation is defined for complex numbers');
-    return other <= self._a;
+    return self._a >= other;
 
   def __bool__(self) :
     """Return True iff self != 0"""
