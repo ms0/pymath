@@ -1538,7 +1538,10 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     a = abs(self);
     av = self.__v[1]*self.__v[1]+self.__v[2]*self.__v[2]+self.__v[3]*self.__v[3];
     if not av :
-      return self.__class__(a.log(base));
+      if self.real < 0 :
+        return self.__class__(xrational(self).log(base));
+      else :
+        return self.__class__(a.log(base));
     av = sqrt(av);
     ac = (acos(self.__v[0]/a)/av)/log(base or e);
     return self.__class__(a.log(base),ac*self.__v[1],ac*self.__v[2],ac*self.__v[3]);
