@@ -1061,20 +1061,27 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   def __div__(self,other) :
     """Return the quotient of the two numbers"""
-    if not isinstance(other,self.__class__) :
-      try :
-        return self/self.__class__(other);
-      except :
+    try :
+      other = rational(other);
+      if other is other.real :
+        return self.__class__(self._a/other,self._b/other);
+      if not isinstance(other,self.__class__) :
         return NotImplemented;
-    d = other._a**2 + other._b**2;
+    except :
+      return NotImplemented;
+    d = other._a*other._a + other._b*other._b;
     return self.__class__((self._a*other._a+self._b*other._b)/d,(self._b*other._a-self._a*other._b)/d);
 
   def __rdiv__(self,other) :
     """Return the inverse quotient of the two numbers"""
     try :
-      return self.__class__(other)/self;
+      other = rational(other);
+      if other is other.real :
+        a = other/(self._a*self._a + self._b*self._b);
+        return self.__class__(self._a*a,-self._b*a);
     except :
       return NotImplemented;
+    return other/self;
 
   __truediv__ = __div__
   __rtruediv__ = __rdiv__
@@ -1423,9 +1430,12 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def __mul__(self,other) :
     """Return the product of the two numbers"""
     try :
-      other = self.__class__(other);
+      other = rational(other);
+      if other is other.real :
+        return self.__class__(*(v*other for v in self.__v));
     except :
       return NotImplemented;
+    other = self.__class__(other);
     return self.__class__(
       self.__v[0]*other.__v[0]-self.__v[1]*other.__v[1]-self.__v[2]*other.__v[2]-self.__v[3]*other.__v[3],
       self.__v[0]*other.__v[1]+self.__v[1]*other.__v[0]+self.__v[2]*other.__v[3]-self.__v[3]*other.__v[2],
@@ -1437,21 +1447,39 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def __rmul__(self,other) :
     """Return the swapped product of the two numbers"""    
     try :
-      other = self.__class__(other);
+      other = rational(other);
+      if other is other.real :
+        return self.__class__(*(other*v for v in self.__v));
     except :
       return NotImplemented;
+    other = self.__class__(other);
     return self.__class__(
       other.__v[0]*self.__v[0]-other.__v[1]*self.__v[1]-other.__v[2]*self.__v[2]-other.__v[3]*self.__v[3],
       other.__v[0]*self.__v[1]+other.__v[1]*self.__v[0]+other.__v[2]*self.__v[3]-other.__v[3]*self.__v[2],
         other.__v[0]*self.__v[2]+other.__v[2]*self.__v[0]+other.__v[3]*self.__v[1]-other.__v[1]*self.__v[3],
         other.__v[0]*self.__v[3]+other.__v[3]*self.__v[0]+other.__v[1]*self.__v[2]-other.__v[2]*self.__v[1]);
 
+  def cross(self,other) :
+    """Return the cross product of two vectors as a qrational"""
+    if self.real or not isinstance(other,self.__class__) or other.real:
+      return TypeError('args must be vectors');
+    return self.__class__(_0,self.__v[2]*other.__v[3]-self.__v[3]*other.__v[2],
+                             self.__v[3]*other.__v[1]-self.__v[1]*other.__v[3],
+                             self.__v[1]*other.__v[2]-self.__v[2]*other.__v[1]);
+
+  def dot(self,other) :
+    """Return the dot product of two vectors as a rational"""
+    if self.real or not isinstance(other,self.__class__) or other.real:
+      return TypeError('args must be vectors');
+    return self.__v[1]*other.__v[1]+self.__v[2]*other.__v[2]+self.__v[3]*other.__v[3];
 
   # danger: a*b**-1 != b**-1*a ?
   def __truediv__(self,other) :
     """Return the quotient of the two numbers"""
     try :
-      other = self.__class__(other);
+      other = rational(other);
+      if other is other.real :
+        return self.__class__(*(v/other for v in self.__v));
     except :
       return NotImplemented;
     return self.__mul__(other.__pow__(-1));
@@ -1459,10 +1487,14 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def __rtruediv__(self,other) :
     """Return the swapped quotient of the two numbers"""
     try :
-      other = self.__class__(other);
+      other = rational(other);
+      if other is other.real :
+        a = other/(self.__v[0]*self.__v[0] + self.__v[1]*self.__v[1] +
+                   self.__v[2]*self.__v[2] + self.__v[3]*self.__v[3]);
+        return self.__class__(self.__v[0]*a,-self.__v[1]*a,-self.__v[2]*a,-self.__v[3]*a);
     except :
       return NotImplemented;
-    return other.__truediv__(self);
+    return self.__class__(other).__truediv__(self);
 
   __itruediv__ = __truediv__
 

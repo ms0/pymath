@@ -77,6 +77,15 @@ def roottest(numbers=None,roots=(2,3),nbits=(32,64)) :
 
 def testops(v) :    # v is vector of 3 values to be tested
   """Test operators using 3-vector of values"""
+  testops1(v);
+  testops2(v);
+  testops3(v);
+
+def testo23(v) :
+  testops2(v);
+  testops3(v);
+
+def testops1(v) :
   ceq('v[0]-v[0] == 0',v[:1])
   ceq('v[0]+-v[0] == 0',v[:1])
   ceq('not v[0] or v[0]/v[0] == 1',v[:1])
@@ -85,17 +94,21 @@ def testops(v) :    # v is vector of 3 values to be tested
   ceq('0*v[0] == 0',v[:1])
   ceq('1*v[0] == v[0]',v[:1])
   ceq('-1*v[0] == -v[0]',v[:1])
+  if isinstance(v[0],(xrational,qrational)) :
+    ceq('not v[0] or abs(((v[0]*~v[0])-abs(v[0])**2)/(v[0]*~v[0]))<<set_significance() < 1',v[:1])
+
+def testops2(v) :
   ceq('v[0]+v[1] == v[1]+v[0]',v[:2])
-  if not isinstance(v[2],qrational) :
+  if not (isinstance(v[0],qrational) or isinstance(v[1],qrational))  :
     ceq('v[0]*v[1] == v[1]*v[0]',v[:2])
   ceq('not v[1] or v[0]/v[1]*v[1] == v[0]',v[:2])
   ceq('v[0]-v[1]+v[1] == v[0]',v[:2])
+
+def testops3(v) :
   ceq('(v[0]+v[1])+v[2] == v[0]+(v[1]+v[2])',v)
   ceq('(v[0]*v[1])*v[2] == v[0]*(v[1]*v[2])',v)
   ceq('v[0]*(v[1]+v[2]) == v[0]*v[1]+v[0]*v[2]',v)
   ceq('(v[0]+v[1])*v[2] == v[0]*v[2]+v[1]*v[2]',v)
-  if isinstance(v[0],xrational) :
-    ceq('not v[0] or abs(((v[0]*~v[0])-abs(v[0])**2)/(v[0]*~v[0]))<<set_significance() < 1',v[:1])
 
 def ratspectest() :
   """Test operations on nan and signed zeroes and infinities"""
@@ -230,6 +243,28 @@ def qtest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
   """Test qrational operators"""
   for i in xrange(repeats) :
     testops(tuple(qrational(rational(randint(*nrange),randint(*drange)),
+                            rational(randint(*nrange),randint(*drange)),
+                            rational(randint(*nrange),randint(*drange)),
+                            rational(randint(*nrange),randint(*drange))) for j in xrange(3)));
+
+def vtest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
+  """Test vector operators"""
+  for i in xrange(repeats) :
+    v = tuple(qrational(0,
+                        rational(randint(*nrange),randint(*drange)),
+                        rational(randint(*nrange),randint(*drange)),
+                        rational(randint(*nrange),randint(*drange))) for j in xrange(2));
+    ceq('v[0].cross(v[1])==qrational(0,*(v[0]*v[1]).vector)',v[:2]);
+    ceq('v[0].dot(v[1])==-(v[0]*v[1]).real',v[:2]);
+
+def mixtest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
+  """Text mixed arguments"""
+  for i in xrange(repeats) :
+    t = tuple(randint(0,2) for j in xrange(3));
+    testo23(tuple(rational(randint(*nrange),randint(*drange)) if t[j] == 0 else
+                  xrational(rational(randint(*nrange),randint(*drange)),
+                            rational(randint(*nrange),randint(*drange))) if t[j] == 1 else
+                  qrational(rational(randint(*nrange),randint(*drange)),
                             rational(randint(*nrange),randint(*drange)),
                             rational(randint(*nrange),randint(*drange)),
                             rational(randint(*nrange),randint(*drange))) for j in xrange(3)));
@@ -704,6 +739,10 @@ if __name__ == '__main__' :
   xtest();
   print('qrational test ...');
   qtest();
+  print('mixed rational test ...');
+  mixtest();
+  print('vector product test ...');
+  vtest();
   print('approximate test ...')
   atest();
   print('math methods test');
