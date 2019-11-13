@@ -44,7 +44,6 @@ class quaternion(object) :
 q.s, q.r, q.real, q.scalar are each the scalar (real) part of q
 q.v, q.vector are each the vector part of q as a tuple
 q.i, q.j, q.k are the respective components of the vector part of q
-q.versor is q/abs(q)
   note that quaternion(-a).log() == quaternion(math.log(a),math.pi) for a>0"""
 
   def __new__(cls,*args) :
@@ -155,6 +154,11 @@ quaternion(string) is the quaternion represented by that string"""
     """Return |self|"""
     return (self.__v[0]*self.__v[0]+self.__v[1]*self.__v[1]+
             self.__v[2]*self.__v[2]+self.__v[3]*self.__v[3])**.5;
+
+  def versor(self) :
+    """Return self/|self| or 1 if zero"""
+    a = abs(self);
+    return quaternion(*(x/a for x in self.__v) if a else (1,))
 
   def __add__(self,other) :
     """Return the sum self+other"""
@@ -303,19 +307,18 @@ quaternion(string) is the quaternion represented by that string"""
     return quaternion(math.log(a,base),ac*self.__v[1],ac*self.__v[2],ac*self.__v[3]);
 
   def __getattr__(self,name) :
+    if name in ('sv','rv') :
+      return self.__v;
     if name in ('s','r','real','scalar'):
       return self.__v[0];
     if name in ('v','vector') :
       return self.__v[1:];
-    if name == 'i' :
+    if name in ('i','imag') :
       return self.__v[1];
     if name == 'j' :
       return self.__v[2];
     if name == 'k' :
       return self.__v[3];
-    if name == 'versor' :
-      a = abs(self);
-      return quaternion(self.__v[0]/a,self.__v[1]/a,self.__v[2]/a,self.__v[3]/a);
     raise AttributeError('quaternion object has no attribute '+name);
 
 NUMTYPE = (int,long,float,complex,quaternion,) if VERSION2 else (int,float,complex,quaternion,);
