@@ -43,7 +43,8 @@ class quaternion(object) :
 ~q is the conjugate of q: ~quaternion(a,b,c,d) == quaternion(a,-b,-c,-d)
 q.s, q.r, q.real, q.scalar are each the scalar (real) part of q
 q.v, q.vector are each the vector part of q as a tuple
-q.i, q.j, q.k are the respective components of the vector part of q
+q.imag or q.i, q.j, q.k are the respective components of the vector part of q
+q.rv or q.sv is the tuple of components of q, i.e., (q.s,q.i,q.j,q.k)
   note that quaternion(-a).log() == quaternion(math.log(a),math.pi) for a>0"""
 
   def __new__(cls,*args) :
@@ -320,5 +321,23 @@ quaternion(string) is the quaternion represented by that string"""
     if name == 'k' :
       return self.__v[3];
     raise AttributeError('quaternion object has no attribute '+name);
+
+  def __int__(self) :
+    """Return the integer part of the number if real"""
+    if any(self.__v[1:]) :
+      raise TypeError('not real')
+    return int(self.__v[0]);
+
+  def __float__(self) :
+    """Return float of the number if real"""
+    if any(self.__v[1:]) :
+      raise TypeError('not real')
+    return float(self.__v[0]);
+
+  def __complex__(self) :
+    """Return the number as a complex if complex"""
+    if any(self.__v[2:]) :
+      raise TypeError('not complex')
+    return complex(*self.__v[:2]);
 
 NUMTYPE = (int,long,float,complex,quaternion,) if VERSION2 else (int,float,complex,quaternion,);
