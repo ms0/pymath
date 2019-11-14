@@ -65,8 +65,8 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
   if n & (n+1) :    # not Mersenne number
     i = 3;
     while i < primalitytestlimit :
-      q = n//i;
-      if not (n-i*q) : return False;
+      q,r = divmod(n,i);
+      if not r : return False;
       if q <= i : return True;
       i += 2;
     # Miller Rabin test :
