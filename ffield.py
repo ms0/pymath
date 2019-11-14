@@ -63,12 +63,10 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
   if not isint(n) or n < 2 or (not n%2 and n!=2) : return False;
   if n < 9 : return True;
   if n & (n+1) :    # not Mersenne number
-    i = 3;
-    while i < primalitytestlimit :
+    for i in xrange(3,primalitytestlimit,2) :
       q,r = divmod(n,i);
       if not r : return False;
       if q <= i : return True;
-      i += 2;
     # Miller Rabin test :
     c = n//2;    # (n-1)/2
     b = 1;       # n-1 = 2**b * c
@@ -89,8 +87,10 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
   e = bit_length(n);    # n = 2**e-1
   if not isprime(e) : return False;
   for i in xrange(2*e+1,primalitytestlimit,2*e) :
-    if i*i > n : break;
-    if not n % i : return False;
+    if (i+1)&7 > 2 : continue;
+    q,r = divmod(n,i);
+    if not r: return q<2;
+    if q <= i : return True;
   # Lucas-Lehmer test :
   c = 4;
   for i in xrange(e-2) :
