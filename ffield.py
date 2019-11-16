@@ -56,14 +56,42 @@ def modpow(b,x,p) :    # b**x mod p
 
 primalitytestlimit = 1<<24;    # limit for looking for (odd) divisor
 # beyond this limit, use Miller-Rabin or Lucas-Lehmer
+
+try :
+  from math import gcd
+except :
+  def gcd(x,y) :
+    """Return the [nonnegative] greatest common divisor of x and y"""
+    while y :
+      x,y = y, x%y;
+    return abs(x);
+
+pr210 = (2,3,5,7,11,13);    # primes < sqrt(2*3*5*7)
+isp210 = tuple(    # primality of integers in range(2*3*5*7)
+  i in pr210 or i > pr210[-1] and all(i%p for p in pr210) for i in xrange(210));
+op210 = pr210[1:] + tuple(    # odd primes < 2*3*5*7
+  i for i in xrange(pr210[-1]+1,210) if isp210[i]);
+isZ210 = tuple(gcd(i,210)==1 for i in xrange(210));    # relative primality mod 2*3*5*7
+Z210 = tuple(i for i in xrange(210) if isZ210[i]);    # relative primes mod 2*3*5*7
+
+def oplist(m) :    # odd primes < 2*3*5*7 then larger ints relatively prime to 2*3*5*7
+  for i in op210 : yield i;
+  for i in xrange(210,m,210) if m else count(210,210):    # give up after m
+    for p in Z210 : yield i+p;
+
+def oplist11(m) : # oplist, but starting at 11
+  for i in op210[3:] : yield i;
+  for i in xrange(210,m,210) if m else count(210,210):    # give up after m
+    for p in Z210 : yield i+p;
   
 def isprime(n) :
   """Test if n is prime, if no "small" factors,
 use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
-  if not isint(n) or n < 2 or (not n%2 and n!=2) : return False;
-  if n < 9 : return True;
+  if not isint(n) : return False;
+  if n < 210 : return isp210[n];
+  if not isZ210[n%210] : return False;
   if n & (n+1) :    # not Mersenne number
-    for i in xrange(3,primalitytestlimit,2) :
+    for i in oplist11(primalitytestlimit) :
       q,r = divmod(n,i);
       if not r : return False;
       if q <= i : return True;
@@ -87,9 +115,9 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
   e = bit_length(n);    # n = 2**e-1
   if not isprime(e) : return False;
   for i in xrange(2*e+1,primalitytestlimit,2*e) :
-    if (i+1)&7 > 2 : continue;
+    if (i+1)&7 > 2 or not isZ210[i%210]: continue;
     q,r = divmod(n,i);
-    if not r: return q<2;
+    if not r: return False;
     if q <= i : return True;
   # Lucas-Lehmer test :
   c = 4;
@@ -148,7 +176,7 @@ def factor(n,maxfactor=None) :
   if n > primalitytestlimit and isprime(n) :
     yield (n,1);
     return;
-  for p in xrange(3,maxfactor+1,2) if maxfactor else count(3,2) :
+  for p in oplist(maxfactor) :
     if p*p > n :
       if n > 1 : yield (n,1);
       return;
