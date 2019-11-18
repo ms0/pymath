@@ -90,17 +90,21 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
   if not isint(n) : return False;
   if n < 210 : return isp210[n];
   if not isZ210[n%210] : return False;
-  if n & (n+1) :    # not Mersenne number
-    for i in oplist11(primalitytestlimit) :
-      q,r = divmod(n,i);
+  if n&(n+1) :    # not Mersenne number
+    if (n-1)&(n-2):    # not Fermat number
+      d = oplist11(primalitytestlimit);    # general primality test
+    else :
+      e = bit_length(n)-1;    # n = 2**e+1 [Fermat?]
+      if e&(e-1) : return False;    # e not power of 2
+      d = xrange(4*e+1,primalitytestlimit,4*e);
+    for p in d :
+      q,r = divmod(n,p);
       if not r : return False;
-      if q <= i : return True;
+      if q <= p : return True;
     # Miller Rabin test :
-    c = n//2;    # (n-1)/2
-    b = 1;       # n-1 = 2**b * c
-    while not c&1 :
-      c >>= 1;
-      b += 1;
+    c = n-1;
+    b = bit_length(c&-c)-1;
+    c >>= b;    # n-1 = 2**b * c
     for i in xrange(100) :
       a = random.randrange(2,n-1);
       e = pow(a,c,n);
@@ -112,9 +116,10 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
       else :
         return False;    # didn't get to -1
     return True;
-  e = bit_length(n);    # n = 2**e-1
-  if not isprime(e) : return False;
+  e = bit_length(n);    # n = 2**e-1 [Mersenne?]
+  if not isprime(e) : return False;    # e not prime
   for i in xrange(2*e+1,primalitytestlimit,2*e) :
+    # prime factors must be 2ke+1 and +-1 mod 8
     if (i+1)&7 > 2 or not isZ210[i%210]: continue;
     q,r = divmod(n,i);
     if not r: return False;
@@ -168,15 +173,24 @@ def factor(n,maxfactor=None) :
   """Return prime factorization of n as generator of (prime,exponent) pairs"""
   if n <= 1 :
     return;
-  c = 0;
-  while not n & 1:
-    n >>= 1;
-    c += 1;
-  if c : yield (2,c);
+  if not n & 1:
+    c = bit_length(n&-n)-1;
+    n >>= c;
+    yield (2,c);
   if n > primalitytestlimit and isprime(n) :
     yield (n,1);
     return;
-  for p in oplist(maxfactor) :
+  d = oplist(maxfactor);
+  if not n&(n+1) :
+    if n == 1 : return;
+    e = bit_length(n);    # 2**e-1
+    if isprime(e) :
+      d = xrange(2*e+1,maxfactor,2*e) if maxfactor else count(2*e+1,2*e);
+  elif not (n-1)&(n-2) :
+    e = bit_length(n)-1; # 2**e+1    
+    if not e&(e-1) :  # e = 2**k
+      d = xrange(4*e+1,maxfactor,4*e) if maxfactor else count(4*e+1,4*e);
+  for p in d :
     if p*p > n :
       if n > 1 : yield (n,1);
       return;
