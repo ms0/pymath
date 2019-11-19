@@ -186,10 +186,24 @@ def factor(n,maxfactor=None) :
     e = bit_length(n);    # 2**e-1
     if isprime(e) :
       d = xrange(2*e+1,maxfactor,2*e) if maxfactor else count(2*e+1,2*e);
+    else :
+      f = tuple(factor(e));
+      g = [];
+      for q,k in f :
+        if len(f) == 1 : k-=1;
+        x = (1<<(q**k))-1;
+        g.append(x);
+        n /= x;
+      for p in fmerge(*map(factor,g)) : yield p;
+      return;
   elif not (n-1)&(n-2) :
     e = bit_length(n)-1; # 2**e+1    
     if not e&(e-1) :  # e = 2**k
       d = xrange(4*e+1,maxfactor,4*e) if maxfactor else count(4*e+1,4*e);
+    else :
+      x = (1<<(1<<(bit_length(e&-e)-1)))+1;
+      for p in fmerge(factor(x),factor(n//x)) : yield p;
+      return;
   for p in d :
     if p*p > n :
       if n > 1 : yield (n,1);
@@ -210,6 +224,33 @@ def unfactor(q) :
   p = 1;
   for (n,c) in q : p *= n**c;
   return p;
+
+def fmerge(*args) :
+  """Merge factor generators into a single one"""
+  d = dict();
+  for a in args :
+    try :
+      d[a] = next(a);
+    except StopIteration :
+      pass;
+  while d :
+    f = sorted(d.items(),key=lambda x:x[1][0]);
+    p,k = f[0][1];
+    for i,j in enumerate(f[1:],1) :
+      if j[1][0] == p :
+        k += j[1][1];
+      else:
+        break;
+    else :
+      i = len(f);
+    yield (p,k);
+    for j in range(i) :
+      x = f[j][0];
+      try :
+        d[x] = next(x);
+      except StopIteration :
+        del d[x];
+  return;
 
 def pack(p,a) :
   """Return the evaluation at x=p of a, a tuple of coefficients ending with the constant term"""
