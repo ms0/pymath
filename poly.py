@@ -47,7 +47,7 @@ except :
       n >>= l;
     return b;
 
-int_float = lambda x: x.a if x.b == 1 else x.a/x.b;
+int_float = lambda x: x if isint(x) else x.a if abs(x.b)==1 else float(x);
 floatall = lambda x: x.mapcoeffs(int_float);
 complexall = lambda x: x.mapcoeffs(complex);
 identity = lambda x: x;
@@ -388,7 +388,7 @@ indices larger than the degree give 0; indices < 0 raise exception;
       mapping = complexall;
     else :
       mapping = identity;
-    u,v,u1,v1 = _oner,_zero,_zero,_oner;
+    u,v,u1,v1 = _one,_zero,_zero,_one;
     while q :
       m = p//q;
       p,u,v,q,u1,v1 = q,u1,v1,p-m*q,u-m*u1,v-m*v1;
@@ -729,6 +729,5 @@ def rationalize(p) :
 
 _zero = polynomial();
 _one = polynomial(1);
-_oner = polynomial(rational(1));
 
 RATFUN = (polynomial,rationalfunction);
