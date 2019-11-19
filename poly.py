@@ -7,7 +7,7 @@ import sys
 from itertools import chain, count
 from collections import defaultdict
 from matrix import product, bmatrix
-from rational import rational,xrational
+from rational import rational,xrational,inf
 from ffield import isprime, primepower, factors, isirreducible, modpow, ffield, unpack
 from random import randrange,randint
 
@@ -46,8 +46,6 @@ except :
       b += l
       n >>= l;
     return b;
-
-inf = float('inf');
 
 int_float = lambda x: x.a if x.b == 1 else x.a/x.b;
 floatall = lambda x: x.mapcoeffs(int_float);
@@ -390,7 +388,7 @@ indices larger than the degree give 0; indices < 0 raise exception;
       mapping = complexall;
     else :
       mapping = identity;
-    u,v,u1,v1 = _one,_zero,_zero,_one;
+    u,v,u1,v1 = _oner,_zero,_zero,_oner;
     while q :
       m = p//q;
       p,u,v,q,u1,v1 = q,u1,v1,p-m*q,u-m*u1,v-m*v1;
@@ -731,5 +729,6 @@ def rationalize(p) :
 
 _zero = polynomial();
 _one = polynomial(1);
+_oner = polynomial(rational(1));
 
 RATFUN = (polynomial,rationalfunction);
