@@ -197,9 +197,7 @@ def _parserat(s) :
     rijk[t] = a;
     if s :
       continue;
-    if t < 2 :
-      return xrational(*rijk[:2]);
-    return qrational(*rijk);
+    return qrational(*rijk) if t>1 else xrational(*rijk[:2]) if t else rijk[0];
 
 class rational(object) :
   """Rational number class
