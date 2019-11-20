@@ -96,6 +96,7 @@ def testops1(v) :
   ceq('-1*v[0] == -v[0]',v[:1])
   if isinstance(v[0],(xrational,qrational)) :
     ceq('not v[0] or abs(((v[0]*~v[0])-abs(v[0])**2)/(v[0]*~v[0]))<<set_significance() < 1',v[:1])
+  ceq('type(v[0])==type(v[1]) and v[0]==v[0]',(v[0],eval(repr(v[0]))));
 
 def testops2(v) :
   ceq('v[0]+v[1] == v[1]+v[0]',v[:2])
@@ -119,8 +120,10 @@ def ratspectest() :
   nan = rational(0,0);
   half = rational(1,2);
   ceq('v[0]!=v[0]',(nan,));
+  ceq('v[0] is v[1]',(nan,eval(repr(nan))));
   for x in (p0,m0,pinf,minf) :
     ceq('v[0]==v[0]',(x,));
+    ceq('v[0]==v[1]',(x,eval(repr(x))));
   ceq('v[0]==v[1]',(p0,m0));         # +0 == -0
   ceq('v[0]!=v[1]',(pinf,minf));     # +inf != -inf
   ceq('v[0]>v[1]',(pinf,minf));      # +inf > -inf
