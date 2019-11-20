@@ -193,7 +193,8 @@ def factor(n,maxfactor=None) :
         if len(f) == 1 : k-=1;
         x = (1<<(q**k))-1;
         g.append(x);
-        n /= x;
+        n //= x;
+      g.append(n);
       for p in fmerge(*map(factor,g)) : yield p;
       return;
   elif not (n-1)&(n-2) :

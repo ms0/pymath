@@ -6,7 +6,7 @@ if sys.version_info>(3,) :
 from random import randrange, sample
 from itertools import chain
 
-from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, factors, zits
+from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, factor, unfactor, factors, zits
 from matrix import *
 from poly import *
 
@@ -192,7 +192,18 @@ def isgenerator(x) :
     if not x**(o//q)-1 : return False;
   return True;
 
+def ftest(m=2**12) :
+  for n in xrange(1,m+1) :
+    f = tuple(factor(n));
+    if unfactor(f) != n :
+      print('unfactor(factor(%d)) failed'%(n));
+    for p,k in f :
+      if not isprime(p) :
+        print('non primepower factor %d**%d in factor(%d)'%(p,k,n));
+        break;
+
 if __name__=='__main__' :
+  ftest();
   test(2,6);
   test(3,4);
   for p in xrange(MAXCHAR) :
