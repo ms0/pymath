@@ -12,7 +12,7 @@ x = polynomial(1,0);    # the polynomial x
 def testcp(dim,verbose=False) :    # characteristic polynomial test
   X = matrix.Identity(dim,x);
   M = matrix(dim,dim,
-             tuple(xrational(random()+random()*1j) for i in range(dim*dim)))
+             tuple(xrational(random(),random()) for i in range(dim*dim)))
   cp = (M-X).det;
   try :
     if cp.denominator != 1 :
@@ -36,8 +36,23 @@ def testcp(dim,verbose=False) :    # characteristic polynomial test
   if cpMT :    # check that transposed matrix satisfies characteristic polynomial
     print(MT,cpMT);
 
+def testinv(dim,verbose=False) :    # matrix inverse test
+  I = matrix.Identity(dim);
+  M = matrix(dim,dim,tuple(xrational(random(),random()) for i in range(dim*dim)));
+  if M.det :
+    if M.inverse*M != I or M*M.inverse != I :
+      print('matrix inverse failed for');
+      print(M);
+  M = matrix(dim,dim,tuple(qrational(random(),random(),random(),random()) for i in range(dim*dim)));
+  if M.rank == dim :
+    if M.inverse*M != I or M*M.inverse != I :
+      print('matrix inverse failed for');
+      print(M);
+    
+
 if __name__=='__main__' :
   for i in range(REPEATS) :
     dim = randint(MINDIM,MAXDIM);
     print(dim);
     testcp(dim);
+    testinv(dim);

@@ -786,7 +786,8 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
         if pr != c : v[c::n],v[pr::n] = v[pr::n],v[c::n];
         x = v[n2+c*(n+1)];
         if x != 1 :
-          for cc in xrange(2*n) : v[c+n*cc] /= x;
+          y = 1/x;
+          for cc in xrange(2*n) : v[c+n*cc] = y*v[c+n*cc];
         for r in xrange(c+1,n) :
           x = v[n2+r+n*c];
           for cc in xrange(2*n) :
