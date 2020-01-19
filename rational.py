@@ -2201,7 +2201,7 @@ a == b or abs(a-b) <= abs_tol or abs(a-b)/max(abs(a),abs(b)) <= rel_tol"""
   if isinstance(d,(xrational,qrational)) :    # avoid expensive xrational abs
     d = d.abs2();
     return d <= abs_tol**2 or \
-           d/max(a.abs2(),b.abs2()) <= rel_tol**2;
+           d/max(rational(a).abs2(),rational(b).abs2()) <= rel_tol**2;
   d = abs(d);
   return d <= abs_tol or d/max(abs(a),abs(b)) <= rel_tol;
 
