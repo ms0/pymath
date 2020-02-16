@@ -1027,3 +1027,11 @@ def sigma(n) :
   for n,c in factor(n) :
     p *= (n**(c+1)-1)//(n-1);
   return p;
+
+def lam(n) :
+  """Return reduced totient function of n"""
+  p = 1;
+  for n,c in factor(n) :
+    x = (n-1)*n**(c-1) if n&1 or c < 3 else 1<<(c-2);
+    p *= x//gcd(x,p);
+  return p;
