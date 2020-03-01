@@ -96,7 +96,7 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
     else :
       e = bit_length(n)-1;    # n = 2**e+1 [Fermat?]
       if e&(e-1) : return False;    # e not power of 2
-      d = xrange(4*e+1,primalitytestlimit,4*e);
+      return pow(3,n>>1,n)==n-1;    # Pepin's test
     for p in d :
       q,r = divmod(n,p);
       if not r : return False;
