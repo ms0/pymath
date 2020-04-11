@@ -171,6 +171,7 @@ def factors(n,maxfactor=None) :
 
 def factor(n,maxfactor=None) :
   """Return prime factorization of n as generator of (prime,exponent) pairs"""
+  n = abs(n);
   if n <= 1 :
     return;
   if not n & 1:
@@ -673,7 +674,7 @@ def _create(p,n,poly,x=None) :
   return F if x is None else F(x);
 
 def __reduce__(self) :
-  """Return tuple for pickling"""
+  """Return a tuple for pickling"""
   return (_create,(self.p,self.n,self.poly,self.x));
 
 _ffield = {}; # (p,n,poly) -> ffield
@@ -827,7 +828,7 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
     return;
 
   def __reduce__(self) :
-    """Return tuple for pickling"""
+    """Return a tuple for pickling"""
     return (_create,(self.p,self.n,self.poly));
 
   __getattr__ = __getattr__
@@ -970,7 +971,7 @@ all polynomials over GF(p); note that g**-1 mod f = xmpgcd(p,f,g)[2]"""
   return f,u0,v0;
 
 def mu(n) :
-  """Return Mobius function of n"""
+  """Return the Mobius function of n"""
   if not isint(n) or n < 1 :
     raise ValueError('n must be a positive integer');
   if n <= 1 :
@@ -994,7 +995,7 @@ def mu(n) :
   return m;
 
 def irreducible_count(q,n) :
-  """Return number of monic irreducible degree n polynomials over GF(q)"""
+  """Return the number of monic irreducible degree n polynomials over GF(q)"""
   s = 0;
   for d in xrange(1,n+1) :
     if not n%d :
@@ -1002,7 +1003,7 @@ def irreducible_count(q,n) :
   return s//n;
 
 def irreducibles(p,n) :
-  """Return tuple of all monic irreducible degree n polynomials over GF(p)"""
+  """Return a tuple of all monic irreducible degree n polynomials over GF(p)"""
   l = [];
   for i in xrange(p**n) :
     poly = [];
@@ -1015,23 +1016,78 @@ def irreducibles(p,n) :
   return tuple(l);
 
 def phi(n) :
-  """Return Euler totient function of n"""
+  """Return the Euler totient function of n"""
   p = 1;
   for n,c in factor(n) :
     p *= (n-1)*n**(c-1);
   return p;
 
 def sigma(n) :
-  """Return sum of divisors of n"""
+  """Return the sum of the positive divisors of n"""
   p = 1;
   for n,c in factor(n) :
     p *= (n**(c+1)-1)//(n-1);
   return p;
 
 def lam(n) :
-  """Return reduced totient function of n"""
+  """Return the reduced totient function of n"""
   p = 1;
   for n,c in factor(n) :
     x = (n-1)*n**(c-1) if n&1 or c < 3 else 1<<(c-2);
     p *= x//gcd(x,p);
   return p;
+
+def numdivisors(n) :
+  """Return the number of positive divisors of n"""
+  p = 1;
+  for n,c in factor(n) :
+    p *= c+1;
+  return p;
+
+def divisors(n) :
+  """Return the positive divisors of n as a generator"""
+  yield 1;
+  f = [];
+  t = [];
+  for a in factor(n) :
+    f.append(a);
+    t.append(1);
+    z = 0;
+    while z < len(f) :
+      p = 1;
+      for i,x in enumerate(f) :
+        p *= x[0]**t[i];
+      yield p;
+      while z < len(f) :
+        t[z] += 1;
+        if t[z] <= f[z][1] :
+          z = 0;
+          break;
+        t[z] = 0;
+        z += 1;
+
+def lcm(x,y) :
+  """Return the [positive] least common multiple of x and y"""
+  return abs(x//gcd(x,y)*y);
+
+def lcma(*args) :
+  """Return the [positive] least common multiple of all the arguments"""
+  m = 1;
+  for a in args :
+    try :
+      m *= a//gcd(m,a);
+    except :
+      for i in a :
+        m *= i//gcd(m,i);
+  return abs(m);
+
+def gcda(*args) :
+  """Return the [nonnegative] greatest common divisor of all the arguments"""
+  d = 0;
+  for a in args :
+    try :
+      d = gcd(d,a);
+    except :
+      for i in a :
+        d = gcd(d,i);
+  return d;

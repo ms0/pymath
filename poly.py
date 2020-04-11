@@ -8,7 +8,7 @@ from itertools import chain, count
 from collections import defaultdict
 from matrix import product, bmatrix
 from rational import rational,xrational,inf
-from ffield import isprime, primepower, factors, isirreducible, modpow, ffield, unpack
+from ffield import isprime, primepower, factors, isirreducible, modpow, ffield, unpack, lcma, divisors
 from random import randrange,randint
 
 if sys.version_info>(3,) :
@@ -447,7 +447,7 @@ if q is not specified, the field is inferred from p's coefficients"""
 keys are factors, and values are positive integer exponents;
 if the leading coefficient is real (i.e., int or float),
 the coefficients are converted to rationals before factoring
-and the result's coefficients are converted to floats.
+and the result's coefficients are converted to ints if integers else floats.
 Nonconstant factors will be square-free but not necessarily irreducible."""
     if not isinstance(facdict,defaultdict) : facdict = defaultdict(int);
     if self.degree < 1 :
@@ -553,6 +553,35 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       if self.degree :
         facdict[self] += e;     # must be irreducible
     except AttributeError :
+      if isinstance(self._p[0],rational) :
+        m = lcma(map(lambda x:x.denominator,self._p));
+        if m != 1 : facdict[polynomial(rational(1,m))] += e;
+        self = self.mapcoeffs(lambda x:m*x);
+        m = 1;
+        i = [];
+        for f,k in facdict.items() :
+          if f.degree == 0 :
+            i.append(f);
+            m *= f._p[0]**k;
+        for f in i : del facdict[f];
+        if m != 1 : facdict[polynomial(m)] += 1;
+        # look for linear factors
+        while self.degree > 1 :
+          for a in divisors(int(self._p[0])) :
+            for b in divisors(int(self._p[-1])) :
+              if not self(rational(b,a)) :
+                f = polynomial(a,-b);
+                facdict[f] += e;
+                self /= f;
+                break;
+              if not self(rational(-b,a)) :
+                f = polynomial(a,b);
+                facdict[f] += e;
+                self /= f;
+                break;
+            else : continue;
+            break;
+          else : break;
       facdict[self] += e;
 
   def mapcoeffs(self,f) :
