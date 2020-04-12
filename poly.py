@@ -553,11 +553,14 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       if self.degree :
         facdict[self] += e;     # must be irreducible
     except AttributeError :
+      if not self._p[-1] :    # self(0) == 0
+        facdict[polynomial(self._p[0],self._p[-1])] += e;    # add x as factor
+        self = polynomial(*self._p[:-1]);    # divide by x
       if isinstance(self._p[0],rational) :
         m = lcma(map(lambda x:x.denominator,self._p));
         if m != 1 : facdict[polynomial(rational(1,m))] += e;
         self = self.mapcoeffs(lambda x:m*x);
-        m = 1;
+        m = 1;    # combine constant factors
         i = [];
         for f,k in facdict.items() :
           if f.degree == 0 :
@@ -565,20 +568,26 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
             m *= f._p[0]**k;
         for f in i : del facdict[f];
         if m != 1 : facdict[polynomial(m)] += 1;
-        # look for linear factors
+        t = set();        # look for linear factors
         while self.degree > 1 :
           for a in divisors(int(self._p[0])) :
             for b in divisors(int(self._p[-1])) :
-              if not self(rational(b,a)) :
-                f = polynomial(a,-b);
-                facdict[f] += e;
-                self /= f;
-                break;
-              if not self(rational(-b,a)) :
-                f = polynomial(a,b);
-                facdict[f] += e;
-                self /= f;
-                break;
+              r = rational(b,a);
+              if r not in t :
+                t.add(r);
+                if not self(r) :
+                  f = polynomial(a,-b);
+                  facdict[f] += e;
+                  self /= f;
+                  break;
+              r = rational(-b,a);
+              if r not in t :
+                t.add(r);
+                if not self(r) :
+                  f = polynomial(a,b);
+                  facdict[f] += e;
+                  self /= f;
+                  break;
             else : continue;
             break;
           else : break;
