@@ -1091,3 +1091,20 @@ def gcda(*args) :
       for i in a :
         d = gcd(d,i);
   return d;
+
+def getorder(n) :
+  """Return a method that returns the multiplicative order of an element mod n"""
+  l = lam(n);
+  f = tuple(factors(l));
+  l = lam(n);
+  f = tuple(factors(l));
+  def order(x) :
+    x = x%n;
+    if gcd(x,n) != 1 : return 0;
+    o = l;
+    for p in f :
+      while not o%p :
+        if pow(x,o//p,n) != 1 : break;
+        o //= p;
+    return o;
+  return order;

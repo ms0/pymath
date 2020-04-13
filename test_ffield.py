@@ -6,7 +6,7 @@ if sys.version_info>(3,) :
 from random import randrange, sample
 from itertools import chain
 
-from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, factor, unfactor, factors, zits
+from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, factor, unfactor, factors, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder
 from matrix import *
 from poly import *
 
@@ -24,6 +24,10 @@ def ceq(c,*v) :
 
 def cvs(g) :
   return ''.join(map(lambda x: zits[x],unpack(g.p,g.x)));
+
+def dotprint(s='.') :
+  sys.stdout.write(s);
+  sys.stdout.flush();
 
 def find_irr(p,n) :
   if n <= 1 : return 0;
@@ -192,18 +196,81 @@ def isgenerator(x) :
     if not x**(o//q)-1 : return False;
   return True;
 
-def ftest(m=2**12) :
-  for n in xrange(1,m+1) :
-    f = tuple(factor(n));
-    if unfactor(f) != n :
-      print('unfactor(factor(%d)) failed'%(n));
-    for p,k in f :
-      if not isprime(p) :
-        print('non primepower factor %d**%d in factor(%d)'%(p,k,n));
-        break;
+def ftest(*args) :
+  dotprint('factor test');
+  for a in args :
+    try :
+      for n in a : ftest1(n);
+    except TypeError:
+      ftest1(a);
+    dotprint();
+  print();
+
+def ftest1(n) :
+  f = tuple(factor(n));
+  if unfactor(f) != n :
+    print('unfactor(factor(%d)) failed'%(n));
+  for p,k in f :
+    if not isprime(p) :
+      print('non primepower factor %d**%d in factor(%d)'%(p,k,n));
+      break;
+
+def gtest() :
+  dotprint('gcda/lcma test');
+  for i in xrange(32) :
+    r = randrange(1,16);
+    gtest1(tuple(randrange(1,1<<48) for _ in xrange(r)));
+    dotprint();
+  print();
+
+def gtest1(a) :
+  m = lcma(a);
+  qs = [];
+  for n in a :
+    q,r = divmod(m,n);
+    if r :
+      print('lcm(%s) not a multiple of %d'%(args,n));
+      break;
+    qs.append(q);
+  else :
+    g = gcda(qs);
+    if g > 1 :
+      print('lcm(%s) too big by factor of %d'%(args,g));
+
+def dtest() :
+  dotprint('phi,lam,numdivisors,sigma,divisors,getorder test');
+  for n in xrange(1,211) :
+    dtest1(n);
+  print();
+
+def dtest1(n) :
+  order = getorder(n);
+  l = 0;     # largest order
+  c = 0;     # count of elements of Zn*
+  d = set(); # divisors
+  for i in xrange(1,n+1) :
+    o = order(i);
+    if o :
+      l = max(l,o);
+      c += 1;
+    if o < 2 and not n%i :
+      d.add(i);
+  if phi(n) != c :
+    print('phi(%d) != %d'%(n,c));
+  if numdivisors(n) != len(d) :
+    print('numdivisors(%d) != %d'%(n,len(d)));
+  if sigma(n) != sum(d) :
+    print('sigma(%d) != %d'%(n,sum(d)));
+  if lam(n) != l :
+    print('lam(%d) != %d'%(n,l));
+  if set(divisors(n)) != d :
+    print('divisors(%d) incorrect'%(n));
+
 
 if __name__=='__main__' :
-  ftest();
+  gtest();
+  dtest();
+  ftest(xrange(1,2**12+2),(2**i-1 for i in xrange(13,65)),(2**i+1 for i in xrange(13,65)));
   test(2,6);
   test(3,4);
   for p in xrange(MAXCHAR) :
