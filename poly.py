@@ -458,8 +458,22 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
     for x in self :
       types.add(x.__class__);
     if set() < types <= REAL and not types <= RATIONAL :
-      for k,v in iteritems(self.mapcoeffs(rational).factor()) :
-        facdict[k.mapcoeffs(int_float)] += v;
+      if types <= INT :
+        for k,v in iteritems(self.mapcoeffs(rational).factor()) :
+          facdict[k.mapcoeffs(int_float)] += v;
+      else :
+        f = 1;
+        for k,v in iteritems(self.mapcoeffs(rational).factor()) :
+          if not k.degree :
+            f *= k._p[0]**v;
+          elif k.degree > 0 :
+            c = k._p[0];
+            if c != 1 :
+              f *= c**v;
+              k /= c;
+            facdict[k.mapcoeffs(int_float)] += v;
+        if f != 1 :
+          facdict[polynomial(int_float(f))] += 1;
       return facdict;
     elif types <= COMPLEX and not types <= XRATIONAL :
       for k,v in iteritems(self.mapcoeffs(xrational).factor()) :
