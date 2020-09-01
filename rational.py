@@ -212,7 +212,7 @@ Methods:
   __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
-  __divmod__, __rdivmod__, __lshift__, __rshift__,
+  __divmod__, __rdivmod__, __lshift__, __rlshift__, __rshift__, __rrshift__,
   __pow__, __rpow__, log, exp, cf, approximate"""
 
   def __new__(cls,a=0,b=1,_gcd_=True) :
@@ -695,9 +695,19 @@ a following >> indicates division by the indicated power of the base"""
     """Return the product of self and 2**other, for other an integer"""
     return self.__class__(self._a<<other,self._b) if other > 0 else self>>-other if other else self;
 
+  def __rlshift__(self,other) :
+    if self._b != 1 or not isint(other):
+      return NotImplemented;
+    return other>>-self._a if self._a < 0 else other<<self._a;
+
   def __rshift__(self,other) :
     """Return the quotient of self and 2**other, for other an integer"""
     return self.__class__(self._a,self._b<<other) if other > 0 else self<<-other if other else self;
+
+  def __rrshift__(self,other) :
+    if self._b != 1 or not isint(other):
+      return NotImplemented;
+    return other<<-self._a if self._a < 0 else other>>self._a;
 
   def __float__(self) :
     """Return a floating point approximation to the number"""
