@@ -373,7 +373,7 @@ any * scalar :  scalar multiply
   def __itruediv__(self,other) :
     """Divide self by other"""
     if isinstance(other,matrix) :
-      if len(matrix.__v) == 1 :
+      if len(other.__v) == 1 :
         return self._scalardiv(other.__v[0]);
       if len(self.__dims) == 2 and self.__dims[0] == self.__dims[1] :
         return self.__imul__(other**-1);
