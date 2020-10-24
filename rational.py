@@ -210,6 +210,7 @@ Methods:
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
   __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm, abs2,
   __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
+  gaussian, lipschitz, hurwitz,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rlshift__, __rshift__, __rrshift__,
@@ -756,6 +757,12 @@ a following >> indicates division by the indicated power of the base"""
     except :
       return self;
 
+  def gaussian(self) :
+    """Return the integer nearest self"""
+    return self.__class__(-int(_half-self) if self._a < 0 else int(_half+self));
+
+  hurwitz = lipschitz = gaussian
+
   def tonx(self,n,base=10) :
     """Return (0,0) if self == 0; else
 Return (t,x) with base**(n-1) <= |t| < base**n and |t-self/base**x| <= 1/2"""
@@ -866,6 +873,7 @@ Methods:
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
    __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm, abs2,
   __int__, __float__, __complex__, __trunc__, __round__,
+  gaussian, lipschitz, hurwitz,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__,
@@ -1094,33 +1102,31 @@ If real is a string (and imag==0), return xrational(rational(real))"""
   __truediv__ = __div__
   __rtruediv__ = __rdiv__
 
-  if sys.version_info[0] < 3 :
+  def __floordiv__(self,other) :
+    """Return Gaussian integer nearest to self/other"""
+    return (self/other).gaussian();
 
-    def __floordiv__(self,other) :
-      """Return the floor of the real part of self/other"""
-      return self.__class__((self/other).real.__floor__());
+  def __rfloordiv__(self,other) :
+    """Return Gaussian integer nearest to other/self"""
+    return (other/self).gaussian();
 
-    def __rfloordiv__(self,other) :
-      """Return the floor of the real part of other/self"""
-      return self.__class__((other/self).real.__floor__());
+  def __mod__(self,other) :
+    """Return the remainder from floordiv"""
+    return self-self//other*other;
 
-    def __mod__(self,other) :
-      """Return the remainder from floordiv"""
-      return self-self//other*other;
+  def __rmod__(self,other) :
+    """Return the remainder from rfloordiv"""
+    return other-other//self*self;
 
-    def __rmod__(self,other) :
-      """Return the remainder from rfloordiv"""
-      return other-other//self*self;
+  def __divmod__(self,other) :
+    """Return quotient and remainder"""
+    q = self//other;
+    return (q, self-q*other);
 
-    def __divmod__(self,other) :
-      """Return quotient and remainder"""
-      q = self//other;
-      return (q, self-q*other);
-
-    def __rdivmod__(self,other) :
-      """Return quotient and remainder"""
-      q = other//self;
-      return (q, other-q*self);
+  def __rdivmod__(self,other) :
+    """Return quotient and remainder"""
+    q = other//self;
+    return (q, other-q*self);
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
@@ -1172,6 +1178,12 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return result of separately rounding real and imaginary parts"""
     return self.__class__(self._a.__round__(n,base),self._b.__round__(n,base));
 
+  def gaussian(self) :
+    """Return Gaussian integer nearest to self"""
+    return self.__class__(self._a.gaussian(),self._b.gaussian());
+
+  hurwitz = lipschitz = gaussian
+
   def arg(self,ratio=False) :
     """Return the argument of self; if ratio, as a fraction of 2pi"""
     x,y = self._a,self._b;
@@ -1221,10 +1233,12 @@ Instance variables (read only):
 Methods:
   __new__, __init__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-   __pos__, __neg__, __abs__, __invert__, conjugate, versor, maxnorm, abs2,
+  __pos__, __neg__, __abs__, __invert__, conjugate, versor, maxnorm, abs2,
   __int__, __float__, __complex__, __trunc__, __round__,
+  gaussian, lipschitz, hurwitz,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
-  __truediv__, __rtruediv__, __lshift__, __rshift__,
+  __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
+  __divmod__, __rdivmod__, __lshift__, __rshift__,
   __pow__, __rpow__, log, exp, approximate"""
 
   def __new__(cls,*args) :
@@ -1510,6 +1524,32 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   __rdiv__ = __rtruediv__
   __idiv__ = __itruediv__
 
+  def __floordiv__(self,other) :
+    """Return Hurwitz integer nearest to self/other"""
+    return (self/other).hurwitz();
+
+  def __rfloordiv__(self,other) :
+    """Return Hurwitz integer nearest to other/self"""
+    return (other/self).hurwitz();
+
+  def __mod__(self,other) :
+    """Return the remainder from floordiv"""
+    return self-self//other*other;
+
+  def __rmod__(self,other) :
+    """Return the remainder from rfloordiv"""
+    return other-other//self*self;
+
+  def __divmod__(self,other) :
+    """Return quotient and remainder"""
+    q = self//other;
+    return (q, self-q*other);
+
+  def __rdivmod__(self,other) :
+    """Return quotient and remainder"""
+    q = other//self;
+    return (q, other-q*self);
+
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
     try :
@@ -1563,6 +1603,19 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def __round__(self,n=0,base=10) :
     """Return result of separately rounding all parts"""
     return self.__class__(*(a.__round__(n,base) for a in self.__v));
+
+  def lipschitz(self) :
+    """Return nearest Lipschitz integer to self"""
+    return self.__class__(*(a.gaussian() for a in self.__v));
+
+  gaussian = lipschitz
+
+  def hurwitz(self) :
+    """Return nearest Hurwitz integer to self"""
+    x = self.lipschitz();
+    d = self-x;
+    y = x+qrational(*(rational(sgn(x) or 1,2) for x in d.__v));
+    return y if d.abs2() > (self-y).abs2() else x;
 
   def exp(self) :
     """Return exp(self)"""
@@ -2245,3 +2298,22 @@ and specified algorithm ('midpoint','trapezoid',or 'simpson')"""
   else :
     raise ValueError('unrecognized algorithm');
   return s.approximate(1<<(_SIGNIFICANCE+8));
+
+def xgcd(a,b) :
+  """Return g,c,d where g=ca+db is the gcd of a and b"""
+  c,d,e,f = 1,0,0,1;
+  while b :
+    q,r= divmod(a,b);
+    a,c,d,b,e,f = b,e,f,r,c-q*e,d-q*f;
+  if not a : return (0,0,0);
+  if isinstance(a,(xrational,qrational)) :
+    if a.real :
+      q = sgn(a.real);
+    elif a.imag :
+      q = xrational(0,-sgn(a.imag));
+    elif a.j :
+      q = qrational(0,-sgn(a.j),0);
+    else :
+      q = qrational(0,0,-sgn(a.k));
+    return (rational(q*a),rational(q*c),rational(q*d));
+  return (-a,-c,-d) if a.real < 0 else (a,c,d);
