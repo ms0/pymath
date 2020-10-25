@@ -1651,6 +1651,7 @@ _minf=rational(-1,0);
 _nan=rational(0,0);
 _i=xrational(_0,_1);
 _half = rational(1,2);
+_mhalf = rational(-1,2);
 _hi = xrational(_0,_half);
 
 inf = _pinf;
@@ -1944,7 +1945,7 @@ def acosh(x) :
 def asinh(x) :
   """Return the inverse hyperbolic sine of x"""
   x = rational(x);
-  return -_i*asin(_i*x) if x.imag else sgn(x)*atanh((_1+_1/(x*x))**-_half) if x else x;
+  return -_i*asin(_i*x) if x.imag else sgn(x)*atanh((_1+_1/(x*x))**_mhalf) if x else x;
 
 # random math functions
 
@@ -2308,7 +2309,14 @@ def xgcd(a,b) :
   if not a : return (0,0,0);
   if isinstance(a,(xrational,qrational)) :
     if a.real :
-      q = sgn(a.real);
+      if isinstance(a,qrational) and \
+          abs(a.sv[0])==abs(a.sv[1])==abs(a.sv[2])==abs(a.sv[3]) :
+        q = qrational(_half if a.sv[0] > 0 else _mhalf,
+                      _mhalf if a.sv[1] > 0 else _half,
+                      _mhalf if a.sv[2] > 0 else _half,
+                      _mhalf if a.sv[3] > 0 else _half);
+      else :
+        q = sgn(a.real);
     elif a.imag :
       q = xrational(0,-sgn(a.imag));
     elif a.j :
