@@ -96,7 +96,6 @@ def testops1(v) :
   ceq('-1*v[0] == -v[0]',v[:1])
   if isinstance(v[0],(xrational,qrational)) :
     ceq('not v[0] or abs(((v[0]*~v[0])-abs(v[0])**2)/(v[0]*~v[0]))<<set_significance() < 1',v[:1])
-  ceq('type(v[0])==type(v[1]) and v[0]==v[0]',(v[0],eval(repr(v[0]))));
 
 def testops2(v) :
   ceq('v[0]+v[1] == v[1]+v[0]',v[:2])
@@ -104,6 +103,17 @@ def testops2(v) :
     ceq('v[0]*v[1] == v[1]*v[0]',v[:2])
   ceq('not v[1] or v[0]/v[1]*v[1] == v[0]',v[:2])
   ceq('v[0]-v[1]+v[1] == v[0]',v[:2])
+  ceq('type(v[0])==type(v[1]) and v[0]==v[0]',(v[0],eval(repr(v[0]))));
+  if v[1] :
+    ceq('v[0]//v[1]*v[1]+v[0]%v[1]==v[0]',v[:2]);
+    ceq('v[0]//v[1]==(v[0]//v[1]).hurwitz()',v[:2]);
+    ceq('(v[0]%v[1]).abs2() < v[1].abs2()',v[:2]);
+    ceq('divmod(v[0],v[1])==(v[0]//v[1],v[0]%v[1])',v[:2]);
+  # remainder of tests require integers of some kind
+  v = (v[0].hurwitz(),v[1].hurwitz());
+  ceq('xgcd(v[0],v[1])[0] == xgcd(v[0],v[1])[1]*v[0]+xgcd(v[0],v[1])[2]*v[1]',v[:2]);
+  if v[0] or v[1] :
+    ceq('not v[0]%xgcd(v[0],v[1])[0] and not v[1]%xgcd(v[0],v[1])[0]',v[:2]);
 
 def testops3(v) :
   ceq('(v[0]+v[1])+v[2] == v[0]+(v[1]+v[2])',v)

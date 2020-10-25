@@ -1,4 +1,14 @@
-# class rational, implementing Q, the field of rational numbers
+# class rational, implementing Q, the field of rational numbers,
+#   including support for Z, the ring of integers
+# class xrational, implementing Q(i), the field of complex rationals,
+#   including support for Z(i), the ring of Gaussian integers
+# class qrational, implementing the skew field of rational quaternions,
+#   including support for the ring of Hurwitz integers
+# rational approximations of various constants and functions, including
+# numerous math functions for rational, xrational, and sometimes qrational,
+#   equivalent to those for float provided by "include math"
+# xgcd (extended euclidean algorithm), for various classes,
+#   including int, rational, xrational, and qrational
 
 from __future__ import division
 
@@ -533,7 +543,7 @@ a following >> indicates division by the indicated power of the base"""
       if isint(other) :
         return self.__class__(self._a*other,self._b) if self._a else self if other >= 0 else -self;
       try :
-        return self*self.__class__(other);
+        return self.__class__(other).__rmul__(self);
       except :
         return NotImplemented;
     if not self._a and not other._b or not other._a and not self._b : return _nan;
@@ -552,7 +562,7 @@ a following >> indicates division by the indicated power of the base"""
         return self.__class__(self._a,other*self._b) if self._b else \
           self if other >= 0 else -self;
       try :
-        return self/self.__class__(other);
+        return self.__class__(other).__rtruediv__(self);
       except :
         return NotImplemented;
     a,b = self._a*other._b,self._b*other._a;
@@ -591,7 +601,7 @@ a following >> indicates division by the indicated power of the base"""
       if isint(other) :
         return self.__class__(self._a//(self._b*other));
       try :
-        return self//self.__class__(other);
+        return self.__class__(other).__rfloordiv__(self);
       except :
         return NotImplemented;
     if not other._b or not other: return _nan;
@@ -611,7 +621,7 @@ a following >> indicates division by the indicated power of the base"""
   def __mod__(self,other) :
     """Return the remainder from floordiv"""
     q = self//other;
-    return self - q*other if q._b else _0 if q._a else _nan;
+    return self-q*other;
 
   def __rmod__(self,other) :
     """Return the remainder from rfloordiv"""
@@ -620,12 +630,12 @@ a following >> indicates division by the indicated power of the base"""
   def __divmod__(self,other) :
     """Return quotient and remainder"""
     q = self//other;
-    return (q, self-q*other if q._b else _0 if q._a else _nan);
+    return (q, self-q*other);
 
   def __rdivmod__(self,other) :
     """Return quotient and remainder"""
     q = other//self;
-    return (q, other-q*self if q._b else _0 if q._a else _nan);
+    return (q, other-q*self);
 
   def __pow__(self,other) :
     """Return a number raised to a power; integer powers give exact answer"""
@@ -758,8 +768,10 @@ a following >> indicates division by the indicated power of the base"""
       return self;
 
   def gaussian(self) :
-    """Return the integer nearest self"""
-    return self.__class__(-int(_half-self) if self._a < 0 else int(_half+self));
+    """Return the integer nearest self, round toward 0"""
+    return self.__class__(
+      -(((-self._a<<1)+self._b-1)//(self._b<<1)) if self._a < 0 else
+      ((self._a<<1)+self._b-1)//(self._b<<1)) if self else _0;
 
   hurwitz = lipschitz = gaussian
 
@@ -1041,7 +1053,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return the sum of the two numbers"""
     if not isinstance(other,self.__class__) :
       try :
-        return self+self.__class__(other);
+        return self.__class__(other).__radd__(self);
       except :
         return NotImplemented;
     return self.__class__(self._a+other._a,self._b+other._b);
@@ -1052,7 +1064,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return the difference of the two numbers"""
     if not isinstance(other,self.__class__) :
       try :
-        return self-self.__class__(other);
+        return self.__class__(other).__rsub__(self);
       except :
         return NotImplemented;
     return self.__class__(self._a-other._a,self._b-other._b);
@@ -1068,7 +1080,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return the product of the two numbers"""
     if not isinstance(other,self.__class__) :
       try :
-       return self*self.__class__(other);
+       return self.__class__(other).__rmul__(self);
       except :
         return NotImplemented;
     return self.__class__(self._a*other._a-self._b*other._b,self._a*other._b+self._b*other._a);
@@ -1103,12 +1115,12 @@ If real is a string (and imag==0), return xrational(rational(real))"""
   __rtruediv__ = __rdiv__
 
   def __floordiv__(self,other) :
-    """Return Gaussian integer nearest to self/other"""
-    return (self/other).gaussian();
+    """Return Gaussian or Hurwitz integer nearest to self/other"""
+    return (self/other).hurwitz();
 
   def __rfloordiv__(self,other) :
-    """Return Gaussian integer nearest to other/self"""
-    return (other/self).gaussian();
+    """Return Gaussian or Hurwitz integer nearest to other/self"""
+    return (other/self).hurwitz();
 
   def __mod__(self,other) :
     """Return the remainder from floordiv"""
@@ -1613,9 +1625,12 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def hurwitz(self) :
     """Return nearest Hurwitz integer to self"""
     x = self.lipschitz();
-    d = self-x;
-    y = x+qrational(*(rational(sgn(x) or 1,2) for x in d.__v));
-    return y if d.abs2() > (self-y).abs2() else x;
+    y = self.__class__(
+      *(a if a._b==2 else
+        rational(-((-a._a//a._b<<1)|1) if a._a < 0 else (a._a//a._b<<1)|1,
+                 2, False)
+        for a in self.__v));
+    return y if (self-x).abs2() > (self-y).abs2() else x;
 
   def exp(self) :
     """Return exp(self)"""
