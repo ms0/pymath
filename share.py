@@ -1,15 +1,22 @@
 """ secret sharing """
 
+import sys
+
 from ffield import *
 from matrix import *
 from random import randrange
 
 if sys.version_info[0] < 3 :
   zp = zip;
+  mp = map;
 else :
   def zp(*x) :
     """Python 2 version of zip"""
     return list(zip(*x));
+
+  def mp(*x) :
+    """Python 2 version of map"""
+    return list(map(*x));
 
 def hexify(r) :
   """Given a finite field, make its __str__ output in hex"""
@@ -35,7 +42,7 @@ a number of shares n, and the required number of shares k,
 return a list of n pairs (sharer,share)
 any k of which can recover the secret.
 Note that built-in numeric classes might not recover the secret exactly."""
-  sharers = map(s.__class__,range(1,n+1));
+  sharers = mp(s.__class__,range(1,n+1));
   try :
     pn = s.p**s.n;
   except :
