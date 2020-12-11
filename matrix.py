@@ -439,7 +439,6 @@ any * scalar :  scalar multiply
     n = self.__dims[0];
     if len(self.__dims) != 2 or n != self.__dims[1] :
       return TypeError('exponent must be square matrix');
-    n2 = n*n;
     P = math.log(b)*self;
     S = self.Identity(n);
     M = self.Identity(n);
@@ -772,7 +771,7 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
       if len(self.__dims) != 2 or n != self.__dims[1] :
         raise AttributeError('requires square matrix') ;
       n2 = n*n;
-      v = [0]*(n2);
+      v = [0]*n2;
       v[0::(n+1)] = (1,)*n;
       v += self.__v;
       for c in xrange(n) :
@@ -797,7 +796,7 @@ dims, tr(ace), T or transpose, det(erminant), or inverse"""
           x = v[n2+r+n*c];
           for cc in xrange(n) :
             v[r+n*cc] -= x*v[c+n*cc];
-      return matrix(n,n,v[0:n*n]);
+      return matrix(n,n,v[0:n2]);
 
     raise AttributeError('matrix object has no attribute '+name);
 
