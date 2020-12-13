@@ -1068,17 +1068,17 @@ def divisors(n) :
 
 def lcm(x,y) :
   """Return the [positive] least common multiple of x and y"""
-  return abs(x//gcd(x,y)*y);
+  return abs(x//(gcd(x,y) or 1)*y);
 
 def lcma(*args) :
   """Return the [positive] least common multiple of all the arguments"""
   m = 1;
   for a in args :
     try :
-      m *= a//gcd(m,a);
+      m *= a//(gcd(m,a) or 1);
     except :
       for i in a :
-        m *= i//gcd(m,i);
+        m *= i//(gcd(m,i) or 1);
   return abs(m);
 
 def gcda(*args) :
