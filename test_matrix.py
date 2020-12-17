@@ -20,7 +20,7 @@ def testcp(dim,verbose=False) :    # characteristic polynomial test
             %(cp.denominator.mapcoeffs(complex)));
       verbose=True;
     cp = cp.numerator;
-  except :
+  except Exception :
     pass;    # was already polynomial
   Md = M.det;
   if verbose or cp(0) != Md or cp(M) :

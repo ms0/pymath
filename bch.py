@@ -4,7 +4,7 @@ from __future__ import division
 
 from ffield import ffield,primepower
 from poly import *
-from fractions import gcd
+from rational import gcd
 from random import randrange
 from matrix import bmatrix
 
@@ -22,7 +22,7 @@ def bch(q,n,d,c=1) :
    converting results back to GF(q) will not be unique."""
   try :
     p,k = primepower(q);
-  except :
+  except Exception :
     raise ValueError('q must be a prime power');
   if not 2 <= d <= n : raise ValueError('must have 2 <= d <= n');
   if gcd(n,p) != 1 : raise ValueError('n and q must be coprime');

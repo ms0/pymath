@@ -55,7 +55,7 @@ else :
 try :
   int.bit_length;
   bit_length = lambda n : n.bit_length();
-except :
+except Exception :
   def bit_length(n) :
     n = abs(n);
     b = 0;
@@ -77,7 +77,7 @@ def sgn(x) :
 
 try :
   from math import gcd
-except :
+except Exception :
   def gcd(x,y) :
     """Return the [nonnegative] greatest common divisor of x and y"""
     while y :
@@ -113,7 +113,7 @@ def _parsenum(s,b=10) :
     try :
       d = _zits.index(c,0,b);
       n = b*n + d;
-    except :
+    except Exception :
       if c == '.' :
         if p != None : raise ValueError('only one point is allowed');
         p = i;
@@ -131,7 +131,7 @@ def _parsebasenum(s) :
   try :
     q = ('inf','nan').index(s[:3]);
     return (_pinf,_nan)[q],s[3:];
-  except :
+  except Exception :
     pass;
   n,s = _parsenum(s);
   s = s.lstrip();
@@ -158,7 +158,7 @@ def _parseshift(s) :
   s = s.lstrip();
   try :
     q = 1-2*('<<','>>').index(s[:2]);
-  except :
+  except Exception :
     q = 0;
   if q :
     p,s = _parseint(s[2:]);
@@ -170,7 +170,7 @@ def _parsesign(s) :
   try :
     q = 1-2*('+-').index(s[:1]);
     s = s[1:]
-  except :
+  except Exception :
     q = 1;
   return q,s;
 
@@ -197,7 +197,7 @@ def _parserat(s) :
       try :
         x = 'ijk'.index(s[0]);
         s = s[1:].lstrip();
-      except :
+      except Exception :
         raise ValueError('improper termination');
     else :
       x = -1;
@@ -261,7 +261,7 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
             if not isrational(i) :
               try :
                 i = rational(i);
-              except :
+              except Exception :
                 raise ValueError('cf terms must be rational');
             if not isint(i) and not i.imag and i.real._b == 1 :
               i = int(i);
@@ -321,12 +321,12 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     if not a :
       try :
         return _0 if b > 0 else _m0 if b else _nan;
-      except :
+      except Exception :
         pass;    # happens exactly once for each of (+0,-0,nan)!
     elif not b :
       try :
         return _minf if a < 0 else _pinf;
-      except :
+      except Exception :
         pass;    # happens exactly once for each of (+inf,-inf)!
     self = super(rational,cls).__new__(cls);
     self._a,self._b = a,b;
@@ -376,7 +376,7 @@ a following >> indicates division by the indicated power of the base"""
     """Return a hash for the rational number; if convertible to float, use that hash"""
     try :
       return hash(self._a) if self._b == 1 else hash(self._a/self._b);
-    except :
+    except Exception :
       return hash((self.cf if self._b else self.__float__)());
 
   def __getattr__(self,name) :
@@ -506,7 +506,7 @@ a following >> indicates division by the indicated power of the base"""
     if not isinstance(other,self.__class__) :
       try :
         return self.__class__(other).__radd__(self);
-      except :
+      except Exception :
         return NotImplemented;
     if not other._b :
       return other if other._a and self is not -other else _nan;
@@ -522,7 +522,7 @@ a following >> indicates division by the indicated power of the base"""
     if not isinstance(other,self.__class__) :
       try :
         return self.__class__(other).__rsub__(self);
-      except :
+      except Exception :
         return NotImplemented;
     if not other._b :
       return -other if other._a and self is not other else _nan;
@@ -534,7 +534,7 @@ a following >> indicates division by the indicated power of the base"""
     """Return the difference of the swapped two numbers"""
     try :
       return self.__class__(other)-self;
-    except :
+    except Exception :
       return NotImplemented;
 
   def __mul__(self,other) :
@@ -544,7 +544,7 @@ a following >> indicates division by the indicated power of the base"""
         return self.__class__(self._a*other,self._b) if self._a else self if other >= 0 else -self;
       try :
         return self.__class__(other).__rmul__(self);
-      except :
+      except Exception :
         return NotImplemented;
     if not self._a and not other._b or not other._a and not self._b : return _nan;
     if not self._a :
@@ -563,7 +563,7 @@ a following >> indicates division by the indicated power of the base"""
           self if other >= 0 else -self;
       try :
         return self.__class__(other).__rtruediv__(self);
-      except :
+      except Exception :
         return NotImplemented;
     a,b = self._a*other._b,self._b*other._a;
     if not a and not b : return _nan;
@@ -580,7 +580,7 @@ a following >> indicates division by the indicated power of the base"""
         return self.__class__(other*self._b,self._a if self._b or other >= 0 else -self._a,_gcd_=abs(other)!=1)
       try :
         return self.__class__(other)/self;
-      except :
+      except Exception :
         return NotImplemented;
     a,b =self._b*other._a,self._a*other._b;
     if not a and not b : return _nan;
@@ -602,7 +602,7 @@ a following >> indicates division by the indicated power of the base"""
         return self.__class__(self._a//(self._b*other));
       try :
         return self.__class__(other).__rfloordiv__(self);
-      except :
+      except Exception :
         return NotImplemented;
     if not other._b or not other: return _nan;
     return self.__class__((self._a*other._b)//(self._b*other._a));
@@ -614,7 +614,7 @@ a following >> indicates division by the indicated power of the base"""
         return self.__class__((self._b*other)//self._a);
       try :
         return self.__class__(other)//self;
-      except :
+      except Exception :
         return NotImplemented;
     return other//self;
 
@@ -642,7 +642,7 @@ a following >> indicates division by the indicated power of the base"""
     if self is _nan : return _nan;
     try :
       other = self.__class__(other);
-    except :
+    except Exception :
       return NotImplemented;
     if not other.real is other :
       return other.__rpow__(self);
@@ -698,7 +698,7 @@ a following >> indicates division by the indicated power of the base"""
   def __rpow__(self,other) :
     try :
       other = self.__class__(other);
-    except :
+    except Exception :
       return NotImplemented;
     return other**self;
 
@@ -739,14 +739,14 @@ a following >> indicates division by the indicated power of the base"""
     """Return the floor of the number"""
     try :
       return int(self._a//self._b);
-    except :
+    except Exception :
       return self;
 
   def __ceil__(self) :
     """Return the ceil of the number"""
     try :
       return int(-(-self._a//self._b));
-    except :
+    except Exception :
       return self;
 
   def __round__(self,n=None,base=10) :
@@ -764,7 +764,7 @@ a following >> indicates division by the indicated power of the base"""
                self.__class__(int((self/base2absn + _half)*base2absn))) if n < 0 else
               self.__class__(-int(_half - self*base2absn),base2absn) if self._a < 0 else
               self.__class__(int(_half + self*base2absn),base2absn));
-    except :
+    except Exception :
       return self;
 
   def gaussian(self) :
@@ -910,7 +910,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       real = rational(real);
       imag = rational(imag);
       if real.imag or imag.imag : raise TypeError;
-    except :
+    except Exception :
       raise TypeError('args must be convertible to rationals');
     self = super(xrational,cls).__new__(cls);
     self._a,self._b = real,imag;
@@ -945,7 +945,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return a hash for the xrational number; if convertible to complex, use that hash"""
     try :
       return hash(complex(self._a,self._b));
-    except :
+    except Exception :
       return hash((self._a,self._b));
 
   def __getattr__(self,name) :
@@ -968,7 +968,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     try :
       other = self.__class__(other);
       return self._a == other._a and self._b == other._b;
-    except :
+    except Exception :
       return NotImplemented;
 
   def __ne__(self,other) :
@@ -978,7 +978,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     try :
       other = self.__class__(other);
       return self._a != other._a or self._b != other._b;
-    except :
+    except Exception :
       return NotImplemented;
 
   def __lt__(self,other) :
@@ -1054,7 +1054,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     if not isinstance(other,self.__class__) :
       try :
         return self.__class__(other).__radd__(self);
-      except :
+      except Exception :
         return NotImplemented;
     return self.__class__(self._a+other._a,self._b+other._b);
 
@@ -1065,7 +1065,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     if not isinstance(other,self.__class__) :
       try :
         return self.__class__(other).__rsub__(self);
-      except :
+      except Exception :
         return NotImplemented;
     return self.__class__(self._a-other._a,self._b-other._b);
 
@@ -1073,7 +1073,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return the difference of the swapped two numbers"""
     try :
       return self.__class__(other)-self;
-    except :
+    except Exception :
       return NotImplemented;
 
   def __mul__(self,other) :
@@ -1081,7 +1081,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     if not isinstance(other,self.__class__) :
       try :
        return self.__class__(other).__rmul__(self);
-      except :
+      except Exception :
         return NotImplemented;
     return self.__class__(self._a*other._a-self._b*other._b,self._a*other._b+self._b*other._a);
 
@@ -1095,7 +1095,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
         return self.__class__(self._a/other,self._b/other);
       if not isinstance(other,self.__class__) :
         return NotImplemented;
-    except :
+    except Exception :
       return NotImplemented;
     d = other._a*other._a + other._b*other._b;
     return self.__class__((self._a*other._a+self._b*other._b)/d,(self._b*other._a-self._a*other._b)/d);
@@ -1107,7 +1107,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
       if other is other.real :
         a = other/(self._a*self._a + self._b*self._b);
         return self.__class__(self._a*a,-self._b*a);
-    except :
+    except Exception :
       return NotImplemented;
     return other/self;
 
@@ -1144,7 +1144,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return a number raised to a power; integer powers give exact answer"""
     try :
       other = rational(other);
-    except :
+    except Exception :
       return NotImplemented;
     if other is other.real :
       if not other : return _1;
@@ -1174,7 +1174,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return a power of a number; integer powers give exact answer"""
     try :
       other = self.__class__(other);
-    except :
+    except Exception :
       return NontImplemented;
     return other**self;
 
@@ -1321,7 +1321,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     if not any(self.__v[2:]) :    # real or complex
       try :
         return hash(complex(*self.__v[0:2])) if self.__v[1] else hash(self.__v[0]);
-      except :
+      except Exception :
         pass;
     return hash(tuple(self.__v));
 
@@ -1350,7 +1350,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
       return False;
     try :
       return self.__v == self.__class__(other).__v;
-    except :
+    except Exception :
       return NotImplemented;
 
   def __ne__(self,other) :
@@ -1358,7 +1358,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
       return True;
     try :
       return self.__v != self.__class__(other).__v;
-    except :
+    except Exception :
       return NotImplemented;
 
   def __lt__(self,other) :
@@ -1435,7 +1435,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     """Return the sum of the two numbers"""
     try :
       other = self.__class__(other);
-    except :
+    except Exception :
       return NotImplemented;
     return self.__class__(*(x+y for x,y in zip(self.__v,other.__v)));
 
@@ -1447,7 +1447,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     """Return the difference of the two numbers"""
     try :
       other = self.__class__(other);
-    except :
+    except Exception :
       return NotImplemented;
     return self.__class__(*(x-y for x,y in zip(self.__v,other.__v)));
 
@@ -1457,7 +1457,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     """Return the difference of the swapped two numbers"""
     try :
       other = self.__class__(other);
-    except :
+    except Exception :
       return NotImplemented;
     return self.__class__(*(x-y for x,y in zip(other.__v,self.__v)));
 
@@ -1467,7 +1467,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
       other = rational(other);
       if other is other.real :
         return self.__class__(*(v*other for v in self.__v));
-    except :
+    except Exception :
       return NotImplemented;
     other = self.__class__(other);
     return self.__class__(
@@ -1484,7 +1484,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
       other = rational(other);
       if other is other.real :
         return self.__class__(*(other*v for v in self.__v));
-    except :
+    except Exception :
       return NotImplemented;
     other = self.__class__(other);
     return self.__class__(
@@ -1514,7 +1514,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
       other = rational(other);
       if other is other.real :
         return self.__class__(*(v/other for v in self.__v));
-    except :
+    except Exception :
       return NotImplemented;
     return self.__mul__(other.__pow__(-1));
 
@@ -1526,7 +1526,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
         a = other/(self.__v[0]*self.__v[0] + self.__v[1]*self.__v[1] +
                    self.__v[2]*self.__v[2] + self.__v[3]*self.__v[3]);
         return self.__class__(self.__v[0]*a,-self.__v[1]*a,-self.__v[2]*a,-self.__v[3]*a);
-    except :
+    except Exception :
       return NotImplemented;
     return self.__class__(other).__truediv__(self);
 
@@ -1566,7 +1566,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     """Return a number raised to a power; integer powers give exact answer"""
     try :
       other = rational(other);
-    except :
+    except Exception :
       return NotImplemented;
     if other is other.real :
       if not self :      # special case zero
@@ -1600,7 +1600,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     """Return a power of a number; integer powers give exact answer"""
     try:
       other = self.__class__(other);
-    except:
+    except Exception :
       return NotImplemented;
     return other.__pow__(self);
 
@@ -1990,7 +1990,7 @@ def pow(x,y,z=None) :
   if z == None :
     try :
       return rational(x)**y;
-    except :
+    except Exception :
       pass;
   return _pow(x,y,z);
 
@@ -2076,7 +2076,7 @@ def _fsum(pa,na) :    # pa elements all >0, na elements all <0
   a = pa or na;
   try :
     s = a.pop();
-  except :
+  except Exception :
     return _0;
   while a :
     t = _SIGNIFICANCE+8+bit_length(len(a)-1);
@@ -2119,7 +2119,7 @@ def isinf(x) :
     return isinf(max(abs(x.real),abs(x.imag)));
   try :
     return x*2 == x and bool(x);
-  except :
+  except Exception :
     return False;
 
 def isfinite(x) :

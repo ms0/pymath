@@ -36,7 +36,7 @@ else :
 def altabs(x) :
   try :
     return abs(x);
-  except :
+  except Exception :
     return 1 if x else 0;
 
 class ParameterError(Exception) :

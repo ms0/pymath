@@ -24,7 +24,7 @@ from timeit import timeit, default_timer
 
 try :
   from timer import process_time
-except :
+except Exception :
   process_time = default_timer;
 
 R=Random();
@@ -379,7 +379,7 @@ def ttest(significance,header=True) :
     try :
       x = iter(x);
       return '(%s)'%(','.join(b(i) for i in x));
-    except :
+    except Exception :
       return (x-significance).bstr(3);
   print('%3d+  '%(significance)+'  '.join(map(b,r)));
 

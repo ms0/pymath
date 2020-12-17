@@ -45,7 +45,7 @@ Note that built-in numeric classes might not recover the secret exactly."""
   sharers = mp(s.__class__,range(1,n+1));
   try :
     pn = s.p**s.n;
-  except :
+  except Exception :
     pn = 1;
     while pn <= abs(s) : pn *= 2;
   return zp(sharers,Vandermonde(sharers,k)*([s]+[s.__class__(randrange(pn)) for i in range(k-1)]));

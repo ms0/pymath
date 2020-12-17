@@ -32,7 +32,7 @@ XRATIONAL = set((rational,xrational));
 try :
   int.bit_length;
   bit_length = lambda n : n.bit_length();
-except :
+except Exception :
   import math
   def bit_length(n) :
     n = abs(n);

@@ -80,7 +80,7 @@ quaternion(string) is the quaternion represented by that string"""
             v[x] = float(s) if '.' in s or 'e' in s or 'n' in s else int(s);
             t = x;
           args = tuple(v);
-        except :
+        except Exception :
           raise ValueError('invalid literal for quaternion()')
       elif iscomplex(args[0]) :
         args = (args[0].real,args[0].imag);
@@ -165,7 +165,7 @@ quaternion(string) is the quaternion represented by that string"""
     """Return the sum self+other"""
     try :
       other = quaternion(other);
-    except :
+    except Exception :
       return NotImplemented;
     return quaternion(*(a+b for a,b in zip(self.__v,other.__v)));
 
@@ -177,7 +177,7 @@ quaternion(string) is the quaternion represented by that string"""
     """Return the difference self-other"""
     try :
       other = quaternion(other);
-    except :
+    except Exception :
       return NotImplemented;
     return quaternion(*(a-b for a,b in zip(self.__v,other.__v)));
 
@@ -187,7 +187,7 @@ quaternion(string) is the quaternion represented by that string"""
     """Return the difference other-self"""
     try :
       other = quaternion(other);
-    except :
+    except Exception :
       return NotImplemented;
     return quaternion(*(b-a for a,b in zip(self.__v,other.__v)));
 
@@ -195,7 +195,7 @@ quaternion(string) is the quaternion represented by that string"""
     """Return the product self*other"""
     try :
       other = quaternion(other);
-    except :
+    except Exception :
       return NotImplemented;
     return quaternion(
       self.__v[0]*other.__v[0]
@@ -213,7 +213,7 @@ quaternion(string) is the quaternion represented by that string"""
     """Return the product other*self"""
     try :
       other = quaternion(other);
-    except :
+    except Exception :
       return NotImplemented;
     return quaternion(
       other.__v[0]*self.__v[0]
@@ -230,7 +230,7 @@ quaternion(string) is the quaternion represented by that string"""
     """Return the quotient self/other"""
     try :
       other = quaternion(other);
-    except :
+    except Exception :
       return NotImplemented;
     return self*other.__pow__(-1);
 
@@ -238,7 +238,7 @@ quaternion(string) is the quaternion represented by that string"""
     """Return the quotient other/self"""
     try :
       other = quaternion(other);
-    except :
+    except Exception :
       return NotImplemented;
     return other*self.__pow__(-1);
 

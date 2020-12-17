@@ -17,7 +17,7 @@ else :
 try :
   int.bit_length;
   bit_length = lambda n : n.bit_length();
-except :
+except Exception :
   import math
   def bit_length(n) :
     n = abs(n);
@@ -59,7 +59,7 @@ primalitytestlimit = 1<<24;    # limit for looking for (odd) divisor
 
 try :
   from math import gcd
-except :
+except Exception :
   def gcd(x,y) :
     """Return the [nonnegative] greatest common divisor of x and y"""
     while y :
@@ -772,7 +772,7 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
     x = (p,n,poly);
     try :
       return _ffield[x];
-    except :
+    except Exception :
       pass;
     d = dict(p=p,n=n,poly=poly,_tupoly=_tupoly,_nzi=_nzi,
              __init__=__init__,
@@ -1076,7 +1076,7 @@ def lcma(*args) :
   for a in args :
     try :
       m *= a//(gcd(m,a) or 1);
-    except :
+    except Exception :
       for i in a :
         m *= i//(gcd(m,i) or 1);
   return abs(m);
@@ -1087,7 +1087,7 @@ def gcda(*args) :
   for a in args :
     try :
       d = gcd(d,a);
-    except :
+    except Exception :
       for i in a :
         d = gcd(d,i);
   return d;
