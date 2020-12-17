@@ -377,7 +377,7 @@ a following >> indicates division by the indicated power of the base"""
     try :
       return hash(self._a) if self._b == 1 else hash(self._a/self._b);
     except :
-      return hash(self.cf());
+      return hash((self.cf if self._b else self.__float__)());
 
   def __getattr__(self,name) :
     if name in ('a','numerator') :
