@@ -1983,9 +1983,16 @@ each with x's sign, as rationals"""
   s = copysign(1,x);
   return s*f,s*i;
 
-def pow(x,y) :
-  """Return x**y"""
-  return rational(x)**y;
+_pow = pow;
+
+def pow(x,y,z=None) :
+  """Return x**y if z==None else use built-in pow(x,y,z)"""
+  if z == None :
+    try :
+      return rational(x)**y;
+    except :
+      pass;
+  return _pow(x,y,z);
 
 def sqrt(x) :
   """Return x**(1/2)"""
