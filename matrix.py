@@ -8,8 +8,17 @@ __all__ = ['matrix','bmatrix']
 
 import sys
 import types
-import math
-from fractions import gcd
+
+try :
+  from math import gcd
+except Exception :
+  def gcd(x,y) :
+    """Return the [nonnegative] greatest common divisor of x and y"""
+    while y :
+      x,y = y, x%y;
+    return abs(x);
+
+from math import log
 
 if sys.version_info[0] < 3 :
 
@@ -430,16 +439,22 @@ any * scalar :  scalar multiply
     return matrix(self).__ipow__(x);
 
   def __rpow__(self,b) :
-    """Return a positive real number b to a scalar or square matrix power"""
+    """Return scalar b to a square matrix power"""
     # base ** matrix
-    if not isreal(b) or not b > 0 :
-      return TypeError('base must be positive real');
     if len(self.__v) == 1 :
       return matrix(self.__dims,b**self.__v[0]);
     n = self.__dims[0];
     if len(self.__dims) != 2 or n != self.__dims[1] :
       return TypeError('exponent must be square matrix');
-    P = math.log(b)*self;
+    if not isreal(b) :
+      approximate = lambda x: x.significate(16);
+      logb = approximate(b.log());    # an exception here is legit
+    elif b > 0 :
+      logb = log(b);
+      approximate = None;
+    else :
+      return TypeError('base must be positive real');
+    P = logb*self;
     S = self.Identity(n);
     M = self.Identity(n);
     for x in xrange(1,10001) :
@@ -447,15 +462,18 @@ any * scalar :  scalar multiply
       M /= x;
       v = S.__v[:];
       S += M;
+      if approximate :
+        M.mapply(approximate);
+        S.mapply(approximate);
       if v == S.__v : break;
     return S;
 
   def __abs__(self) :
-    """Return the square root of the sum of the squares of the array elements"""
+    """Return the square root of the sum of the absolute squares of the array elements"""
     s = 0;
     for x in self.__v :
-      s += x*x;
-    return math.sqrt(s);
+      s += x*x.conjugate();
+    return s**.5;
 
   def __len__(self) :
     """Return the number of elements in the array"""

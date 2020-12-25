@@ -224,7 +224,7 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rlshift__, __rshift__, __rrshift__,
-  __pow__, __rpow__, log, exp, cf, approximate"""
+  __pow__, __rpow__, log, exp, cf, approximate, significate"""
 
   def __new__(cls,a=0,b=1,_gcd_=True) :
     """Create a rational number equal to a/b; 0/0 is nan; a/0 is sgn(a)*inf, 0/-1 is -0
@@ -871,6 +871,10 @@ Return x with least denominator such that |(1-x/self)*accuracy| <= 1"""
       a,b = b, a-q*b;
     return self;
 
+  def significate(self,extrabits=0) :
+    """Return an approximation of self with set_significance()+extrabits precision"""
+    return self.approximate(1<<max(0,_SIGNIFICANCE+extrabits));
+
 def _xrat(a,b,c,d) :
   """Return xrational given numerator and denominator of real and of imag"""
   return xrational(rational(a,b),rational(c,d));
@@ -889,7 +893,7 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__,
-  __pow__, __rpow__, log, exp, arg, approximate"""
+  __pow__, __rpow__, log, exp, arg, approximate, significate"""
 
   def __new__(cls,real=0,imag=0) :
     """Create a complex number equal to real+imag*i; real and imag are converted to rational
@@ -1235,6 +1239,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return result of applying rational.approximate to real and imaginary parts"""
     return self.__class__(self._a.approximate(accuracy),self._b.approximate(accuracy));
 
+  def significate(self,extrabits=0) :
+    """Return result of applying rational.significate to real and imaginary parts"""
+    return self.__class__(self._a.significate(extrabits),self._b.significate(extrabits));
+
 class qrational(object):
   """Quaternion class
 Instance variables (read only):
@@ -1251,7 +1259,7 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__,
-  __pow__, __rpow__, log, exp, approximate"""
+  __pow__, __rpow__, log, exp, approximate, significate"""
 
   def __new__(cls,*args) :
     """Create a quaternion, internally a tuple of 4 rationals
@@ -1658,6 +1666,10 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     """Return result of applying rational.approximate to each component of self"""
     return self.__class__(*(a.approximate(accuracy) for a in self.__v));
 
+  def significate(self,extrabits=0) :
+    """Return result of applying rational.significate to each component of self"""
+    return self.__class__(*(a.significate(extrabits) for a in self.__v));
+
 _0=rational(0);
 _1=rational(1);
 _m0=rational(0,-1);
@@ -1701,8 +1713,8 @@ def set_significance(significance=None) :
     if significance != None :
       raise TypeError('significance must be an integer');
   elif not MIN_SIGNIFICANCE <= significance <= MAX_SIGNIFICANCE :
-    raise ValueError('significance must be between %d and %d',
-                     MIN_SIGNIFICANCE, MAX_SIGNIFICANCE);
+    raise ValueError('significance must be between %d and %d'%(
+                     MIN_SIGNIFICANCE, MAX_SIGNIFICANCE));
   else :
     _SIGNIFICANCE = significance;
   return _SIGNIFICANCE;
