@@ -21,7 +21,7 @@ class graph() :
   degrees: a list indexed by node number, giving the degree of each node
   components: a list indexed by node number, giving the set of nodes comprising
     the connected component containing the node; connected nodes share their set
- Methods:  __init__,__hash__,__repr__,__eq__,__ne__,__getattr__,
+ Methods:  __init__,__hash__,__repr__,__eq__,__ne__,
            __bool__, __nonzero__,__len__,__invert__,__and__,__or__,__xor__,
            complement,__iand__,__ior__,__ixor__
            remove, permute, isomorphism, degree, psdraw"""
@@ -88,37 +88,51 @@ class graph() :
       c += 1 & (e >> (i+j*(j-1)//2));
     return c;
 
-  def __getattr__(self,name) :
+  @property
+  def n(self) :
+    """number of vertices"""
+    return self.__n;
+
+  @property
+  def edgebits(self) :
+    """bitmap of edges, edge (i,j) is at 1<<(i+j*(j-1)//2)"""
+    return self.__e;
+
+  @property
+  def edges(self) :
+    """frozenset of edges"""
     n = self.__n;
-    if name == 'n' : return n;
     e = self.__e;
-    if name == 'edgebits' : return e;
-    if name == 'edges' :
-      edges = [];
-      for j in xrange(1,n) :
-        for i in xrange(j) :
-          if 1 & (e >> (i+j*(j-1)//2)) : edges.append((i,j));
-      return frozenset(edges);
-    if name == 'degrees' :
-      a = [0 for i in xrange(n)];
-      for j in xrange(1,n) :
-        for i in xrange(j) :
-          if 1 & (e >> (i+j*(j-1)//2)) :
-            a[i] += 1;
-            a[j] += 1;
-      return a;
-    if name == 'components' :
-      d = map(lambda x:set([x]),xrange(n));
-      for j in xrange(1,n) :
-        for i in xrange(j) :
-          if 1 & (e >> (i+j*(j-1)//2)) :
-            if not d[i] is d[j] :
-              a,b = i,j;
-              if len(d[a]) < len(d[b]) : a,b = b,a;
-              d[a] |= d[b];
-              for v in d[b] : d[v] = d[a];
-      return d;
-    raise AttributeError('graph object has no attribute '+name);
+    edges = [];
+    for j in xrange(1,n) :
+      for i in xrange(j) :
+        if 1 & (e >> (i+j*(j-1)//2)) : edges.append((i,j));
+    return frozenset(edges);
+
+  @property
+  def degrees(self) :
+    """list of degrees of vertices"""
+    a = [0 for i in xrange(n)];
+    for j in xrange(1,n) :
+      for i in xrange(j) :
+        if 1 & (e >> (i+j*(j-1)//2)) :
+          a[i] += 1;
+          a[j] += 1;
+    return a;
+
+  @property
+  def components(self) :
+    """list of connected components of vertices"""
+    d = map(lambda x:set([x]),xrange(n));
+    for j in xrange(1,n) :
+      for i in xrange(j) :
+        if 1 & (e >> (i+j*(j-1)//2)) :
+          if not d[i] is d[j] :
+            a,b = i,j;
+            if len(d[a]) < len(d[b]) : a,b = b,a;
+            d[a] |= d[b];
+            for v in d[b] : d[v] = d[a];
+    return d;
 
   def __ne__(self,other) :
     """Return False if self and other are the same graph, True otherwise"""

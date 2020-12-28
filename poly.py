@@ -132,10 +132,10 @@ Methods:
   def __hash__(self) :
     return hash(self._p if len(self._p) > 1 else self[0]);
 
-  def __getattr__(self,name) :
-    if name == 'degree' :
-      return len(self._p)-1 if self._p else -inf;
-    raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+  @property
+  def degree(self) :
+    """degree of polynomial"""
+    return len(self._p)-1 if self._p else -inf;
 
   def __iter__(self) :
     """Return an iterable of the coefficients starting with the constant term"""
@@ -668,14 +668,30 @@ class rationalfunction() :
   def __repr__(self) :
     return 'rationalfunction(%s,%s)'%(self._a,self._b);
 
-  def __getattr__(self,name) :
-    if name == 'degree' :
-      return self._a.degree - self._b.degree;
-    if name in ('a','numerator') :
-      return self._a;
-    if name in ('b','denominator') :
-      return self._b;
-    raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+  @property
+  def degree(self) :
+    """degree of rational function"""
+    return self._a.degree - self._b.degree;
+
+  @property
+  def numerator(self) :
+    """numerator of rational function"""
+    return self._a;
+
+  @property
+  def denominator(self) :
+    """denominator of rational function"""
+    return self._b;
+
+  @property
+  def a(self) :
+    """numerator of rational function"""
+    return self._a;
+
+  @property
+  def b(self) :
+    """denominator of rational function"""
+    return self._b;
 
   def __hash__(self) :
     return hash(self._a if self._b == 1 else (self._a,self._b));

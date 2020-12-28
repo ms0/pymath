@@ -102,7 +102,7 @@ Instance variables:
   inverse: the inverse of the [square] matrix
   rank: the rank of the matrix (may be wrong if any float or complex elements)
 Methods:
-  __init__, __repr__, __str__, __getitem__, __getattr__,
+  __init__, __repr__, __str__, __getitem__,
   __bool__, __nonzero__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
   __neg__, __invert__, __iadd__, __add__, __radd__, __isub__, __sub__, __rsub__,
   __imul__, __mul__, __rmul__, __itruediv__, __idiv__, __truediv__, __div__
@@ -604,222 +604,235 @@ when setting a slice, value must have length matching size of slice"""
       raise UserWarning('value and slice dimensions differ');
     return;
 
-  def __getattr__(self,name) :
-    """Return the specified attribute:
-dims, tr(ace), T or transpose, det(erminant), or inverse"""
+  @property
+  def dims(self) :
+    """tuple of dimensions"""
+    return tuple(self.__dims);
 
-    # in order of how hard they are to create :
-    
-    # dims #
+  @property
+  def tr(self) :
+    """trace"""
+    if len(self.__v) == 1 :
+      return self.__v[0];
+    n = self.__dims[0];
+    if len(self.__dims) != 2 or n != self.__dims[1] :
+      raise AttributeError('trace arequires square matrix') ;
+    return sum(self.__v[0::(n+1)]);
 
-    if name == 'dims' :
-      return tuple(self.__dims);
+  @property
+  def trace(self) :
+    """trace"""
+    return self.trace;
 
-    # trace #
+  @property
+  def squeeze(self) :
+    """squeeze (length 1 dimensions elided)"""
+    s = matrix(self);
+    for i in reversed(xrange(len(s.__dims))) :
+      if s.__dims[i] == 1 : del s.__dims[i];
+    return s;
 
-    if name == 'tr' or name == 'trace' :
-      if len(self.__v) == 1 :
-        return self.__v[0];
-      n = self.__dims[0];
-      if len(self.__dims) != 2 or n != self.__dims[1] :
-        raise TypeError('requires square matrix') ;
-      return sum(self.__v[0::(n+1)]);
+  @property
+  def T(self) :
+    """transpose"""
+    # if 2D, return transposed matrix
+    # if 1D, return copy of self
+    # else, raise exception
+    s = matrix(self);
+    if len(s.__dims) == 2 :
+      s.__dims[:] = self.__dims[1],self.__dims[0];
+      for c in xrange(s.__dims[1]) :    # column of the result
+        # copy a row to a column:
+        s.__v[s.__dims[0]*c:s.__dims[0]*(c+1)] = self.__v[c::self.__dims[0]];
+    elif len(s.__dims) > 2 :
+      raise AttributeError('transpose not defined for >2D matrices');
+    return s;
 
-    # squeeze #
+  @property
+  def transpose(self) :
+    """transpose"""
+    return self.T
 
-    if name == 'squeeze' :
-      # remove any dims of length 1
-      s = matrix(self);
-      for i in reversed(xrange(len(s.__dims))) :
-        if s.__dims[i] == 1 : del s.__dims[i];
-      return s;
+  @property
+  def H(self) :
+    """conjugate transpose"""
+    s = self.transpose;
+    s.map(lambda x:x.conjugate());
+    return s;
 
-    # transpose #
+  @property
+  def conjugate_transpose(self) :
+    """conjugate transpose"""
+    return self.H;
 
-    if name == 'T' or name == 'transpose' or name == 'H' or name == 'conjugate_transpose' :
-      # if 2D, return transposed matrix (or its conjugate)
-      # if 1D, return copy of self (or its conjugate)
-      # else, raise exception
-      s = matrix(self);
-      if len(s.__dims) == 2 :
-        s.__dims[:] = self.__dims[1],self.__dims[0];
-        for c in xrange(s.__dims[1]) :    # column of the result
-          # copy a row to a column:
-          s.__v[s.__dims[0]*c:s.__dims[0]*(c+1)] = self.__v[c::self.__dims[0]];
-      elif len(s.__dims) != 1 :
-        raise AttributeError('transpose not defined for >=3D matrices');
-      if name[0].upper() != 'T' : s.map(lambda x:x.conjugate());
-      return s;
-
-    # rank #
-
-    if name == 'rank' :
-      if len(self.__v) == 1 :
-        return 1-(not self.__v[0]);
-      n = self.__dims[0];    # number of rows
-      if len(self.__dims) != 2 :
-        if len(self.__dims) == 1 :
-          return 0 + any(self.__v);
-        raise TypeError('requires matrix') ;
-      integral = 1;
-      v = self.__v[:];
-      for x in v :
-        if not isint(x) :
-          integral = 0;
-          break;
-      nc = self.__dims[1];    # number of columns
-      rank = 0;
-      rows = list(xrange(n));
-      if integral :
-        for c in xrange(nc) :    # for each column
-          if not rows : break;
-          x = float('inf');
-          for r in rows :    # find pivot row (smallest nonzero pivot element)
-            a = abs(v[r+n*c]);
-            if a and a < x :
-              x = a;
-              pr = r;
-          if isint(x) :
-            rank += 1;
-            x = v[pr+n*c];
-            rx = rows.index(pr);
-            del rows[rx];
-            for r in rows :
-              a = v[r+n*c];
-              g = gcd(a,x);
-              mx = a//g;
-              ma = x//g;
-              for cc in xrange(c+1,nc) :
-                v[r+n*cc] = ma*v[r+n*cc] - mx*v[pr+n*cc];
-      else :
-        for c in xrange(nc) :    # for each column
-          if not rows : break;
-          x = 0;
-          for r in rows :    # find pivot row (largest pivot element)
-            a = altabs(v[r+n*c]);
-            if a > x :
-              x = a;
-              pr = r;
-          if x :
-            rank += 1;
-            x = v[pr+n*c];
-            for pc in xrange(c+1,nc) :
-              v[pr+n*pc] /= x;
-            rx = rows.index(pr);
-            del rows[rx];
-            for r in rows :
-              a = v[r+n*c];
-              for cc in xrange(c+1,nc) :
-                v[r+n*cc] -= a*v[pr+n*cc];
-      return rank;
-
-    # determinant #
-
-    if name == 'det' or name == 'determinant' :
-      if len(self.__v) == 1 :
-        return self.__v[0];
-      n = self.__dims[0];
-      if len(self.__dims) != 2 or n != self.__dims[1] :
-        raise TypeError('requires square matrix') ;
-      integral = 1;
-      v = self.__v[:];
-      for x in v :
-        if not isint(x) :
-          integral = 0;
-          break;
-      if integral :
-        d = 1;    # numerator
-        dd = 1;   # denominator
-        rows = list(xrange(n));
-        for c in xrange(n-1) :    # for each column
-          x = float('inf');
-          for r in rows :    # find pivot row (smallest nonzero pivot element)
-            a = abs(v[r+n*c]);
-            if a and a < x :
-              x = a;
-              pr = r;
-          if not isint(x) : return 0;
+  @property
+  def rank(self) :
+    """rank"""
+    if len(self.__v) <= 1 :
+      return 1-(not self.__v[0]);
+    n = self.__dims[0];    # number of rows
+    if len(self.__dims) != 2 :
+      if len(self.__dims) == 1 :
+        return 0 + any(self.__v);
+      raise TypeError('requires matrix') ;
+    integral = 1;
+    v = self.__v[:];
+    for x in v :
+      if not isint(x) :
+        integral = 0;
+        break;
+    nc = self.__dims[1];    # number of columns
+    rank = 0;
+    rows = list(xrange(n));
+    if integral :
+      for c in xrange(nc) :    # for each column
+        if not rows : break;
+        x = float('inf');
+        for r in rows :    # find pivot row (smallest nonzero pivot element)
+          a = abs(v[r+n*c]);
+          if a and a < x :
+            x = a;
+            pr = r;
+        if isint(x) :
+          rank += 1;
           x = v[pr+n*c];
-          d *= x;
           rx = rows.index(pr);
-          if rx & 1 :
-            d = -d;
           del rows[rx];
           for r in rows :
             a = v[r+n*c];
             g = gcd(a,x);
             mx = a//g;
             ma = x//g;
-            dd *= ma;
-            for cc in xrange(c+1,n) :
+            for cc in xrange(c+1,nc) :
               v[r+n*cc] = ma*v[r+n*cc] - mx*v[pr+n*cc];
-        return d*v[rows[0]+n*(n-1)]//dd;
-      d = 1;
-      rows = list(xrange(n));
-      for c in xrange(n-1) :    # for each column
+    else :
+      for c in xrange(nc) :    # for each column
+        if not rows : break;
         x = 0;
         for r in rows :    # find pivot row (largest pivot element)
           a = altabs(v[r+n*c]);
           if a > x :
             x = a;
             pr = r;
-        if not x : return 0;
+        if x :
+          rank += 1;
+          x = v[pr+n*c];
+          for pc in xrange(c+1,nc) :
+            v[pr+n*pc] /= x;
+          rx = rows.index(pr);
+          del rows[rx];
+          for r in rows :
+            a = v[r+n*c];
+            for cc in xrange(c+1,nc) :
+              v[r+n*cc] -= a*v[pr+n*cc];
+    return rank;
+
+  @property
+  def det(self) :
+    """determinant"""
+    if len(self.__v) <= 1 :
+      return self.__v[0];
+    n = self.__dims[0];
+    if len(self.__dims) != 2 or n != self.__dims[1] :
+      raise AttributeError('rank requires square matrix') ;
+    integral = 1;
+    v = self.__v[:];
+    for x in v :
+      if not isint(x) :
+        integral = 0;
+        break;
+    if integral :
+      d = 1;    # numerator
+      dd = 1;   # denominator
+      rows = list(xrange(n));
+      for c in xrange(n-1) :    # for each column
+        x = float('inf');
+        for r in rows :    # find pivot row (smallest nonzero pivot element)
+          a = abs(v[r+n*c]);
+          if a and a < x :
+            x = a;
+            pr = r;
+        if not isint(x) : return 0;
         x = v[pr+n*c];
         d *= x;
-        for pc in xrange(c+1,n) :
-          v[pr+n*pc] /= x;
         rx = rows.index(pr);
         if rx & 1 :
           d = -d;
         del rows[rx];
         for r in rows :
           a = v[r+n*c];
+          g = gcd(a,x);
+          mx = a//g;
+          ma = x//g;
+          dd *= ma;
           for cc in xrange(c+1,n) :
-            v[r+n*cc] -= a*v[pr+n*cc];
-      return d*v[rows[0]+n*(n-1)];
+            v[r+n*cc] = ma*v[r+n*cc] - mx*v[pr+n*cc];
+      return d*v[rows[0]+n*(n-1)]//dd;
+    d = 1;
+    rows = list(xrange(n));
+    for c in xrange(n-1) :    # for each column
+      x = 0;
+      for r in rows :    # find pivot row (largest pivot element)
+        a = altabs(v[r+n*c]);
+        if a > x :
+          x = a;
+          pr = r;
+      if not x : return 0;
+      x = v[pr+n*c];
+      d *= x;
+      for pc in xrange(c+1,n) :
+        v[pr+n*pc] /= x;
+      rx = rows.index(pr);
+      if rx & 1 :
+        d = -d;
+      del rows[rx];
+      for r in rows :
+        a = v[r+n*c];
+        for cc in xrange(c+1,n) :
+          v[r+n*cc] -= a*v[pr+n*cc];
+    return d*v[rows[0]+n*(n-1)];
 
-    # inverse #
+  @property
+  def determinant(self) :
+    return self.det;
 
-    if name == 'inverse' :
-      if len(self.__v) == 1 :
-        s = matrix(self);
-        s.__v[0] = 1/s.__v[0];
-        return s;
-      n = self.__dims[0];
-      if len(self.__dims) != 2 or n != self.__dims[1] :
-        raise AttributeError('requires square matrix') ;
-      n2 = n*n;
-      v = [0]*n2;
-      v[0::(n+1)] = (1,)*n;
-      v += self.__v;
-      for c in xrange(n) :
-        x = 0;
-        for r in xrange(c,n) :
-          a = altabs(v[n2+r+n*c]);
-          if a > x :
-            x = a;
-            pr = r;
-        if not x : raise ZeroDivisionError('matrix not invertible');
-        if pr != c : v[c::n],v[pr::n] = v[pr::n],v[c::n];
-        x = v[n2+c*(n+1)];
-        if x != 1 :
-          y = 1/x;
-          for cc in xrange(2*n) : v[c+n*cc] = y*v[c+n*cc];
-        for r in xrange(c+1,n) :
-          x = v[n2+r+n*c];
-          for cc in xrange(2*n) :
-            v[r+n*cc] -= x*v[c+n*cc];
-      for c in reversed(xrange(1,n)) :
-        for r in xrange(0,c) :
-          x = v[n2+r+n*c];
-          for cc in xrange(n) :
-            v[r+n*cc] -= x*v[c+n*cc];
-      return matrix(n,n,v[0:n2]);
-
-    raise AttributeError('matrix object has no attribute '+name);
-
-  def __setattr__(self,name,value) :
-    raise AttributeError('no matrix attributes can be set');
+  @property
+  def inverse(self) :
+    """inverse"""
+    if len(self.__v) <= 1 :
+      s = matrix(self);
+      s.__v[0] = 1/s.__v[0];
+      return s;
+    n = self.__dims[0];
+    if len(self.__dims) != 2 or n != self.__dims[1] :
+      raise AttributeError('requires square matrix') ;
+    n2 = n*n;
+    v = [0]*n2;
+    v[0::(n+1)] = (1,)*n;
+    v += self.__v;
+    for c in xrange(n) :
+      x = 0;
+      for r in xrange(c,n) :
+        a = altabs(v[n2+r+n*c]);
+        if a > x :
+          x = a;
+          pr = r;
+      if not x : raise ZeroDivisionError('matrix not invertible');
+      if pr != c : v[c::n],v[pr::n] = v[pr::n],v[c::n];
+      x = v[n2+c*(n+1)];
+      if x != 1 :
+        y = 1/x;
+        for cc in xrange(2*n) : v[c+n*cc] = y*v[c+n*cc];
+      for r in xrange(c+1,n) :
+        x = v[n2+r+n*c];
+        for cc in xrange(2*n) :
+          v[r+n*cc] -= x*v[c+n*cc];
+    for c in reversed(xrange(1,n)) :
+      for r in xrange(0,c) :
+        x = v[n2+r+n*c];
+        for cc in xrange(n) :
+          v[r+n*cc] -= x*v[c+n*cc];
+    return matrix(n,n,v[0:n2]);
 
   def reshape(self,*dims) :
     """Return a new array with the same elements but different dimensions,
@@ -1183,156 +1196,160 @@ when setting a slice, value must have length matching size of slice"""
       raise UserWarning('value and slice dimensions differ');
     return;
 
-  def __getattr__(self,name) :
-    """Return the specified attribute:
-dims, tr(ace), T or transpose, det(erminant), inverse, or _bits"""
+  @property
+  def dims(self) :
+    """tuple of dimensions"""
+    return tuple(self.__dims);
 
-    # in order of how hard they are to create :
-    
-    # dims #
-
-    if name == 'dims' :
-      return tuple(self.__dims);
-
-    # trace #
-
-    if name == 'tr' or name == 'trace' :
-      if len(self) == 1 :
-        return self.__v;
-      n = self.__dims[0];
-      if len(self.__dims) != 2 or n != self.__dims[1] :
-        raise TypeError('requires square bmatrix') ;
-      return parity(self[0::(n+1)]);
-
-    # squeeze #
-
-    if name == 'squeeze' :
-      # remove any dims of length 1
-      s = bmatrix(self);
-      for i in reversed(xrange(len(s.__dims))) :
-        if s.__dims[i] == 1 : del s.__dims[i];
-      return s;
-
-    # transpose #
-
-    if name == 'T' or name == 'transpose' :
-      # if 2D, return transposed matrix
-      # if 1D, return self
-      # else, raise exception
-      if len(self.__dims) == 2 :
-        rows,cols = self.__dims;
-        return bmatrix((cols,rows),self.bT(rows,cols,self.__v));
-      if len(self.__dims) == 1 :
-        return bmatrix(self);
-      raise AttributeError('transpose not defined for >=3D bmatrices');
-
-    # determinant #
-
-    if name == 'det' or name == 'determinant' :
-      if len(self) == 1 :
-        return self[0];
-      n = self.__dims[0];
-      if len(self.__dims) != 2 or n != self.__dims[1] :
-        raise TypeError('requires square bmatrix') ;
-      v = self.__v;
-      m = (1<<n)-1;    # mask of column
-      for r in xrange(n) :
-        rv = 0;
-        b = 1<<r;    # row bit
-        for c in xrange(r,n) :    # find pivot column
-          cv = (v>>n*c)&m;
-          if b&cv :
-            if rv :
-              v ^= rv<<n*c;
-            else :
-              if r != c : 
-                # exchange this column with column r
-                x = cv ^ (v>>n*r)&m;
-                v ^= (x << n*r) ^ (x << n*c);
-              rv = cv;
-        if not rv : return 0;
-      return 1;
-
-    # rank #
-
-    if name == 'rank' :
-      if len(self) == 1 :
-        return self[0];
-      n = self.__dims[0];    # number of rows
-      if len(self.__dims) != 2 :
-        if len(self.__dims) == 1 :
-          return 1-(not self.__v);
-        raise TypeError('requires bmatrix') ;
-      nc = self.__dims[1];   # number of columns
-      v = self.__v;
-      m = (1<<n)-1;    # mask of column
-      rank = 0;
-      for r in xrange(n) :
-        rv = 0;
-        b = 1<<r;    # row bit
-        for c in xrange(rank,nc) :    # find pivot column
-          cv = (v>>n*c)&m;
-          if b&cv :
-            if rv :
-              v ^= rv<<n*c;
-            else :
-              if rank != c : 
-                # exchange this column with column rank
-                x = cv ^ (v>>n*rank)&m;
-                v ^= (x << n*rank) ^ (x << n*c);
-              rv = cv;
-        if rv : rank += 1;
-      return rank;
-
-    # inverse #
-
-    if name == 'inverse' :
-      if len(self) == 1 :
-        s = bmatrix(self);
-        if not s[0] :
-          raise ZeroDivisionError('bmatrix not invertible');
-        return s;
-      n = self.__dims[0];
-      if len(self.__dims) != 2 or n != self.__dims[1] :
-        raise AttributeError('requires square bmatrix') ;
-      w = 1;    # make identity
-      for i in xrange(n-1) :
-        w = (w<<(n+1))|1;
-      v = self.__v;
-      m = (1<<n)-1;    # mask of column
-      for r in xrange(n) :    # for each row
-        rv = 0;
-        b = 1<<r;    # row bit
-        for c in xrange(r,n) :    # find pivot column
-          cv = (v>>n*c)&m;
-          if b&cv :
-            if rv :
-              v ^= rv<<n*c;
-              w ^= rw<<n*c;
-            else :
-              if r != c : 
-                # exchange this column with column r
-                x = cv ^ (v>>n*r)&m;
-                v ^= (x << n*r) ^ (x << n*c);
-                x = ((w>>n*c) ^ (w>>n*r)) & m;
-                w ^= (x << n*r) ^ (x << n*c);
-              rv = cv;
-              rw = (w>>n*r)&m;
-        if not rv : raise ZeroDivisionError('bmatrix not invertible');
-      for r in reversed(xrange(1,n)) :
-        rw = (w>>n*r)&m;
-        for c in xrange(r) :
-          if (v>>(n*c+r))&1 :
-            w ^= rw<<n*c;
-      return bmatrix((n,n),w);
-
-    if name == '_bits' :
+  @property
+  def tr(self) :
+    """trace"""
+    if len(self) == 1 :
       return self.__v;
+    n = self.__dims[0];
+    if len(self.__dims) != 2 or n != self.__dims[1] :
+      raise AttributeError('trace requires square bmatrix') ;
+    return parity(self[0::(n+1)]);
 
-    raise AttributeError('bmatrix object has no attribute '+name);
+  @property
+  def trace(self) :
+    """trace"""
+    return self.tr;
 
-  def __setattr__(self,name,value) :
-    raise AttributeError('no bmatrix attributes can be set');
+  @property
+  def squeeze(self) :
+    """squeeze (length 1 dimensions elided)"""
+    s = bmatrix(self);
+    for i in reversed(xrange(len(s.__dims))) :
+      if s.__dims[i] == 1 : del s.__dims[i];
+    return s;
+
+  @property
+  def T(self) :
+    """transpose"""
+    # if 2D, return transposed matrix
+    # if 1D, return self
+    # else, raise exception
+    if len(self.__dims) == 2 :
+      rows,cols = self.__dims;
+      return bmatrix((cols,rows),self.bT(rows,cols,self.__v));
+    if len(self.__dims) <= 1 :
+      return bmatrix(self);
+    raise AttributeError('transpose not defined for >2D bmatrices');
+
+  @property
+  def transpose(self) :
+    """transpose"""
+    return self.T;
+
+  @property
+  def det(self) :
+    """determinant"""
+    if len(self) == 1 :
+      return self[0];
+    n = self.__dims[0];
+    if len(self.__dims) != 2 or n != self.__dims[1] :
+      raise TypeError('requires square bmatrix') ;
+    v = self.__v;
+    m = (1<<n)-1;    # mask of column
+    for r in xrange(n) :
+      rv = 0;
+      b = 1<<r;    # row bit
+      for c in xrange(r,n) :    # find pivot column
+        cv = (v>>n*c)&m;
+        if b&cv :
+          if rv :
+            v ^= rv<<n*c;
+          else :
+            if r != c : 
+              # exchange this column with column r
+              x = cv ^ (v>>n*r)&m;
+              v ^= (x << n*r) ^ (x << n*c);
+            rv = cv;
+      if not rv : return 0;
+    return 1;
+
+  @property
+  def transpose(self) :
+    return s.T;
+
+  @property
+  def rank(self) :
+    """rank"""
+    if len(self) == 1 :
+      return self[0];
+    n = self.__dims[0];    # number of rows
+    if len(self.__dims) != 2 :
+      if len(self.__dims) == 1 :
+        return 1-(not self.__v);
+      raise TypeError('requires bmatrix') ;
+    nc = self.__dims[1];   # number of columns
+    v = self.__v;
+    m = (1<<n)-1;    # mask of column
+    rank = 0;
+    for r in xrange(n) :
+      rv = 0;
+      b = 1<<r;    # row bit
+      for c in xrange(rank,nc) :    # find pivot column
+        cv = (v>>n*c)&m;
+        if b&cv :
+          if rv :
+            v ^= rv<<n*c;
+          else :
+            if rank != c : 
+              # exchange this column with column rank
+              x = cv ^ (v>>n*rank)&m;
+              v ^= (x << n*rank) ^ (x << n*c);
+            rv = cv;
+      if rv : rank += 1;
+    return rank;
+
+  @property
+  def inverse(self) :
+    """inverse"""
+    if len(self) == 1 :
+      s = bmatrix(self);
+      if not s[0] :
+        raise ZeroDivisionError('bmatrix not invertible');
+      return s;
+    n = self.__dims[0];
+    if len(self.__dims) != 2 or n != self.__dims[1] :
+      raise AttributeError('requires square bmatrix') ;
+    w = 1;    # make identity
+    for i in xrange(n-1) :
+      w = (w<<(n+1))|1;
+    v = self.__v;
+    m = (1<<n)-1;    # mask of column
+    for r in xrange(n) :    # for each row
+      rv = 0;
+      b = 1<<r;    # row bit
+      for c in xrange(r,n) :    # find pivot column
+        cv = (v>>n*c)&m;
+        if b&cv :
+          if rv :
+            v ^= rv<<n*c;
+            w ^= rw<<n*c;
+          else :
+            if r != c : 
+              # exchange this column with column r
+              x = cv ^ (v>>n*r)&m;
+              v ^= (x << n*r) ^ (x << n*c);
+              x = ((w>>n*c) ^ (w>>n*r)) & m;
+              w ^= (x << n*r) ^ (x << n*c);
+            rv = cv;
+            rw = (w>>n*r)&m;
+      if not rv : raise ZeroDivisionError('bmatrix not invertible');
+    for r in reversed(xrange(1,n)) :
+      rw = (w>>n*r)&m;
+      for c in xrange(r) :
+        if (v>>(n*c+r))&1 :
+          w ^= rw<<n*c;
+    return bmatrix((n,n),w);
+
+  @property
+  def _bits(self) :
+    """bmatrix as a binary number with lsb being first entry"""
+    return self.__v;
 
   def reshape(self,*dims) :
     """Return a new array with the same elements but different dimensions,

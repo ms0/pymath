@@ -307,20 +307,67 @@ quaternion(string) is the quaternion represented by that string"""
     ac = (math.acos(self.__v[0]/a)/av if av else 1./a)/math.log(base);
     return quaternion(math.log(a,base),ac*self.__v[1],ac*self.__v[2],ac*self.__v[3]);
 
-  def __getattr__(self,name) :
-    if name in ('sv','rv') :
-      return self.__v;
-    if name in ('s','r','real','scalar'):
-      return self.__v[0];
-    if name in ('v','vector') :
-      return self.__v[1:];
-    if name in ('i','imag') :
-      return self.__v[1];
-    if name == 'j' :
-      return self.__v[2];
-    if name == 'k' :
-      return self.__v[3];
-    raise AttributeError('quaternion object has no attribute '+name);
+
+  @property
+  def real(self) :
+    """the real part"""
+    return self.__v[0];
+
+  @property
+  def imag(self) :
+    """the imaginary part when j and k components are zero"""
+    if self.__v[2] or self.__v[3] : raise AttributeError('not complex');
+    return self.__v[1];
+
+  @property
+  def rv(self) :
+    """the quaternion as a tuple (r,i,j,k)"""
+    return self.__v;
+
+  @property
+  def sv(self) :
+    """the quaternion as a tuple (s,i,j,k)"""
+    return self.__v;
+
+  @property
+  def scalar(self) :
+    """the scalar part"""
+    return self.__v[0];
+
+  @property
+  def vector(self) :
+    """the vector part as a tuple (i,j,k)"""
+    return self.__v[1:];
+
+  @property
+  def r(self) :
+    """the real part"""
+    return self.__v[0];
+
+  @property
+  def s(self) :
+    """the scalar part"""
+    return self.__v[0];
+
+  @property
+  def i(self) :
+    """the i part"""
+    return self.__v[1];
+
+  @property
+  def j(self) :
+    """the j part"""
+    return self.__v[2];
+
+  @property
+  def k(self) :
+    """the k part"""
+    return self.__v[3];
+
+  @property
+  def v(self) :
+    """the vector part as a tuple (i,j,k)"""
+    return self.__v[1:];
 
   def __int__(self) :
     """Return the integer part of the number if real"""

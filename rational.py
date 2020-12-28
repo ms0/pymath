@@ -379,24 +379,35 @@ a following >> indicates division by the indicated power of the base"""
     except Exception :
       return hash((self.cf if self._b else self.__float__)());
 
-  def __getattr__(self,name) :
-    if name in ('a','numerator') :
-      return self._a;
-    if name in ('b','denominator') :
-      return self._b;
-    if name == 'real' :
-      return self;
-    if name == 'imag' :
-      return _0;
-    raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+  @property
+  def real(self) :
+    """the real part"""
+    return self;
 
-  def __dir__(self) :
-    d = dir(self.__class__)
-    d.append('numerator');
-    d.append('denominator');
-    d.append('real');
-    d.append('imag');
-    return d;
+  @property
+  def imag(self) :
+    """the imaginary part"""
+    return _0;
+
+  @property
+  def a(self) :
+    """the numerator"""
+    return self._a;
+
+  @property
+  def b(self) :
+    """the denominator"""
+    return self._b;
+
+  @property
+  def numerator(self) :
+    """the numerator"""
+    return self._a;
+
+  @property
+  def denominator(self) :
+    """the denominator"""
+    return self._b;
 
   def __lt__(self,other) :
     """Return True iff self < other """
@@ -806,7 +817,8 @@ Return (t,x) with base**(n-1) <= |t| < base**n and |t-self/base**x| <= 1/2"""
   def log(self,base=None) :
     """Return the log of the number as a rational"""
     base = self.__class__(base) if base != None else e;
-    if base.imag or not base._b or base <= 0 or base == 1 : raise ValueError('bad base');
+    if base is not base.real or not base._b or base <= 0 or base == 1 :
+      raise ValueError('bad base');
     d = _ln(base);
     return xrational(_ln(-self)/d,pi/d) if self._a < 0 or self._b < 0 else _ln(self)/d;
 
@@ -952,18 +964,15 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     except Exception :
       return hash((self._a,self._b));
 
-  def __getattr__(self,name) :
-    if name == 'real' :
-      return self._a;
-    if name == 'imag' :
-      return self._b;
-    raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+  @property
+  def real(self) :
+    """the real part"""
+    return self._a;
 
-  def __dir__(self) :
-    d = dir(self.__class__)
-    d.append('real');
-    d.append('imag');
-    return d;
+  @property
+  def imag(self) :
+    """the imaginary part"""
+    return self._b;
 
   def __eq__(self,other) :
     """Return True iff self == other"""
@@ -1169,7 +1178,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
         if not other : break;
         self *= self;
       return x;
-    if not self : return _nan if other.imag or other < 0 else _0;
+    if not self : return _nan if other != other.real or other < 0 else _0;
     p = (self.log()*other).exp();
     a = p.approximate(1<<MIN_SIGNIFICANCE);
     return a if isclose(a,p,rational(1,16<<_SIGNIFICANCE)) else p;
@@ -1222,7 +1231,8 @@ If real is a string (and imag==0), return xrational(rational(real))"""
   def log(self,base=None) :
     """Return the log of the number as an xrational"""
     base = rational(base) if base != None else e;
-    if base.imag or not base._b or base <= 0 or base == 1 : raise ValueError('bad base');
+    if base is not base.real or not base._b or base <= 0 or base == 1 :
+      raise ValueError('bad base');
     if not self : return _pinf if base < 1 else _minf;
     d = _ln(base);
     return self.__class__(_ln(abs(self))/d,self.arg()/d);
@@ -1248,7 +1258,8 @@ class qrational(object):
 Instance variables (read only):
    real or r or scalar or s: the real (scalar) part, a rational
    vector or v: the vector part, a tuple of rationals
-   imag or i,j,k: the respective components of the vector part, each a rational
+   i,j,k: the respective components of the vector part, each a rational
+   imag: the imaginary part, but only if j and k components are zero
    sv or rv: (s,i,j,k), a tuple of rationals
 Methods:
   __new__, __init__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
@@ -1282,7 +1293,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
         return qrational(rational(args[0]));
       args = (args[0].real,args[0].imag);
     for a in args :
-      if a.imag or isinstance(a,qrational) and (a.j or a.k) :
+      if isinstance(a,qrational) and (a.i or a.j or a.k) or a.imag :
         raise TypeError('arguments must be real')
     if len(args) == 2 :
       self.__v = (rational(args[0]),rational(args[1]),_0,_0);
@@ -1333,20 +1344,66 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
         pass;
     return hash(tuple(self.__v));
 
-  def __getattr__(self,name) :
-    if name in ('sv','rv') :
-      return self.__v;
-    if name in ('s','r','real','scalar'):
-      return self.__v[0];
-    if name in ('v','vector') :
-      return self.__v[1:];
-    if name in ('i','imag') :
-      return self.__v[1];
-    if name == 'j' :
-      return self.__v[2];
-    if name == 'k' :
-      return self.__v[3];
-    raise AttributeError('quaternion object has no attribute '+name);
+  @property
+  def real(self) :
+    """the real part"""
+    return self.__v[0];
+
+  @property
+  def imag(self) :
+    """the imaginary part when j and k components are zero"""
+    if self.__v[2] or self.__v[3] : raise AttributeError('not complex');
+    return self.__v[1];
+
+  @property
+  def rv(self) :
+    """the quaternion as a tuple (r,i,j,k)"""
+    return self.__v;
+
+  @property
+  def sv(self) :
+    """the quaternion as a tuple (s,i,j,k)"""
+    return self.__v;
+
+  @property
+  def scalar(self) :
+    """the scalar part"""
+    return self.__v[0];
+
+  @property
+  def vector(self) :
+    """the vector part as a tuple (i,j,k)"""
+    return self.__v[1:];
+
+  @property
+  def r(self) :
+    """the real part"""
+    return self.__v[0];
+
+  @property
+  def s(self) :
+    """the scalar part"""
+    return self.__v[0];
+
+  @property
+  def i(self) :
+    """the i part"""
+    return self.__v[1];
+
+  @property
+  def j(self) :
+    """the j part"""
+    return self.__v[2];
+
+  @property
+  def k(self) :
+    """the k part"""
+    return self.__v[3];
+
+  @property
+  def v(self) :
+    """the vector part as a tuple (i,j,k)"""
+    return self.__v[1:];
 
   def __bool__(self) :
     return any(self.__v);
@@ -2028,22 +2085,26 @@ def fsum(iterable) :
     if i.real :
       if i.real > 0 :
         pra.append(rational(i.real));
-      else :
+      elif i.real :
         nra.append(rational(i.real));
-    if i.imag :
+    if isinstance(i,qrational) :
+      if i.i > 0 :
+        pia.append(i.i);
+      elif i.i :
+        nia.append(i.i);
+      if i.j > 0 :
+        pja.append(i.j);
+      elif i.j :
+        nja.append(i.j);
+      if i.k > 0 :
+        pka.append(i.k);
+      elif i.k :
+        nka.append(i.k);
+    elif i.imag :
       if i.imag > 0 :
         pia.append(rational(i.imag));
       else :
         nia.append(rational(i.imag));
-    if isinstance(i,qrational) :
-      if i.j > 0 :
-        pja.append(i.j);
-      else :
-        nja.append(i.j);
-      if i.k > 0 :
-        pka.append(i.k);
-      else :
-        nka.append(i.k);
   rt = _fsum(pra,nra);
   it = _fsum(pia,nia);
   jt = _fsum(pja,nja);
@@ -2351,8 +2412,10 @@ def xgcd(a,b) :
                       _mhalf if a.sv[3] > 0 else _half);
       else :
         q = sgn(a.real);
-    elif a.imag :
+    elif isinstance(a,xrational) :
       q = xrational(0,-sgn(a.imag));
+    elif a.i :
+      q = qrational(0,-sgn(a.i));
     elif a.j :
       q = qrational(0,-sgn(a.j),0);
     else :

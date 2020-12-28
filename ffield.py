@@ -322,21 +322,27 @@ Instance variables:
     self.x = x;
   else : raise TypeError('uninterpretable arg');
 
-def __getattr__(self,name) :
-  if name == 'tupoly' :
-    return self._tupoly[self._nzi:] if self._nzi else ();
-  if name == 'order' :
-    o = self.p**self.n-1;
-    if isinstance(self,ffield) :
-      return o;
-    if self.x <= 1 :
-      return self.x;
-    for p in factors(o) :
-      while not o%p :
-        if (self**(o//p)).x != 1 : break;
-        o //= p;
-    return o;
-  raise AttributeError('%s has no attribute %s'%(self.__class__.__name__,name));
+@property
+def tupoly(self) :
+  """the field representation's polynomial modulus mod x**n, as a tuple"""
+  return self._tupoly[self._nzi:] if self._nzi else ();
+
+@property
+def order(self) :
+  """p**n-1, the multiplicative order of the field"""
+  return self.p**self.n-1;
+
+@property
+def elementorder(self) :
+  """The multiplicative order of the field element"""
+  o = self.p**self.n-1;
+  if self.x <= 1 :
+    return self.x;
+  for p in factors(o) :
+    while not o%p :
+      if (self**(o//p)).x != 1 : break;
+      o //= p;
+  return o;
 
 def __hash__(self) :
   return hash(self.__class__) ^ hash(self.x);
@@ -776,7 +782,6 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
       pass;
     d = dict(p=p,n=n,poly=poly,_tupoly=_tupoly,_nzi=_nzi,
              __init__=__init__,
-             __getattr__=__getattr__,
              __repr__=__repr__,
              __str__=__str__,
              __int__=__int__,
@@ -803,6 +808,8 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
              __rtruediv__=__rdiv__,
              __pow__=__pow__,
              minpoly = minpoly,
+             tupoly = tupoly,
+             order = elementorder,
              __reduce__=__reduce__,
             );
     # need to define all the relevant operators:
@@ -831,8 +838,6 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
     """Return a tuple for pickling"""
     return (_create,(self.p,self.n,self.poly));
 
-  __getattr__ = __getattr__
-
   def __hash__(self) :
     return hash(self.__class__)^hash('%s:%s'%(self.p**self.n,self.poly));
 
@@ -846,6 +851,9 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
   __ge__ = __eq__;
   __lt__ = __lt__;
   __gt__ = __gt__;
+
+  tupoly = tupoly;
+  order = order;  
 
 zits='0123456789abcdefghijklmnopqrstuvwxyz';
 
