@@ -4,7 +4,7 @@ import sys
 
 from poly import *
 from ffield import ffield,isirreducible
-from rational import *
+from rational import rational
 from random import Random
 
 R=Random();
@@ -56,6 +56,10 @@ def testpops(p,q,r) :    # test polynomial operations
     error('commutativity failure for %s+%s'%(p,q));
   if p*q != q*p :
     error('commutativity failure for %s*%s'%(p,q));
+  if p**5*p != p**6 :
+    error('failure for %s**6'%(p));
+  if pow(q,5,r) != pow(q,5)%r :
+    error('failure for pow(%s,5,%s)'%(q,r));
 
 def testpgcd(p,q) :   # test gcd and xgcd
   g = p.gcd(q);
@@ -115,7 +119,25 @@ def optests() :
     testpops(*r);
     testpgcd(*r[:2]);
 
+def testattr() :
+  x = polynomial(1,0);
+  o = polynomial(1);
+  z = polynomial();
+  ox= rationalfunction(o,x);
+  if not x == x.a == x.numerator :
+    print('x.a or x.numerator failed');
+  if not o == x.b == x.denominator :
+    print('x.b or x.denominator failed');
+  if x.degree != 1 :
+    print('x.degree failed');
+  if not o == ox.a == ox.numerator or not x == ox.b == ox.denominator :
+    print('ox.a or ox.b or ox.numerator or ox.denominator failed');
+  if ox.degree != -1 :
+    print('ox.degree failed');
+
 if __name__ == '__main__' :
+  print('attribute test');
+  testattr();
   print('factor test');
   factests();
   GF243 = ffield(3,6,5);

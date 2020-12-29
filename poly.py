@@ -137,6 +137,26 @@ Methods:
     """degree of polynomial"""
     return len(self._p)-1 if self._p else -inf;
 
+  @property
+  def numerator(self) :
+    """numerator of rational function"""
+    return self;
+
+  @property
+  def denominator(self) :
+    """denominator of rational function"""
+    return _one;
+
+  @property
+  def a(self) :
+    """numerator of rational function"""
+    return self;
+
+  @property
+  def b(self) :
+    """denominator of rational function"""
+    return _one;
+
   def __iter__(self) :
     """Return an iterable of the coefficients starting with the constant term"""
     return reversed(self._p);
@@ -215,16 +235,16 @@ indices larger than the degree give 0; indices < 0 raise exception;
 
   def __neg__(self) :
     """Return -self, a poly with all coeffs negated"""
-    return polynomial(*tuple(-cs for cs in self._p));
+    return self.__class__(*tuple(-cs for cs in self._p));
 
   def __add__(self,other) :
     """Return the sum self+other"""
     if not isinstance(other,self.__class__) :
       if isinstance(other,rationalfunction) : return other+self;
-      other = polynomial(other);
+      other = self.__class__(other);
     if len(self._p) < len(other._p) : self,other = other,self;
     d = len(self._p) - len(other._p);
-    return polynomial(*tuple(cs if i<0 else cs+other._p[i] for i,cs in enumerate(self._p,-d)));
+    return self.__class__(*tuple(cs if i<0 else cs+other._p[i] for i,cs in enumerate(self._p,-d)));
 
   __radd__ = __add__;
 
@@ -238,11 +258,11 @@ indices larger than the degree give 0; indices < 0 raise exception;
 
   def __mul__(self,other) :      
     """Return the product self*other"""
-    if not self or not other : return polynomial();
+    if not self or not other : return _zero;
     if not isinstance(other,self.__class__) :
       if isinstance(other,rationalfunction) : return other*self;
-      other = polynomial(other);
-    return polynomial(*nzpolymul(self._p,other._p));
+      other = self.__class__(other);
+    return self.__class__(*nzpolymul(self._p,other._p));
 
   __rmul__ = __mul__
 
@@ -255,15 +275,15 @@ indices larger than the degree give 0; indices < 0 raise exception;
           return other.__rfloordiv__(self);
         other = other._a;
       else :
-        other = polynomial(other);
+        other = self.__class__(other);
     if not self._p : return self;
-    return polynomial(*(nzpolydivrem(self._p,other._p)[0]));
+    return self.__class__(*(nzpolydivrem(self._p,other._p)[0]));
 
   def __rfloordiv__(self,other) :
     """Return the quotient other//self"""
     if not self._p : raise ZeroDivisionError;
-    if not other : return polynomial();
-    return polynomial(other)//self;
+    if not other : return _zero;
+    return self.__class__(other)//self;
 
   def __div__(self,other) :
     """Return the quotient self/other as a polynomial or rationalfunction"""
@@ -295,18 +315,18 @@ indices larger than the degree give 0; indices < 0 raise exception;
     if not isinstance(other,self.__class__) :
       if isinstance(other,rationalfunction) :
         if other._b != 1 :
-          return other.__rdiv__(self),polynomial();
+          return other.__rdiv__(self),_zero;
         other = other._a;
       else :
-        other = polynomial(other);
+        other = self.__class__(other);
     q,r = nzpolydivrem(self._p,other._p);
-    return polynomial(*q),polynomial(*r);
+    return self.__class__(*q),self.__class__(*r);
 
   def __rdivmod__(self,other) :
     """Return the quotient and remainder when dividing other by self"""
     if not self._p : raise ZeroDivisionError;
-    if not other : return polynomial(),polynomial();
-    return divmod(polynomial(other),self);
+    if not other : return _zero,_zero;
+    return divmod(self.__class__(other),self);
 
   def __mod__(self,other) :
     """Return the remainder when dividing self by other"""
@@ -316,39 +336,39 @@ indices larger than the degree give 0; indices < 0 raise exception;
       if isinstance(other,rationalfunction) :
         if other._b == 1 :
           other = other._a;
-        return polynomial();
+        return _zero;
       else :
-        other = polynomial(other);
-    return polynomial(*(nzpolydivrem(self._p,other._p)[1]));
+        other = self.__class__(other);
+    return self.__class__(*(nzpolydivrem(self._p,other._p)[1]));
 
   def __rmod__(self,other) :
     """Return the remainder when dividing other by self"""
     if not self._p : raise ZeroDivisionError;
-    if not other : return polynomial();
-    return polynomial(other)%self;
+    if not other : return _zero;
+    return self.__class__(other)%self;
 
-  def __pow__(f,e,m=None) :
-    """Return polynomial f raised to integer e: f**e; if m, mod polynomial m"""
+  def __pow__(self,e,m=None) :
+    """Return self raised to integer e: self**e; if m, mod polynomial m"""
     if not isint(e) :
       raise TypeError('Exponent must be an integer');
     if not (m is None or isinstance(m,polynomial) and m.degree > 0) :
       raise TypeError('Modulus must be polynomial of degree > 0')
-    if f.degree <= 0 :
-      return polynomial(f[0]**e);
+    if self.degree <= 0 :
+      return self.__class__(self[0]**e);
     if e <= 0:
       if e :
         if m :
           raise ValueError('2nd arg cannot be negative when 3rd arg specified');
-        return rationalfunction(f[f.degree].__class__(1),polynomial(*nzpolypow(f._p,-e)));
-      return polynomial(f[f.degree].__class__(1));
-    return polynomial(*nzpolypow(f._p,e,m and m._p));
+        return rationalfunction(self[self.degree].__class__(1),self.__class__(*nzpolypow(self._p,-e)));
+      return self.__class__(self[self.degree].__class__(1));
+    return self.__class__(*nzpolypow(self._p,e,m and m._p));
 
   def derivative(self,k=1) :    # kth derivative
     """Return the kth derivative of self"""
     if not (isint(k) and k >= 0) :
       raise TypeError('kth derivative only defined for k nonegative integer');
     d = len(self._p);
-    return polynomial(*tuple(product(xrange(d-i,d-i-k,-1),c)
+    return self.__class__(*tuple(product(xrange(d-i,d-i-k,-1),c)
                              for i,c in enumerate(self._p[:d-k],1)));
   def gcd(p,q) :
     """Return the greatest common divisor of polynomials p and q"""
@@ -395,51 +415,51 @@ indices larger than the degree give 0; indices < 0 raise exception;
     p0 = p._p[0] if p else 1;
     return mapping(p/p0),mapping(u/p0),mapping(v/p0);
 
-  def isirreducible(p,q=0) :
-    """Return True iff p is irreducible over a field;
+  def isirreducible(self,q=0) :
+    """Return True iff self is irreducible over a field;
 if q is specified, it is the size of the field;
-if q is not specified, the field is inferred from p's coefficients"""
+if q is not specified, the field is inferred from self's coefficients"""
     if q :
       r = primepower(q);
       if not r :
         raise ValueError('q must be a prime power')
-    d = p.degree;
+    d = self.degree;
     if d <= 1 :
       return True;
     types = set();
-    for x in p :
+    for x in self :
       types.add(x.__class__);
     if types <= INT and q > 0:
       r = r[0];
-      if p._p[0] != 1 :
-        i = modpow(p._p[0],r-2,r);    # make monic
-        p = p.mapcoeffs(lambda x: x*i%r);
-        if d != p.degree :
+      if self._p[0] != 1 :
+        i = modpow(self._p[0],r-2,r);    # make monic
+        self = self.mapcoeffs(lambda x: x*i%r);
+        if d != self.degree :
           raise ValueError('leading coefficient is 0 mod %d'%(r));
-      return isirreducible(p._p[1:],q);
+      return isirreducible(self._p[1:],q);
     if len(types) == 1 and tuple(types)[0].__class__ == ffield :
-      p0 = p._p[0];
+      p0 = self._p[0];
       if int(p0) != 1 :
-        p = p.mapcoeffs(lambda x: x/p0);    # make monic
+        self = self.mapcoeffs(lambda x: x/p0);    # make monic
       q = q or p0.p**p0.n;
-      for c in p :
+      for c in self :
         if (q-1)%(c.order or 1) :
           raise ValueError('coefficients not all elements of GF(%d)'%(q));
-      x = polynomial(p._p[0],p._p[0]*0);    # Rabin test...
+      x = self.__class__(self._p[0],self._p[0]*0);    # Rabin test...
       for s in chain(factors(d),(1,)) :
         e = q**(d//s);
         n = 1 << (bit_length(e)-1);
         y = x;
         n >>= 1;
         while n :
-          y = y*y%p;
+          y = y*y%self;
           if e&n :
-            y = x*y%p;
+            y = x*y%self;
           n >>= 1;
         if s > 1 :
-          if p.gcd(y-x).degree != 0 : return False;
+          if self.gcd(y-x).degree != 0 : return False;
         else :
-          return not (y-x)%p;
+          return not (y-x)%self;
     raise TypeError('implemented only for finite fields');
 
   def factor(self,facdict=None,e=1) :
@@ -473,14 +493,14 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               k /= c;
             facdict[k.mapcoeffs(int_float)] += v;
         if f != 1 :
-          facdict[polynomial(int_float(f))] += 1;
+          facdict[self.__class__(int_float(f))] += 1;
       return facdict;
     elif types <= COMPLEX and not types <= XRATIONAL :
       for k,v in iteritems(self.mapcoeffs(xrational).factor()) :
         facdict[k.mapcoeffs(complex)] += v;
       return facdict;
     if self._p[0]**2 != self._p[0] :
-      facdict[polynomial(self._p[0])] += e;
+      facdict[self.__class__(self._p[0])] += e;
       self /= self._p[0];
     g = self.gcd(self.derivative());
     self //= g
@@ -497,7 +517,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       c = g._p[0];
       p = c.p;    # characteristic
       px = p**(c.n-1);    # exponent for mapping a**p -> a for a in GF(p**n)
-      return polynomial(*(x**px for x in g._p[::p])).factor(facdict,p*e);
+      return self.__class__(*(x**px for x in g._p[::p])).factor(facdict,p*e);
     else :
       return facdict;
 
@@ -510,13 +530,13 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       while 2*i <= self.degree :
         z = c(0);
         o = c(1);
-        h = b = polynomial(o,z);    # compute x**q**i % self ...
+        h = b = self.__class__(o,z);    # compute x**q**i % self ...
         x = q**i;
         m = (1<<(bit_length(x)-1)) >> 1;
         while m :
           h = h*h%self;
           if x&m :
-            h = polynomial(*h._p+(z,))%self;
+            h = self.__class__(*h._p+(z,))%self;
           m >>= 1;
         g = self.gcd(h-b);
         n = g.degree;
@@ -539,7 +559,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               saved = ();
             x = (q**i-1)//leastfactor(q**i-1);
             while len(f) < r :
-              h = b = polynomial(o,
+              h = b = self.__class__(o,
                 *(c(randrange(q)) for j in xrange(i)))
               m = (1<<(bit_length(x)-1)) >> 1;
               while m :
@@ -568,11 +588,11 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
         facdict[self] += e;     # must be irreducible
     except AttributeError :
       if not self._p[-1] :    # self(0) == 0
-        facdict[polynomial(self._p[0],self._p[-1])] += e;    # add x as factor
-        self = polynomial(*self._p[:-1]);    # divide by x
+        facdict[self.__class__(self._p[0],self._p[-1])] += e;    # add x as factor
+        self = self.__class__(*self._p[:-1]);    # divide by x
       if isinstance(self._p[0],rational) :
         m = lcma(map(lambda x:x.denominator,self._p));
-        if m != 1 : facdict[polynomial(rational(1,m))] += e;
+        if m != 1 : facdict[self.__class__(rational(1,m))] += e;
         self = self.mapcoeffs(lambda x:m*x);
         m = 1;    # combine constant factors
         i = [];
@@ -581,7 +601,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
             i.append(f);
             m *= f._p[0]**k;
         for f in i : del facdict[f];
-        if m != 1 : facdict[polynomial(m)] += 1;
+        if m != 1 : facdict[self.__class__(m)] += 1;
         t = set();        # look for linear factors
         while self.degree > 1 :
           for a in divisors(int(self._p[0])) :
@@ -590,7 +610,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               if r not in t :
                 t.add(r);
                 if not self(r) :
-                  f = polynomial(a,-b);
+                  f = self.__class__(a,-b);
                   facdict[f] += e;
                   self /= f;
                   break;
@@ -598,7 +618,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               if r not in t :
                 t.add(r);
                 if not self(r) :
-                  f = polynomial(a,b);
+                  f = self.__class__(a,b);
                   facdict[f] += e;
                   self /= f;
                   break;
@@ -609,7 +629,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
 
   def mapcoeffs(self,f) :
     """Apply f to each coefficient and return the resulting polynomial"""
-    return polynomial(*map(f,self._p));
+    return self.__class__(*map(f,self._p));
 
   @staticmethod
   def unfactor(facdict,p=None) :

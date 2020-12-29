@@ -46,6 +46,8 @@ def test(p,n) :
   g = randfield(p,n);
   print(g);
   pn = p**n;
+  if g.p != p or g.n != n or g.order != pn-1 :
+    printf('.p or .n or .order failed');
   if pn <= LIMITQ :
     ceq('v[0]==len(v[1])',irreducible_count(p,n),irreducibles(p,n));
   z = g(0);
@@ -174,7 +176,7 @@ def test3(g,i,j,k) :    # triple testing
   ceq('v[0]*(v[1]+v[2])==v[0]*v[1]+v[0]*v[2]',gi,gj,gk);
 
 def isgenerator(x) :
-  # order of the group is p**n-1, and its cyclic
+  # order of the group is p**n-1, and it's cyclic
   # if x is a generator, then x**e will be a generator for e prime to p**n-1
   # so there are phi(p**n-1) generators
   # p     n=1    n=2    n=3    n=4    n=5      table of p**n-1
@@ -193,7 +195,10 @@ def isgenerator(x) :
   n = x.n;
   o = p**n-1;
   for q in factors(o) :
-    if not x**(o//q)-1 : return False;
+    if not x**(o//q)-1 :
+      ceq('v[0].order!=v[0].__class__.order and not v[0].__class__.order%v[0].order',x);
+      return False;
+  ceq('v[0].order==v[0].__class__.order',x);
   return True;
 
 def ftest(*args) :

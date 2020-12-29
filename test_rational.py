@@ -22,6 +22,13 @@ from random import Random
 from rational import *
 from timeit import timeit, default_timer
 
+half=rational(1,2);
+zero=rational(0);
+one=rational(1);
+pinf=rational(1,0);
+minf=-pinf;
+nan=rational(0,0);
+
 try :
   from timer import process_time
 except Exception :
@@ -125,10 +132,6 @@ def ratspectest() :
   """Test operations on nan and signed zeroes and infinities"""
   p0 = rational();
   m0 = -p0;
-  pinf = rational(1,0);
-  minf = -pinf;
-  nan = rational(0,0);
-  half = rational(1,2);
   ceq('v[0]!=v[0]',(nan,));
   ceq('v[0] is v[1]',(nan,eval(repr(nan))));
   for x in (p0,m0,pinf,minf) :
@@ -315,10 +318,6 @@ def atest() :    # test approximate
                                 approximatebits(log2e,a,_log2e),
                                 approximatebits(root2,a,_root2),
                                 approximatebits(goldenratio,a,_goldenratio)));
-
-half=rational(1,2);
-zero=rational(0);
-one=rational(1);
 
 def ttest(significance,header=True) :
   """Test accuracy of exp and log for real and complex values"""
@@ -743,7 +742,41 @@ def timingtest() :
   timing('fsum(complex)','fsum(r)',4096,plex=1);
   timing('fsum(quatern)','fsum(r)',4096,plex=2);
 
+def testattr() :
+  if not 1 == half.a == half.numerator :
+    print('half.a or half.numerator failed');
+  if not 2 == half.b == half.denominator :
+    print('half.b or half.denominator failed');
+  if half.imag :
+    print('half.imag failed');
+  if half.real != half :
+    print('half.real failed');
+  one2i = xrational(1,2);
+  if one2i.real != 1 or one2i.imag != 2 :
+    print('twoplusi.real or twoplusi.imag failed');
+  one2i3j4k = qrational(1,2,3,4);
+  if not 1 == one2i3j4k.real == one2i3j4k.scalar == one2i3j4k.r == one2i3j4k.s :
+    print('one2i3j4k.real or .scalar or .r or .s failed');
+  if 2 != one2i3j4k.i or 3 != one2i3j4k.j or 4 != one2i3j4k.k :
+    print('one2i3j4k.i or .j or .k failed');
+  try :
+    one2i3j4k.imag;
+    print('one2i3j4k.imag failed to fail');
+  except AttributeError :
+    pass;
+  except Exception :
+    print('one2i3j4k.imag raised wrong error');
+  if not (1,2,3,4) == one2i3j4k.sv == one2i3j4k.rv :
+    print('one2i3j4k.sv or .rv failed');
+  if not (2,3,4) == one2i3j4k.v == one2i3j4k.vector :
+    print('one2i3j4k.v or .vector failed');
+  if qrational(one2i).imag != 2 :
+    print('one2i0j0k.imag failed');
+  
+
 if __name__ == '__main__' :
+  print('attribute test')
+  testattr();
   print('root test (for sha2) ...');
   roottest();
   print('rational test ...');
