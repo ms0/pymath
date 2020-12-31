@@ -902,7 +902,7 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
       while True :
         yield e;
         e *= x;
-        if e._x == 1 : break;
+        if e._x <= 1 : break;
     return g(self(1));
 
   p = field_p;
