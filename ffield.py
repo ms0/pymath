@@ -282,20 +282,20 @@ The polynomial can be represented as
     the string is stripped and converted to lower case before evaluation;
     zit values are their positions in '0123456789abcdefghijklmnopqrstuvwxyz'
 Instance variables:
- p: the characterisitic of the field (inherited from the type)
- n: the degree of the polynomial modulus (inherited from the type)
- x: the polynomial representation, evaluated at x=p"""
+  _p: the characterisitic of the field (inherited from the type)
+  _n: the degree of the polynomial modulus (inherited from the type)
+  _x: the polynomial representation, evaluated at x=p"""
   if x.__class__ == self.__class__ or \
-     x.__class__.__class__ == ffield and x.p == self.p and (
-       x.n == 1 or self.n == 1 and x.x < x.p) :
-    self.x = x.x;
+     x.__class__.__class__ == ffield and x._p == self._p and (
+       x._n == 1 or self._n == 1 and x._x < x._p) :
+    self._x = x._x;
     return;
-  p = self.p;
-  n = self.n;
+  p = self._p;
+  n = self._n;
   if isint(x) :
     pn = p**n;
     if -pn < x < pn :
-      self.x = x%pn;
+      self._x = x%pn;
     else : raise ValueError('absolute value must be < %d'%(pn));
   elif isinstance(x,(tuple,list)) :
     if len(x) > n :
@@ -309,7 +309,7 @@ Instance variables:
           raise ValueError('tuple elements must be in [0,%d)'%(p));
         s *= p
         s += i;
-      self.x = s;
+      self._x = s;
   elif isinstance(x,(str,unicode)) and p <= 36 : # allow sequence of base-p chars if p <= 36
     if len(x) > n : raise ValueError('string must be at most n zits long')
     try:
@@ -319,63 +319,88 @@ Instance variables:
         x = x*p + zits[:p].index(c);    # will raise ValueError if illegal
     except ValueError :
       raise ValueError('zits in string must be in "%s"'%(zits[:p]));
-    self.x = x;
+    self._x = x;
   else : raise TypeError('uninterpretable arg');
 
 @property
-def tupoly(self) :
-  """the field representation's polynomial modulus mod x**n, as a tuple"""
+def element(self) :
+  """the field element's polynomial representation evaluated at p"""
+  return self._x;
+
+@property
+def field_p(self) :
+  """the field's characteristic"""
+  return self._p;
+
+@property
+def field_n(self) :
+  """the degree of the field representation's polynomial modulus"""
+  return self._n;
+
+@property
+def field_poly(self) :
+  """the field representation's polynomial modulus minus x**n, evaluated at x=p"""
+  return self._poly;
+
+@property
+def field_tupoly(self) :
+  """the field representation's polynomial modulus minus x**n, as a tuple"""
   return self._tupoly[self._nzi:] if self._nzi else ();
 
 @property
-def order(self) :
-  """p**n-1, the multiplicative order of the field"""
-  return self.p**self.n-1;
-
-@property
-def elementorder(self) :
+def element_order(self) :
   """The multiplicative order of the field element"""
-  o = self.p**self.n-1;
-  if self.x <= 1 :
-    return self.x;
+  o = self._p**self._n-1;
+  if self._x <= 1 :
+    return self._x;
   for p in factors(o) :
     while not o%p :
-      if (self**(o//p)).x != 1 : break;
+      if (self**(o//p))._x != 1 : break;
       o //= p;
   return o;
 
+@property
+def field_ftupoly(self) :
+  """the field representation's polynomial modulus, as a tuple"""
+  return self._tupoly;
+
+@property
+def field_nzi(self) :
+  """minus the length of tupoly"""
+  return self._nzi;
+
 def __hash__(self) :
-  return hash(self.__class__) ^ hash(self.x);
+  return hash(self.__class__) ^ hash(self._x);
 
 def __eq__(self,other) :
   """Test if two elements are in the same class and have the same value"""
-  return self.__class__ == other.__class__ and self.x == other.x;
+  return self.__class__ == other.__class__ and self._x == other._x;
 
 def __ne__(self,other) :
   """Test if two elements are in different classes or have different values"""
-  return self.__class__ != other.__class__ or self.x != other.x;
+  return self.__class__ != other.__class__ or self._x != other._x;
 
 __le__ = __ge__ = __eq__;
 __lt__ = __gt__ = lambda x,y:False;
 
 def __bool__(self) :
-  return self.x != 0;
+  return self._x != 0;
 
 __nonzero__ = __bool__
 
 def __int__(self) :
   """Return the polynomial representation of the finite field element evaluated at x=p,
 a nonnegative integer < p**n; for n=1, it is just the obvious mod p integer"""
-  return self.x;
+  return self._x;
 
 def __str__(self) :
   """Return a string representing the polynomial representation of the finite field element
 If n = 1, return the value as a decimal integer, the polynomial evaluated at x=p
 Otherwise, return the coefficients in sequence ending with the constant term;
 if p <= 36, each coefficient is a zit; else each is a decimal integer, period separated"""
-  x = self.x;
-  n = self.n;
-  p = self.p;
+  x = self._x;
+  n = self._n;
+  p = self._p;
   if n == 1 : return '%d'%(x);
   a = [];
   for i in xrange(n) :
@@ -390,26 +415,26 @@ def __repr__(self) :
   """Return a string representing the polynomial representation of the finite field element
 The string begins with the characterisitic of the field as a decimal integer and is followed
 by an underscore and the __str__ representation"""
-  return str(self.p)+'_'+str(self);
+  return str(self._p)+'_'+str(self);
 
 def __add__(self,other) :
   """Return the sum of the two finite field elements; integers are treated mod p"""
-  p = self.p;
-  n = self.n;
-  x = self.x;
+  p = self._p;
+  n = self._n;
+  x = self._x;
   if other.__class__ != self.__class__ :
-    if other.__class__.__class__ == ffield and other.p == p :
+    if other.__class__.__class__ == ffield and other._p == p :
       if n == 1 :
         return other+x;
-      if other.n == 1 :
-        other = other.x;
+      if other._n == 1 :
+        other = other._x;
     if isint(other) :
       other %= p;
       if not other : return self;
       return self.__class__(x-x%p+(x+other)%p);
     else :
-      raise TypeError('must be field element');
-  y = other.x;
+      raise TypeError('must be elements of same field');
+  y = other._x;
   if not y : return self;
   if p == 2 :
     return self.__class__(x^y);
@@ -432,10 +457,10 @@ def __pos__(self) :
 
 def __neg__(self) :
   """Return the additive inverse of the element"""
-  x = self.x;
+  x = self._x;
   if not x : return self;
-  p = self.p;
-  n = self.n;
+  p = self._p;
+  n = self._n;
   if p == 2 : return self;
   if n == 1 : return self.__class__(-x%p);
   a = [];
@@ -450,22 +475,22 @@ def __neg__(self) :
 
 def __sub__(self,other) :
   """Return the difference of the two finite field elements; integers are treated mod p"""
-  p = self.p;
-  n = self.n;
-  x = self.x;
+  p = self._p;
+  n = self._n;
+  x = self._x;
   if other.__class__ != self.__class__ :
-    if other.__class__.__class__ == ffield and other.p == p :
+    if other.__class__.__class__ == ffield and other._p == p :
       if n == 1 :
         return x-other;
-      if other.n == 1 :
-        other = other.x;
+      if other._n == 1 :
+        other = other._x;
     if isint(other) :
       other %= p;
       if not other : return self;
       return self.__class__(x-x%p+(x-other)%p);
     else :
-      raise TypeError('must be field element');
-  y = other.x;
+      raise TypeError('must be elements of same field');
+  y = other._x;
   if not y : return self;
   if p == 2 : return self.__class__(x^y);
   if n == 1 : return self.__class__((x-y)%p);
@@ -482,22 +507,22 @@ def __sub__(self,other) :
 
 def __rsub__(self,y) :
   """Return the difference of the swapped finite field elements; integers  are treated mod p"""
-  p = self.p;
+  p = self._p;
   if not isint(y) :
-    raise TypeError('must be field element');
+    raise TypeError('must be elements of same field');
   return self.__class__(y%p)-self;
 
 def __div__(self,y) :
   """Return the quotient of the two finite field elements; integers are treated mod p"""
-  p = self.p;
-  x = self.x;
-  n = self.n;
+  p = self._p;
+  x = self._x;
+  n = self._n;
   if y.__class__ != self.__class__ :
-    if y.__class__.__class__ == ffield and y.p == p :
+    if y.__class__.__class__ == ffield and y._p == p :
       if n == 1 :
         return x/y;
-      if y.n == 1 :
-        y = y.x;
+      if y._n == 1 :
+        y = y._x;
     if isint(y) :
       y %= p;
       if not y : raise ZeroDivisionError;
@@ -512,18 +537,18 @@ def __div__(self,y) :
         s *= p;
         s += c;
       return self.__class__(s);
-    else : raise TypeError('must be field element');
-  yx = y.x;
+    else : raise TypeError('must be elements of same field');
+  yx = y._x;
   if yx < p : return self/yx;
   return self*self.__class__(pack(p,xmpgcd(p,self._tupoly,unpack(p,yx))[2]));
 #  return self*y**(p**n-2);
 
 def __rdiv__(self,y) :    # y/self
   """Return y/self; y must be an integer and is interpreted mod p"""
-  p = self.p;
+  p = self._p;
   if not isint(y) :
-    raise TypeError('must be field element');
-  x = self.x;
+    raise TypeError('must be elements of same field');
+  x = self._x;
   if not x : raise ZeroDivisionError;
   y %= p;
   if x < p :
@@ -536,15 +561,15 @@ def __rdiv__(self,y) :    # y/self
 
 def __mul__(self,y) :
   """Return the product of the two finite field elements; integers are treated mod p"""
-  p = self.p;
-  x = self.x;
-  n = self.n;
+  p = self._p;
+  x = self._x;
+  n = self._n;
   if y.__class__ != self.__class__ :
-    if y.__class__.__class__ == ffield and y.p == p :
+    if y.__class__.__class__ == ffield and y._p == p :
       if n == 1 :
         return y*x;
-      if y.n == 1 :
-        y = y.x;
+      if y._n == 1 :
+        y = y._x;
     if isint(y) :
       d = y%p;
       if not d : return self.__class__(0);
@@ -558,12 +583,12 @@ def __mul__(self,y) :
         s *= p;
         s += c;
       return self.__class__(s);
-    else : raise TypeError('must be field element');
+    else : raise TypeError('must be elements of same field');
   if n == 1 :
-    return self.__class__(x*y.x%p);
+    return self.__class__(x*y._x%p);
   if p == 2 :
-    y = y.x;
-    g = self.poly;
+    y = y._x;
+    g = self._poly;
     xy = 0;
     M = 1<<(n-1);
     N = M-1
@@ -573,19 +598,19 @@ def __mul__(self,y) :
       if y&m : xy ^= x;
       m >>= 1;
     return self.__class__(xy);
-  return self.__class__(pack(p,mpmul(p,unpack(p,x),unpack(p,y.x),self._tupoly)));
+  return self.__class__(pack(p,mpmul(p,unpack(p,x),unpack(p,y._x),self._tupoly)));
 
 def __pow__(self,e) :
   """Raise the finite field element to the specified power mod p**n-1, 0**0=0"""
   if not isint(e) :
     raise TypeError('power must be integer');
-  x = self.x;
+  x = self._x;
   if x <= 1 :
     if x or e > 0 : return self;
     if e : raise ZeroDivisionError;
     return self+1;
-  p = self.p;
-  n = self.n;
+  p = self._p;
+  n = self._n;
   e %= p**n-1;
   if e == 0:
     x = 1;
@@ -598,23 +623,23 @@ def __pow__(self,e) :
   return self.__class__(x);
 
 def _vector(x) :
-  p = x.p;
-  n = x.n;
-  x = x.x;
+  p = x._p;
+  n = x._n;
+  x = x._x;
   for i in xrange(n) :
     yield x%p;
     x //= p;
 
 def minpoly(self,m=1) :
-  """Return, as a tuple of elements of the subfield GF(self.p**m),
+  """Return, as a tuple of elements of the subfield GF(self._p**m),
 the coefficients, constant term last, of the minimal polynomial of self
-over the subfield. Raise an exception if m does not divide self.n.
+over the subfield. Raise an exception if m does not divide self._n.
 """
-  n = self.n;
-  if m <= 0 or n%m : raise ValueError('m must divide self.n');
+  n = self._n;
+  if m <= 0 or n%m : raise ValueError('m must divide self._n');
   G = self.__class__;
   o = self.order;
-  p = self.p;
+  p = self._p;
   G1 = G(1);
   O = p**m-1;    # order of subfield
   if not O%(o or 1) :    # already in subfield
@@ -681,7 +706,7 @@ def _create(p,n,poly,x=None) :
 
 def __reduce__(self) :
   """Return a tuple for pickling"""
-  return (_create,(self.p,self.n,self.poly,self.x));
+  return (_create,(self._p,self._n,self._poly,self._x));
 
 _ffield = {}; # (p,n,poly) -> ffield
 
@@ -694,13 +719,12 @@ constant term last; the coefficient of x**n is elided and assumed to be 1 while
 immediately following zero coefficients may be elided as well.
 The polynomial is also stored as its value at x=p, again without the x**n term.
 The polynomial modulus can be specified in either of those ways.
-Instance variables:
-  p: characteristic (a prime)
-  n: dimension (giving the field p**n elements)
-  tupoly: the polynomial modulus's tuple representation
-  poly: an integer giving the value of tupoly at x = p
+Instance variables (treat as read-only!):
+  _p: characteristic (a prime)
+  _n: dimension (giving the field p**n elements)
   _tupoly: the unelided polynomial modulus as a tuple with first element 1
-  order: p**n-1, the multiplicative order of the field
+  _poly: an integer giving the value of the elided polynomial at x = __p
+  _nzi: minus the length of the tuple representing the elided polynomial modulus
 Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__
 
 Signatures:
@@ -710,9 +734,9 @@ Signatures:
   ffield(q,poly) : q, a prime power; poly, a la tupoly or poly
 
 Each instance of the created type is an element of the finite field:
-Instance variables:
-  x: the value at p of the polynomial representing the element
-  order: the multiplicative order of the element
+Instance variable (treat as read-only!):
+  _x: the value at _p of the polynomial representing the element
+
 Methods: __init__, __hash__, __repr__, __str__, __int__,
          __pos__, __neg__,
          __bool__, __nonzero__, __eq__, __ne__,
@@ -780,7 +804,12 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
       return _ffield[x];
     except Exception :
       pass;
-    d = dict(p=p,n=n,poly=poly,_tupoly=_tupoly,_nzi=_nzi,
+    d = dict(p=field_p,n=field_n,poly=field_poly,x=element,
+             minpoly = minpoly,
+             tupoly = field_tupoly,
+             ftupoly = field_ftupoly,
+             order = element_order,
+             _p=p,_n=n,_poly=poly,_tupoly=_tupoly,_nzi=_nzi,
              __init__=__init__,
              __repr__=__repr__,
              __str__=__str__,
@@ -807,9 +836,6 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
              __rdiv__=__rdiv__,
              __rtruediv__=__rdiv__,
              __pow__=__pow__,
-             minpoly = minpoly,
-             tupoly = tupoly,
-             order = elementorder,
              __reduce__=__reduce__,
             );
     # need to define all the relevant operators:
@@ -836,13 +862,13 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
 
   def __reduce__(self) :
     """Return a tuple for pickling"""
-    return (_create,(self.p,self.n,self.poly));
+    return (_create,(self._p,self._n,self._poly));
 
   def __hash__(self) :
-    return hash(self.__class__)^hash('%s:%s'%(self.p**self.n,self.poly));
+    return hash(self.__class__)^hash('%s:%s'%(self._p**self._n,self._poly));
 
   def __eq__(self,other) :
-    return self.__class__==other.__class__ and self.p==other.p and self.n==other.n and self.poly==other.poly;
+    return self.__class__==other.__class__ and self._p==other._p and self._n==other._n and self._poly==other._poly;
   
   def __ne__(self,other) :
     return not self==other;
@@ -852,8 +878,23 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
   __lt__ = __lt__;
   __gt__ = __gt__;
 
-  tupoly = tupoly;
-  order = order;  
+  p = field_p;
+  n = field_n;
+  poly = field_poly;
+  tupoly = field_tupoly;
+  ftupoly = field_ftupoly;
+
+  @property
+  def order(self) :
+    """p**n-1, the multiplicative order of the field"""
+    return self._p**self._n-1;
+
+  def foo(self,foo=None) :
+    raise AttributeError("type object '%s' has no Attribute 'x'"%(self.__name__));
+
+  x = property(foo,foo,foo);
+  del foo;
+
 
 zits='0123456789abcdefghijklmnopqrstuvwxyz';
 

@@ -3,8 +3,15 @@ import sys
 if sys.version_info>(3,) :
   xrange = range;
 
-from random import randrange, sample
+from random import Random, randrange, sample
 from itertools import chain
+
+from timeit import timeit, default_timer
+
+try :
+  from timer import process_time
+except Exception :
+  process_time = default_timer;
 
 from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, factor, unfactor, factors, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder
 from matrix import *
@@ -85,9 +92,9 @@ def mtest(g) :    # matrix tests
   p = o;
   for i,a in enumerate(sample(xrange(1,pn),d)) :
     a = g(a);
-    for j in range(i) :
+    for j in xrange(i) :
       p *= a-M[j,1];
-    for j in range(d) :
+    for j in xrange(d) :
       M[i,j] = a**j;
   ceq('v[0]==v[1].det',p,M);
 
@@ -95,7 +102,7 @@ def ptest(g) :    # polynomial tests
   p = g.p;
   n = g.n;
   pn = p**n;
-  for i in range(min(pn,LIMITP)) :
+  for i in xrange(min(pn,LIMITP)) :
     x = g(randrange(pn));
     for m in set(chain.from_iterable((a,n//a) for a in chain((1,),factors(n)))) :
       P = polynomial(*x.minpoly(m));
@@ -271,6 +278,25 @@ def dtest1(n) :
   if set(divisors(n)) != d :
     print('divisors(%d) incorrect'%(n));
 
+R=Random();
+R.seed(0);
+
+
+def timing(name,G,stmt,repeats=16,nargs=1) :
+  """Print time taken by stmt with nargs random args selected from G"""
+  t = timeit(
+    stmt=stmt if not '[i]' in stmt else
+    'for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
+    setup='from ffield import ffield\nfrom test_ffield import R\nG=ffield(%d,%d)\nr=tuple(G(R.randrange(G.order+1)) for _ in %s(%d))'%(
+      G.order+1,G.poly,xrange.__name__,repeats*nargs),
+    timer=process_time,number=1);
+  print('%s\t%s\t%f'%(G,name,t/repeats));
+
+def timetest() :
+  G = ffield(3,5);
+  timing('._',G,'r[i]._n,r[i]._p,r[i]._poly,r[i]._x',1<<20);
+  timing('.',G,'r[i].n,r[i].p,r[i].poly,r[i].x',1<<20);
+
 
 if __name__=='__main__' :
   gtest();
@@ -284,4 +310,6 @@ if __name__=='__main__' :
       test(p,2);
       test(p,3);
 
+
 # NOTE: we should test whether gcd is faster than exp for computing inverse
+#   We did, and gcd is faster

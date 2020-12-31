@@ -644,7 +644,7 @@ def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
   if F.n == 1 :
     return (G,F);
   GF2 = ffield(2);
-  fp = polynomial(*F._tupoly).mapcoeffs(GF2);    #F(2).minpoly();
+  fp = polynomial(*F.ftupoly).mapcoeffs(GF2);    #F(2).minpoly();
   m = F.n;
   n = G.n;
   while True :    # find generator of G
@@ -653,7 +653,7 @@ def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
   h = g**(G.order//F.order);    # generator of F in G
   for x in xrange(1,F.order-1) :
     j = h**x;
-    if not fp(j) : break; # find an x such that h**x has minpoly F._tupoly
+    if not fp(j) : break; # find an x such that h**x has minpoly F.ftupoly
   F2G = lambda f: polynomial(*unpack(2,int(f))).mapcoeffs(GF2)(j);
   v = [G(1),j];
   p = j;
