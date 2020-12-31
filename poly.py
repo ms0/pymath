@@ -114,7 +114,8 @@ Instance variables:
   degree: the degree of the polynomial [-inf for a zero polynomial, 0 for a constant]
   
 Methods:
-  __init__, __hash__, __iter__, __call__, __repr__, __bool__, __nonzero__,
+  __init__, __hash__, __repr__, __str__,
+  __bool__, __nonzero__, __len__, __iter__, __call__,
   __lt__, __le__, __eq__, __ne__, __ge__, __gt__, __pos__, __neg__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__,
   __truediv__, __rtruediv__, __div__, __rdiv__, __floordiv__, __rfloordiv__,

@@ -53,10 +53,19 @@ def test(p,n) :
   g = randfield(p,n);
   print(g);
   pn = p**n;
-  if g.p != p or g.n != n or g.order != pn-1 :
-    printf('.p or .n or .order failed');
+  if g.p != p or g.n != n or g.order != pn-1 or len(g) != pn:
+    print('.p or .n or .order or len failed');
   if pn <= LIMITQ :
     ceq('v[0]==len(v[1])',irreducible_count(p,n),irreducibles(p,n));
+    t=tuple(g);
+    if not len(g)==len(t)==len(set(t)) :
+      print('__iter__ failed');
+    x = g.generator;
+    ceq('v[0].generator',x);
+    for y in (x,g(-1)) :
+      t = tuple(g.iterpow(x));
+      s = set(t);
+      ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',x,s,t);
   z = g(0);
   o = g(1);
   ceq('not o+-1',o);
@@ -119,6 +128,7 @@ def test1(g,i) :
   n = g.n;
   pn = p**n;
   gi = g(i);
+  ceq('v[0] in v[1]',gi,g);
   if not generator and isgenerator(gi) :
     generator = gi;
     print('  generator %s'%(str(gi)));
@@ -204,8 +214,10 @@ def isgenerator(x) :
   for q in factors(o) :
     if not x**(o//q)-1 :
       ceq('v[0].order!=v[0].__class__.order and not v[0].__class__.order%v[0].order',x);
+      ceq('not v[0].generator',x);
       return False;
   ceq('v[0].order==v[0].__class__.order',x);
+  ceq('v[0].generator',x);
   return True;
 
 def ftest(*args) :

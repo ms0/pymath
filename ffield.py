@@ -246,7 +246,7 @@ def fmerge(*args) :
     else :
       i = len(f);
     yield (p,k);
-    for j in range(i) :
+    for j in xrange(i) :
       x = f[j][0];
       try :
         d[x] = next(x);
@@ -368,6 +368,15 @@ def field_ftupoly(self) :
 def field_nzi(self) :
   """minus the length of tupoly"""
   return self._nzi;
+
+@property
+def generates(self) :
+  o = self._p**self._n-1;
+  if self._x <= 1 :
+    return self._x==o;
+  for p in factors(o) :
+    if (self**(o//p))._x == 1 : return False;
+  return True;
 
 def __hash__(self) :
   return hash(self.__class__) ^ hash(self._x);
@@ -725,7 +734,9 @@ Instance variables (treat as read-only!):
   _tupoly: the unelided polynomial modulus as a tuple with first element 1
   _poly: an integer giving the value of the elided polynomial at x = __p
   _nzi: minus the length of the tuple representing the elided polynomial modulus
-Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__
+Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
+         __len__, __iter__, __contains__, iterpow, __reduce__
+Descriptors: p, n, poly, tupoly, ftupoly, order [of field-{0}], generator [of field-{0}]
 
 Signatures:
   ffield(q) : q = p**n, a prime power; irreducible polynomial chosen at random
@@ -739,11 +750,13 @@ Instance variable (treat as read-only!):
 
 Methods: __init__, __hash__, __repr__, __str__, __int__,
          __pos__, __neg__,
-         __bool__, __nonzero__, __eq__, __ne__,
+         __bool__, __nonzero__, __eq__, __ne__, __lt__, __gt__, __le__, __ge__
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
          __pow__, minpoly,
          __reduce__
+Descriptors: p, n, poly, tupoly, ftupoly, x,
+             order [of element], generator [True if element generates]
 """
 
   def __new__(cls,q,*args,**kwargs) :
@@ -809,6 +822,7 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
              tupoly = field_tupoly,
              ftupoly = field_ftupoly,
              order = element_order,
+             generator = generates,
              _p=p,_n=n,_poly=poly,_tupoly=_tupoly,_nzi=_nzi,
              __init__=__init__,
              __repr__=__repr__,
@@ -838,17 +852,6 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
              __pow__=__pow__,
              __reduce__=__reduce__,
             );
-    # need to define all the relevant operators:
-    # comparisons: only == and !=
-    # pow, with exponent being integer (int or long) or GF(p**n-1)
-    # mul, div,
-    # neg[-], pos[+], no abs, no invert [~]    
-    # add, sub, neg (only in same class)
-    # no and, or, xor
-    # repr, str
-    # hash
-    # NO: i* because want these things to be immutable
-    # see https://docs.python.org/2/reference/datamodel.html
 
     name = ('GF%d'%(p) if n == 1 and not tupoly else
             'GF%d_%s'%(p,zits[poly] if p <= 36 else str(poly)) if n == 1 else
@@ -878,6 +881,30 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
   __lt__ = __lt__;
   __gt__ = __gt__;
 
+  def __len__(self) :
+    """Return p**n, the size of the field"""
+    return self._p**self._n;
+
+  def __iter__(self) :
+    """Return an iterator for the elements of the field"""
+    return (self(x) for x in xrange(self._p**self._n));
+
+  def __contains__(self,x) :
+    """Return True iff x is an element of the field"""
+    return (isinstance(x,self) or isinstance(x,int) and 0 <= x < self._p or
+       isinstance(x.__class__,ffield) and x._p == self._p and x._x < x._p);
+
+  def iterpow(self,x=0) :
+    """Return an iterator of the powers of x, or powers of smallest generator"""
+    if not x :
+      x = self.generator;
+    def g(e) :
+      while True :
+        yield e;
+        e *= x;
+        if e._x == 1 : break;
+    return g(self(1));
+
   p = field_p;
   n = field_n;
   poly = field_poly;
@@ -888,6 +915,12 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
   def order(self) :
     """p**n-1, the multiplicative order of the field"""
     return self._p**self._n-1;
+
+  @property
+  def generator(self) :
+    """the "smallest" generator of the field"""
+    for g in self :
+      if g.generator : return g;
 
   def foo(self,foo=None) :
     raise AttributeError("type object '%s' has no Attribute 'x'"%(self.__name__));
