@@ -662,8 +662,8 @@ over the subfield. Raise an exception if m does not divide self._n.
     # n/m is the max possible degree
     G0 = G(0);
     P = [G0]*(n//m) + [G1];    # coeffs of 1, x, x**2, x**3, ... x**(n/m)
-    while True :    # find generator of superfield of subfield
-      g = G(random.randint(p,G.order));
+    for i in xrange(p,len(G)) :    # find generator of superfield of subfield
+      g = G(i);
       if not g.order % O: break;
     g **= g.order // O;   # generator of subfield
     P[d] = G1;
@@ -739,9 +739,9 @@ Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __
 Descriptors: p, n, poly, tupoly, ftupoly, order [of field-{0}], generator [of field-{0}]
 
 Signatures:
-  ffield(q) : q = p**n, a prime power; irreducible polynomial chosen at random
+  ffield(q) : q = p**n, a prime power; use least irreducible polynomial
   ffield(q,n,poly) : q, a prime; n, a positive int; poly, a la tupoly or poly
-  ffield(q,n) : q, a prime; n, a positive int; irreducible polynomial chosen at random
+  ffield(q,n) : q, a prime; n, a positive int; use least irreducible polynomial
   ffield(q,poly) : q, a prime power; poly, a la tupoly or poly
 
 Each instance of the created type is an element of the finite field:
@@ -792,13 +792,13 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
     poly = poly or 0;
     if  n < 1 or not isint(n) :
       raise ValueError('Bad power');
-    if not poly and n > 1:    # pick irreducible poly at random
-      while True :
-        poly = p**n + random.randrange(p**n);
+    q = p**n;
+    if not poly and n > 1:    # pick least irreducible poly
+      for poly in xrange(q+p+1,q+q) :
         if isirreducible(unpack(p,poly)[1:],p) : break;
-      poly -= p**n;
+      poly -= q;
     if isint(poly) :
-      if not 0 <= poly < p**n : raise ValueError('Bad poly');
+      if not 0 <= poly < q : raise ValueError('Bad poly');
     elif isinstance(poly,tuple) and len(poly) <= n :
       tupoly = poly;
       poly = 0;
