@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import division
+
 # NOTE: this includes a test for rational.__pow__ as used in sha2.py
 # NOTE: test_matrix.py also tests rational.py functionality
 # NOTE: test_poly.py also tests rational.py functionality

@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import division
+
 from matrix import *
 from poly import *
 from rational import *
