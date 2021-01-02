@@ -603,7 +603,7 @@ def __mul__(self,y) :
     N = M-1
     m = M;
     while m :
-      xy = (((xy&N)<<1)^g if xy&M else xy<<1);
+      xy = ((xy&N)<<1)^g if xy&M else xy<<1;
       if y&m : xy ^= x;
       m >>= 1;
     return self.__class__(xy);
@@ -627,6 +627,29 @@ def __pow__(self,e) :
     return self;
   elif x < p :
     x = pow(x,e,p);
+  elif p == 2 :
+    g = self._poly;
+    M = 1<<(n-1);
+    N = M-1;
+    n = 1<<(bit_length(e)-2);
+    b = x;
+    while n :
+      z = 0;      # compute z = x*x mod g ...
+      m = M;
+      while m :
+        z = ((z&N)<<1)^g if z&M else z<<1; 
+        if x&m : z ^= x
+        m >>= 1;
+      if e&n :
+        x = 0;    # compute x = z*b mod g ...
+        m = M;
+        while m:
+          x = ((x&N)<<1)^g if x&M else x<<1;
+          if b&m : x ^= z;
+          m >>= 1;
+      else :
+        x = z;
+      n >>= 1;
   else :
     x = pack(p,mppow(p,unpack(p,x),e,self._tupoly));
   return self.__class__(x);
