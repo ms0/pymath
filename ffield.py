@@ -660,11 +660,30 @@ def __pow__(self,e) :
     x = pack(p,mppow(p,unpack(p,x),e,self._tupoly));
   return self.__class__(x);
 
+def _log(self,base=None,alt=False) :
+  """Return the discrete log base base (default: least generator) of self
+     if alt, values are signed; always searched by increasing magnitude"""
+  x = self._x;
+  if x : 
+    if base is None :
+      base = self.__class__.generator;
+    elif not base :
+      raise ValueError('bad base');
+    q,r = divmod(base.order,self.order);
+    if not r :
+      if alt :
+        for i,g in enumerate(self.__class__.iterpow(base**q,alt),1) :
+          if g._x == x : return (-(i>>1) if i&1 else (i>>1))*q;
+      for i,g in enumerate(self.__class__.iterpow(base**q)) :
+        if g._x == x : return i*q;
+  return ValueError('not in multiplicative group');  
+
 def _vector(x) :
+  """A generator of the coefficients of the polynomial representation"""
   p = x._p;
   n = x._n;
   x = x._x;
-  for i in xrange(n) :
+  for _ in xrange(n) :
     yield x%p;
     x //= p;
 
@@ -782,7 +801,7 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __bool__, __nonzero__, __eq__, __ne__, __lt__, __gt__, __le__, __ge__
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
-         __pow__, minpoly,
+         __pow__, log, minpoly,
          __reduce__
 Descriptors: p, n, poly, tupoly, ftupoly, x,
              order [of element], generator [True if element generates]
@@ -823,7 +842,7 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
       raise ValueError('Bad power');
     q = p**n;
     if not poly and n > 1:    # pick least irreducible poly
-      for poly in xrange(q+p+1,q+q) :
+      for poly in xrange(q+1,q+q) :
         if isirreducible(unpack(p,poly)[1:],p) : break;
       poly -= q;
     if isint(poly) :
@@ -879,6 +898,7 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
              __rdiv__=__rdiv__,
              __rtruediv__=__rdiv__,
              __pow__=__pow__,
+             log = _log,
              __reduce__=__reduce__,
             );
 
@@ -923,15 +943,28 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
     return (isinstance(x,self) or isinstance(x,int) and 0 <= x < self._p or
        isinstance(x.__class__,ffield) and x._p == self._p and x._x < x._p);
 
-  def iterpow(self,x=0) :
-    """Return an iterator of the powers of x, or powers of smallest generator"""
+  def iterpow(self,x=0,alt=False) :
+    """Return an iterator of the powers of x, or powers of smallest generator
+       power sequence: 0,1,2,..., or, if alt, 0,1,-1,2,-2,..."""
     if not x :
       x = self.generator;
-    def g(e) :
-      while True :
-        yield e;
-        e *= x;
-        if e._x <= 1 : break;
+    if alt :
+      def g(f) :
+        e = x;
+        y = 1/x;
+        while True :
+          yield f;
+          if e._x == f._x : break;
+          yield e;
+          e *= x;
+          if e._x == f._x : break;
+          f *= y;
+    else :
+      def g(e) :
+        while True :
+          yield e;
+          e *= x;
+          if e._x <= 1 : break;
     return g(self(1));
 
   p = field_p;
@@ -948,8 +981,13 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
   @property
   def generator(self) :
     """the "smallest" generator of the field"""
-    for g in self :
-      if g.generator : return g;
+    try :
+      return self.__generator;
+    except AttributeError :
+      for g in self :
+        if g.generator :
+          self.__generator = g;
+          return g;
 
   def foo(self,foo=None) :
     raise AttributeError("type object '%s' has no Attribute 'x'"%(self.__name__));

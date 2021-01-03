@@ -26,6 +26,7 @@ LIMIT3 = 64;     # limit on ff size for full triple testing
 LIMITM = 16;     # limit on size of vandermonde matrix
 LIMITP = 32;     # limit on number of minpoly test elements
 LIMITQ = 1024;   # limit on size of field for irreducibles testing
+LIMITL = 512;    # limit on number of log tests
 
 def ceq(c,*v) :
   z = v[0].__class__(0);
@@ -69,6 +70,9 @@ def test(p,n) :
       t = tuple(g.iterpow(x));
       s = set(t);
       ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',x,s,t);
+      t = tuple(g.iterpow(x,alt=1));
+      s = set(t);
+      ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',x,s,t);
   z = g(0);
   o = g(1);
   ceq('not o+-1',o);
@@ -87,8 +91,25 @@ def test(p,n) :
           test3(g,randrange(pn),randrange(pn),randrange(pn));
   mtest(g);
   ptest(g);
+  ltest(g);  
+
+def ltest(g) :    # log test
+  print('  log tests');
+  p = g.p;
+  n = g.n;
+  pn = p**n;
+  o = pn-1;
+  g1 = g.generator;
+  g2 = 1/g1;
+  for e in range(min(o,17)) :
+    ceq('v[0]==v[1]**v[0].log(v[1])',g1**e,g2);
+    ceq('v[0]==v[1]**v[0].log(v[1],True)',g1**e,g2);
+    ceq('v[0]==v[1]**v[0].log(v[1])',g2**e,g1);
+    ceq('v[0]==v[1]**v[0].log(v[1],True)',g2**e,g1);
+
 
 def mtest(g) :    # matrix tests
+  print('  matrix tests');
   p = g.p;
   n = g.n;
   pn = p**n;
@@ -111,6 +132,7 @@ def mtest(g) :    # matrix tests
   ceq('v[0]==v[1].det',p,M);
 
 def ptest(g) :    # polynomial tests
+  print('  polynomial tests')
   p = g.p;
   n = g.n;
   pn = p**n;
