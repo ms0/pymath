@@ -549,8 +549,9 @@ def __div__(self,y) :
     else : raise TypeError('must be elements of same field');
   yx = y._x;
   if yx < p : return self/yx;
+  if p == 2 : return self*y**((1<<n)-2);    # self*y**(p**n-2)
   return self*self.__class__(pack(p,xmpgcd(p,self._tupoly,unpack(p,yx))[2]));
-#  return self*y**(p**n-2);
+
 
 def __rdiv__(self,y) :    # y/self
   """Return y/self; y must be an integer and is interpreted mod p"""
@@ -562,6 +563,8 @@ def __rdiv__(self,y) :    # y/self
   y %= p;
   if x < p :
     z = y*pow(x,p-2,p)%p;
+  elif p == 2 :
+    return self**-1*y;
   else :
     z = 0;
     for i in xmpgcd(p,self._tupoly,unpack(p,x))[2] :
@@ -620,7 +623,8 @@ def __pow__(self,e) :
     return self+1;
   p = self._p;
   n = self._n;
-  e %= p**n-1;
+  o = p**n-1;
+  e %= o;
   if e == 0:
     x = 1;
   elif e == 1 :
@@ -650,6 +654,8 @@ def __pow__(self,e) :
       else :
         x = z;
       n >>= 1;
+  elif o-e <= o//8 :
+    return 1/self**(o-e);
   else :
     x = pack(p,mppow(p,unpack(p,x),e,self._tupoly));
   return self.__class__(x);
