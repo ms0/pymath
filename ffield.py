@@ -674,9 +674,10 @@ def _log(self,base=None,alt=False) :
       if alt :
         for i,g in enumerate(self.__class__.iterpow(base**q,alt),1) :
           if g._x == x : return (-(i>>1) if i&1 else (i>>1))*q;
-      for i,g in enumerate(self.__class__.iterpow(base**q)) :
-        if g._x == x : return i*q;
-  return ValueError('not in multiplicative group');  
+      else :
+        for i,g in enumerate(self.__class__.iterpow(base**q)) :
+          if g._x == x : return i*q;
+  raise ValueError('not in multiplicative group');  
 
 def _vector(x) :
   """A generator of the coefficients of the polynomial representation"""

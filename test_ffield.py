@@ -101,12 +101,26 @@ def ltest(g) :    # log test
   o = pn-1;
   g1 = g.generator;
   g2 = 1/g1;
-  for e in range(min(o,17)) :
+  for e in xrange(min(o,17)) :
     ceq('v[0]==v[1]**v[0].log(v[1])',g1**e,g2);
     ceq('v[0]==v[1]**v[0].log(v[1],True)',g1**e,g2);
     ceq('v[0]==v[1]**v[0].log(v[1])',g2**e,g1);
     ceq('v[0]==v[1]**v[0].log(v[1],True)',g2**e,g1);
-
+  if o <= LIMITL :
+    for i in xrange(LIMITL) :
+      v = list(g(randrange(1,pn)) for j in xrange(2));
+      vo = list(map(lambda x:x.order,v));
+      for k in xrange(2) :
+        if vo[1]%vo[0] :
+          try :
+            v[0].log(v[1]);
+            print('%s.log(%s) should fail'%(v[0],v[1]));
+          except ValueError :
+            pass;
+        else :
+          ceq('v[0]==v[1]**v[0].log(v[1])',*v);
+        v = v[-1::-1];
+        vo = vo[-1::-1];
 
 def mtest(g) :    # matrix tests
   print('  matrix tests');
