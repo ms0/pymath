@@ -171,6 +171,8 @@ def test1(g,i) :
   gi = g(i);
   isgenerator(gi);
   ceq('v[0] in v[1]',gi,g);
+  if not ((i in g) == (-i in g) == (abs(i) < p)) :
+    print('+-%d in g failed'%(i));
   ceq('type(v[0])(unpack(v[0].p,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
   if p < 16 : ceq('type(v[0])(cvs(v[0]))==v[0]',gi);
   ceq('not v[0]+-v[0]',gi);
@@ -178,15 +180,19 @@ def test1(g,i) :
   ceq('v[0]*0==z==0*v[0]',gi);
   ceq('v[0]*o==v[0]==o*v[0]',gi);
   ceq('v[0]*1==v[0]==1*v[0]',gi);
+  ceq('v[0]*-1==-v[0]==-1*v[0]',gi);
   ceq('v[0]-v[0]==z',gi);
   ceq('0-v[0]==-v[0]',gi);
   ceq('v[0]+1==1+v[0]',gi);
   ceq('v[0]+1-1==v[0]',gi);
   ceq('1+v[0]-1==v[0]',gi);
   ceq('1-v[0]-1==-v[0]',gi);
+  ceq('-1-v[0]+1==-v[0]',gi);
+  ceq('-1+v[0]+1==v[0]',gi);
   if gi :
     ceq('v[0]/v[0]==o',gi);
     ceq('1/v[0]*v[0]==o',gi);
+    ceq('-1/v[0]*v[0]==-o',gi);
     ceq('1/v[0]==v[0]**-1',gi);
     ceq('o==v[0]**0',gi);
   if p > 2 :
@@ -194,6 +200,9 @@ def test1(g,i) :
     ceq('2*v[0]-v[0]==v[0]',gi);
     ceq('v[0]/2*2==v[0]',gi);
     if gi : ceq('2/v[0]/2==1/v[0]',gi);
+  else :
+    ceq('v[0]*2==z==2*v[0]',gi);
+    if gi : ceq('2/v[0]==z',gi);
   ceq('v[0]==v[0]**1',gi);
   ceq('v[0]*v[0]==v[0]**2',gi);
   for j in xrange(7) :
@@ -301,7 +310,7 @@ def gtest1(a) :
       print('lcm(%s) too big by factor of %d'%(args,g));
 
 def dtest() :
-  dotprint('phi,lam,numdivisors,sigma,divisors,getorder test');
+  dotprint('phi/lam/numdivisors/sigma/divisors/getorder test');
   for n in xrange(1,211) :
     dtest1(n);
   print();

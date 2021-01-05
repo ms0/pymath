@@ -4,7 +4,7 @@ from __future__ import division
 import sys
 
 from poly import *
-from ffield import ffield,isirreducible
+from ffield import ffield,isirreducible,zits
 from rational import rational
 from random import Random
 
@@ -28,7 +28,7 @@ def dotprint(s='.') :
   sys.stdout.flush();
 
 def testf(p) :    # verify that unfactor(factor) is the identity transform
-  dotprint('%x'%(p.degree));
+  dotprint(zits[p.degree] if p else '-');
   f = p.factor();
   if p.unfactor(f) != p :
     error('%s != %s'%(p,f));
@@ -84,33 +84,34 @@ def testmp(F) :    # test minimal polys and isirreducible in ffield F
   n = F.n;
   for k in range(1,n) :
     if n%k : continue;
-    for i in range(p**n) :
+    for g in F :
       dotprint();
-      if not polynomial(*F(i).minpoly(k)).isirreducible(p**k) :
-        error('GF(%d**%d)(%d) minpoly(%d) not irreducible over GF(%d**%d)?'
-              %(p,n,i,k,p,k));
+      if not polynomial(*g.minpoly(k)).isirreducible(p**k) :
+        error('%r.minpoly(%d) not irreducible over GF%d_%d?'%(g,k,p,k));
 
 def factest(F) :
-  print('\n%s'%(F));
+  dotprint('\n%s '%(F));
   for i in range(FREPEATS) :
-    testf(polynomial(F(1),*(F(randrange(F.order+1))
-                            for j in range(randint(MINDEGREE,MAXDEGREE)))));
+    testf(polynomial(*(F(randrange(F.order+1))
+                       for j in range(randint(1+MINDEGREE,1+MAXDEGREE)))));
 
 def factests() :
   GF2 = ffield(2);
   GF3 = ffield(3);
   p = polynomial(1,0,2,2,0,1,1,0,2,2,0,1).mapcoeffs(GF3);
+  dotprint('%s '%(GF3));
   testf(p);
   p = polynomial(GF2(1));  # try product of all irreducible polys mod 2 thru degree 4
   for d in range(1,5) :
     for i in range(2**d) :
       t = tuple(map(int,format(i,'0%db'%(d))));
       if isirreducible(t,2) : p *= polynomial(*(1,)+t).mapcoeffs(GF2);
+  dotprint('  %s '%(GF2));
   testf(p);
-  GF243 = ffield(3,6,5);
-  GF64 = ffield(2,6,3);
-  GF32 = ffield(2,5,5);
-  for F in (GF243,GF64,GF32) :
+  GF729 = ffield(729);
+  GF64 = ffield(64);
+  GF32 = ffield(32);
+  for F in (GF729,GF64,GF32) :
     factest(F);
 
 def optests() :
@@ -141,9 +142,9 @@ if __name__ == '__main__' :
   testattr();
   print('factor test');
   factests();
-  GF243 = ffield(3,6,5);
+  GF729 = ffield(3,6);
   print('\nminpoly and isirreducible test')
-  testmp(GF243);
+  testmp(GF729);
   print('\nrandom polynomial ops test, gcd test')
   optests();
   print('\nCompleted');

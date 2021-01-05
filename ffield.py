@@ -565,10 +565,12 @@ def __rdiv__(self,y) :    # y/self
   x = self._x;
   if not x : raise ZeroDivisionError;
   y %= p;
-  if x < p :
-    z = y*pow(x,p-2,p)%p;
+  if not y :
+    z = 0;
   elif p == 2 :
-    return self**-1*y;
+    return self**-1;
+  elif x < p :
+    z = y*pow(x,p-2,p)%p;
   else :
     z = 0;
     for i in xmpgcd(p,self._tupoly,unpack(p,x))[2] :
@@ -587,12 +589,12 @@ def __mul__(self,y) :
       if y._n == 1 :
         y = y._x;
     if isint(y) :
-      d = y%p;
-      if not d : return self.__class__(0);
-      if d == 1 : return self;
+      y %= p;
+      if not y : return self.__class__(0);
+      if y == 1 : return self;
       a = [];
       for i in xrange(n) :
-        a.append(x*d%p);
+        a.append(x*y%p);
         x //= p;
       s = 0;
       for c in reversed(a) :
