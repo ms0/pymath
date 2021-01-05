@@ -52,26 +52,25 @@ def randfield(p,n) :
 
 def test(p,n) :
   g = randfield(p,n);
-  x = g.generator;
-  print('%r  generator %r'%(g,x));
-  dotprint('  op tests');
+  dotprint('%r'%(g));
   pn = p**n;
   if g.p != p or g.n != n or g.order != pn-1 or len(g) != pn:
     print('.p or .n or .order or len failed');
+  x = g.generator;
+  print('  generator %r'%(x));
+  ceq('isgenerator(v[0])',x);
   if pn <= LIMITQ :
     ceq('v[0]==len(v[1])',irreducible_count(p,n),irreducibles(p,n));
     t=tuple(g);
     if not len(g)==len(t)==len(set(t)) :
       print('__iter__ failed');
-    x = g.generator;
-    ceq('v[0].generator',x);
     for y in (x,g(-1)) :
-      t = tuple(g.iterpow(x));
+      t = tuple(g.iterpow(y));
       s = set(t);
-      ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',x,s,t);
-      t = tuple(g.iterpow(x,alt=1));
+      ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',y,s,t);
+      t = tuple(g.iterpow(y,alt=1));
       s = set(t);
-      ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',x,s,t);
+      ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',y,s,t);
   z = g(0);
   o = g(1);
   ceq('not o+-1',o);
@@ -80,6 +79,7 @@ def test(p,n) :
   ceq('not z-0',z);
   ceq('not 1-o',o);
   ceq('not 0-z',z);
+  dotprint('  op tests');
   for i in xrange(pn) :
     test1(g,i);
     if not i%(pn//32 or 1) : dotprint();
@@ -260,7 +260,7 @@ def isgenerator(x) :
   return True;
 
 def ftest(*args) :
-  dotprint('factor test');
+  dotprint('(integer) factor/unfactor/isprime test');
   for a in args :
     try :
       for n in a : ftest1(n);
