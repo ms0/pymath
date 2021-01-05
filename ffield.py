@@ -438,11 +438,11 @@ def __add__(self,other) :
       if other._n == 1 :
         other = other._x;
     if isint(other) :
+      if p == 2 :
+        return self.__class__(x^1) if other&1 else self;
       other %= p;
-      if not other : return self;
-      return self.__class__(x-x%p+(x+other)%p);
-    else :
-      raise TypeError('must be elements of same field');
+      return self.__class__(x-x%p+(x+other)%p) if other else self;
+    raise TypeError('must be elements of same field');
   y = other._x;
   if not y : return self;
   if p == 2 :
@@ -494,9 +494,10 @@ def __sub__(self,other) :
       if other._n == 1 :
         other = other._x;
     if isint(other) :
+      if p == 2 :
+        return self.__class__(x^1) if other&1 else self;
       other %= p;
-      if not other : return self;
-      return self.__class__(x-x%p+(x-other)%p);
+      return self.__class__(x-x%p+(x-other)%p) if other else self;
     else :
       raise TypeError('must be elements of same field');
   y = other._x;
@@ -519,7 +520,10 @@ def __rsub__(self,y) :
   p = self._p;
   if not isint(y) :
     raise TypeError('must be elements of same field');
-  return self.__class__(y%p)-self;
+  if p == 2 :
+    return self.__class__(self._x^1) if y&1 else self;
+  y %= p;
+  return self.__class__(y)-self if y else -self;
 
 def __div__(self,y) :
   """Return the quotient of the two finite field elements; integers are treated mod p"""
@@ -941,8 +945,8 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
 
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""
-    return (isinstance(x,self) or isinstance(x,int) and 0 <= x < self._p or
-       isinstance(x.__class__,ffield) and x._p == self._p and x._x < x._p);
+    return (isinstance(x,self) or isinstance(x,int) and abs(x) < self._p or
+            isinstance(x.__class__,ffield) and x._p == self._p and x._x < x._p);
 
   def iterpow(self,x=0,alt=False) :
     """Return an iterator of the powers of x, or powers of smallest generator
