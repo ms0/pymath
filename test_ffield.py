@@ -47,15 +47,14 @@ def find_irr(p,n) :
     tupoly = unpack(p,x);
     if isirreducible((n-len(tupoly))*(0,)+tupoly,p) : return x;
 
-generator=None;
-
 def randfield(p,n) :
   return ffield(p,n,find_irr(p,n));
 
 def test(p,n) :
-  global generator
   g = randfield(p,n);
-  print(g);
+  x = g.generator;
+  print('%r  generator %r'%(g,x));
+  dotprint('  op tests');
   pn = p**n;
   if g.p != p or g.n != n or g.order != pn-1 or len(g) != pn:
     print('.p or .n or .order or len failed');
@@ -81,14 +80,18 @@ def test(p,n) :
   ceq('not z-0',z);
   ceq('not 1-o',o);
   ceq('not 0-z',z);
-  generator = None;
   for i in xrange(pn) :
     test1(g,i);
+    if not i%(pn//32 or 1) : dotprint();
+  print();
   if pn > LIMIT3 :
+    dotprint('  random triples test');
     for i in xrange(LIMIT3) :
       for j in xrange(LIMIT3) :
         for k in xrange(LIMIT3) :
           test3(g,randrange(pn),randrange(pn),randrange(pn));
+      if not i%(LIMIT3//32 or 1) : dotprint();
+    print();
   mtest(g);
   ptest(g);
   ltest(g);  
@@ -162,15 +165,12 @@ def ptest(g) :    # polynomial tests
       ceq('not v[0](v[1])',P,x);    # make sure element is a root
 
 def test1(g,i) :
-  global generator
   p = g.p;
   n = g.n;
   pn = p**n;
   gi = g(i);
+  isgenerator(gi);
   ceq('v[0] in v[1]',gi,g);
-  if not generator and isgenerator(gi) :
-    generator = gi;
-    print('  generator %s'%(str(gi)));
   ceq('type(v[0])(unpack(v[0].p,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
   if p < 16 : ceq('type(v[0])(cvs(v[0]))==v[0]',gi);
   ceq('not v[0]+-v[0]',gi);
