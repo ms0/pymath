@@ -13,6 +13,26 @@ if sys.version_info>(3,) :
   map = lambda *x: list(xmap(*x));
 else :
   isint = lambda x: isinstance(x,(int,long));
+  _xrange = xrange
+  def xrange(*a) :    # because builtin xrange has limited range
+    try :
+      return _xrange(*a);
+    except OverflowError :
+      return exrange(*a);
+  def exrange(*a) :
+    try :
+      step = a[2];
+    except IndexError :
+      step = 1;
+    try :
+      stop = a[1];
+      start = a[0];
+    except IndexError :
+      stop = a[0];
+      start = 0;
+    while start < stop :
+      yield start;
+      start += step;
 
 try :
   int.bit_length;
@@ -271,6 +291,23 @@ def unpack(p,x) :
     x //= p;
   return tuple(reversed(a));
 
+zits='0123456789abcdefghijklmnopqrstuvwxyz';
+
+def stradix(x,r=16,n=0) :
+  """Return a string representing integer x in radix r
+     use alphanumeric zits if r < 37, else use dot-separated decimal zits
+     if length of string is less than n, pad on left with 0s to length n"""
+  a = [];
+  while True :
+    a.append(x%r);
+    x //= r;
+    n -= 1;
+    if n<=0 and not x: break;
+  a.reverse();
+  if r > 36 :
+    return '.'.join(map(lambda x:'%d'%(x),a));
+  return ''.join(map(lambda x: zits[x],a));
+
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x
 The polynomial can be represented as
@@ -411,14 +448,7 @@ if p <= 36, each coefficient is a zit; else each is a decimal integer, period se
   n = self._n;
   p = self._p;
   if n == 1 : return '%d'%(x);
-  a = [];
-  for i in xrange(n) :
-    a.append(x%p);
-    x //= p;
-  a.reverse();
-  if p > 36 :
-    return '.'.join(map(lambda x:'%d'%(x),a));
-  return ''.join(map(lambda x: zits[x],a));
+  return stradix(x,p,n);
 
 def __repr__(self) :
   """Return a string representing the polynomial representation of the finite field element
@@ -717,7 +747,7 @@ over the subfield. Raise an exception if m does not divide self._n.
     # n/m is the max possible degree
     G0 = G(0);
     P = [G0]*(n//m) + [G1];    # coeffs of 1, x, x**2, x**3, ... x**(n/m)
-    for i in xrange(p,len(G)) :    # find generator of superfield of subfield
+    for i in xrange(p,G.__len__()) :  # find generator of superfield of subfield
       g = G(i);
       if not g.order % O: break;
     g **= g.order // O;   # generator of subfield
@@ -1002,8 +1032,6 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
   x = property(foo,foo,foo);
   del foo;
 
-
-zits='0123456789abcdefghijklmnopqrstuvwxyz';
 
 # how do we display an instance ?
 # possibility 0:

@@ -18,9 +18,13 @@ else :
     """Python 2 version of map"""
     return list(map(*x));
 
-def hexify(r) :
-  """Given a finite field, make its __str__ output in hex"""
-  r.__str__ = lambda self:'%x'%(self.x);
+from ffield import stradix
+from rational import log,ceil
+
+def hexify(r,radix=16) :
+  """Given a finite field, make its __str__ output in radix radix """
+  n = ceil(log(r.__len__(),radix));
+  r.__str__ = lambda self: stradix(self.x,radix,n);
 
 def Vandermonde(xs,k=0) :
   """Given a list of "numbers"
