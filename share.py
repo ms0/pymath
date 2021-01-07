@@ -37,7 +37,9 @@ and columns corresponding to powers from 0 to degree-1"""
 
 #F = ffield(2,256,1061)
 #F = ffield(2,128,135)
-#F = ffield(2,64,27);
+F = ffield(2,64,27);
+hexify(F);
+
 #GF2_138 = ffield(2,138,365);    # 21 ASCII characters (95 possibilities each)
 #GF2_184 = ffield(2,184,349);    # 28 ASCII characters (95 possibilities each)
 GF2_230 = ffield(2,230,189);    # 35 ASCII characters (95 possibilities each)
@@ -86,3 +88,16 @@ def printshares(ss) :
   """Given list of (sharer,share) pairs, print it as a matrix"""
   zss = zp(*ss);
   print(matrix(len(ss),2,zss[0]+zss[1]));
+
+def selectshares(ss,*args) :
+  """Given list of (sharer,share) pairs, select specified shares"""
+  return [ss[i] for i in args];
+
+def mungeshare(xs,j,t) :
+  """Given list of k (sharer,share) pairs, change just element j to give secret t"""
+  if isinstance(t,str) :
+    t = GF2_230(iicsa(t));
+  z = zp(*xs);
+  v = Vandermonde(z[0])**-1;
+  ds = (t-(v*z[1])[0])/v[0,j];
+  return [s if i!=j else (s[0],s[1]+ds) for i,s in enumerate(xs)];
