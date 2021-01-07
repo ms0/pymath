@@ -308,6 +308,40 @@ def stradix(x,r=16,n=0) :
     return '.'.join(map(lambda x:'%d'%(x),a));
   return ''.join(map(lambda x: zits[x],a));
 
+def radstix(s,r=None) :
+  """Return an integer represented by the string
+     If r is not specified, the string must be of the form
+       radix_------- where radix is a 1-or-more-digit base ten number and
+       each - is an alphanumeric zit; but if radix is > 36, then
+       radix_-.-.-.- where each - is a 1-or-more-digit base ten number;
+     If r is specified, it is used as the radix, and
+     'radix_' may be omitted but is ignored if present"""
+  a = s.split('_');
+  if r is None :
+    if len(a) != 2 :
+      raise ValueError('incorrect format');
+    r = int(a[0]);
+    a = a[1];
+  else :
+    if not 1 <= len(a) <= 2 :
+      raise ValueError('incorrect format');
+    a = a[-1];
+  if r < 2 :
+    raise ValueError('radix must be at least 2');
+  x = 0;
+  if r > 36 :
+    for z in map(int,a.split('.')) :
+      if not 0 <= z < r : raise ValueError('non zit encountered');
+      x = r*x+z;
+  else :
+    for c in a :
+      try :
+        z = zits.index(c);
+      except ValueError :
+        raise ValueError('non zit encountered');
+      x = r*x+z;
+  return x;
+
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x
 The polynomial can be represented as
