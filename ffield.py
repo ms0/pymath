@@ -52,6 +52,10 @@ except Exception :
       n >>= l;
     return b;
 
+def bit_count(n) :
+  """Return number of 1 bits in |n|"""
+  return bin(n).count('1');
+
 # finite field class
 
 import random
@@ -181,6 +185,7 @@ without the leading coefficient, which is taken to be 1"""
   if n <= 1 : return True;
   x = (1,0);
   f = (1,)+poly;
+  if q == 2 : return isirreducible2(pack(2,f));
   for r in factors(n) :
     if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
   return not mpdivrem(p,mpsub(p,mppow(p,x,q**n,f),x),f)[1];
@@ -1188,6 +1193,67 @@ all polynomials over GF(p); note that g**-1 mod f = xmpgcd(p,f,g)[2]"""
     v0 = mpmul(p,v0,q);
   return f,u0,v0;
 
+def m2neg(a) :
+  """Return the additive inverse of a (which is a), a packed GF(2) polynomial"""
+  return a;
+
+def m2add(a,b) :
+  """Return the sum (same as difference) of a and b, packed GF(2) polynomials"""
+  return a^b;
+
+m2sub = m2add;
+
+def m2mul(a,b,m=0) :
+  """Return the product of a and b, packed GF(2) polynomials, mod m"""
+  p = 0;
+  if not a or not b : return 0;
+  while b :
+    if b&1 : p ^= a;
+    b >>= 1;
+    a <<= 1;
+  return m2divrem(p,m)[1] if m else p;
+
+def m2divrem(a,b) :
+  """Return the quotient and remainder from dividing a by b, packed GF(2) polynomials"""
+  if not b : raise ZeroDivisionError;
+  c = 0;
+  lb = bit_length(b);
+  while True :
+    la = bit_length(a);
+    if la < lb : break;
+    d = la-lb;
+    a ^= b<<d;
+    c |= 1<<d;
+  return c,a;
+
+def m2gcd(a,b) :
+  """Return the gcd of a and b, packed GF(2) polynomials"""
+  while b :
+    a,b = b,m2divrem(a,b)[1];
+  return a;
+
+def m2pow(b,e,m=0) :
+  """Raise b, a packed GF(2) polynomial, to the nonnegative integer power e, mod m"""
+  if not e : return 1;
+  n = 1 << (bit_length(e)-1);
+  x = b;
+  n >>= 1;
+  while n :
+    x = m2mul(x,x,m);
+    if e&n :
+      x = m2mul(x,b,m);
+    n >>= 1;
+  return x;
+
+def isirreducible2(p) :
+  """Return True iff p, a packed GF(2) polynomial, is irreducible"""
+  n = bit_length(p)-1;
+  if n <= 1 : return True;
+  if not (p&1 and bit_count(p)&1) : return False;
+  for r in factors(n) :
+    if m2gcd(p,m2pow(2,1<<(n//r),p)^2) != 1 : return False;
+  return not m2divrem(m2pow(2,1<<n,p)^2,p)[1];
+
 def mu(n) :
   """Return the Mobius function of n"""
   if not isint(n) or n < 1 :
@@ -1220,17 +1286,17 @@ def irreducible_count(q,n) :
       s += q**d * mu(n//d);
   return s//n;
 
-def irreducibles(p,n) :
-  """Return a tuple of all monic irreducible degree n polynomials over GF(p)"""
+def irreducibles(q,n) :
+  """Return a tuple of all monic irreducible degree n polynomials over GF(q)"""
   l = [];
-  for i in xrange(p**n) :
+  for i in xrange(q**n) :
     poly = [];
     j = i;
     for k in xrange(n) :
-      poly.append(j%p);
-      j //= p;
+      poly.append(j%q);
+      j //= q;
     poly = tuple(poly);
-    if isirreducible(poly,p) : l.append((1,)+poly);
+    if isirreducible(poly,q) : l.append((1,)+poly);
   return tuple(l);
 
 def phi(n) :
