@@ -35,14 +35,17 @@ and columns corresponding to powers from 0 to degree-1"""
   k = k or n;
   return matrix(n,k,[x**i for i in range(k) for x in xs]);
 
-#F = ffield(2,256,1061)
+F = ffield(2,256,1061)
 #F = ffield(2,128,135)
-F = ffield(2,64,27);
+#F = ffield(2,64,27);
 hexify(F);
 
-#GF2_138 = ffield(2,138,365);    # 21 ASCII characters (95 possibilities each)
-#GF2_184 = ffield(2,184,349);    # 28 ASCII characters (95 possibilities each)
-GF2_230 = ffield(2,230,189);    # 35 ASCII characters (95 possibilities each)
+#GF2_138 = ffield(2,138,365); # 21 ASCII characters (95 possibilities each)
+#GF2_184 = ffield(2,184,349); # 28 ASCII characters (95 possibilities each)
+#GF2_230 = ffield(2,230,189); # 35 ASCII characters (95 possibilities each)
+#GF2_276 = ffield(2,276,75);  # 42 ASCII characters (95 possibilities each)
+#GF2_322 = ffield(2,322,759); # 49 ASCII characters (95 possibilities each)
+G = GF2_368 = ffield(2,368,141); # 56 ASCII characters (95 possibilities each)
 
 def asciify(x) :
   """Turn int x into a printable ASCII string"""
@@ -52,7 +55,7 @@ def asciify(x) :
     a.append(chr(32+r));
   return ''.join(a[-1::-1]).strip();
 
-GF2_230.__str__ = lambda self: asciify(self.x);
+G.__str__ = lambda self: asciify(self.x);
 
 def iicsa(s) :
   """Turn a stripped printable ASCII string into an int"""
@@ -70,7 +73,7 @@ return a list of n pairs (sharer,share)
 any k of which can recover the secret.
 Note that built-in numeric classes might not recover the secret exactly."""
   if isinstance(s,str) :
-    s = GF2_230(iicsa(s));
+    s = G(iicsa(s));
   sharers = mp(s.__class__,range(1,n+1));
   try :
     pn = s.p**s.n;
@@ -96,7 +99,7 @@ def selectshares(ss,*args) :
 def mungeshare(xs,j,t) :
   """Given list of k (sharer,share) pairs, change just element j to give secret t"""
   if isinstance(t,str) :
-    t = GF2_230(iicsa(t));
+    t = G(iicsa(t));
   z = zp(*xs);
   v = Vandermonde(z[0])**-1;
   ds = (t-(v*z[1])[0])/v[0,j];
