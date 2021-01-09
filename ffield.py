@@ -859,7 +859,7 @@ Instance variables (treat as read-only!):
   _poly: an integer giving the value of the elided polynomial at x = __p
   _nzi: minus the length of the tuple representing the elided polynomial modulus
 Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
-         __len__, __iter__, __contains__, iterpow, __reduce__
+         __len__, __iter__, __getitem__,  __contains__, iterpow, __reduce__
 Descriptors: p, n, poly, tupoly, ftupoly, order [of field-{0}], generator [of field-{0}]
 
 Signatures:
@@ -1013,6 +1013,17 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
   def __iter__(self) :
     """Return an iterator for the elements of the field"""
     return (self(x) for x in xrange(self._p**self._n));
+
+  def __getitem__(self,key) :
+    """Return tuple(self)[key]"""
+    if isint(key) :
+      pn = self.__len__();
+      if -pn <= key < pn :
+        return self(key%pn);
+      raise IndexError('index out of range');
+    elif isinstance(key,slice) :
+      return tuple(self(i) for i in range(*key.indices(self.__len__())));
+    raise IndexError('index must be integer or slice');
 
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""

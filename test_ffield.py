@@ -54,6 +54,12 @@ def test(p,n) :
   g = randfield(p,n);
   dotprint('%r'%(g));
   pn = p**n;
+  if pn <= LIMIT2 :
+    if len(g) != pn or tuple(g) != g[:] :
+      print('len, __iter__, or slice indexing failed for %r'%(g));
+    for i in xrange(pn) :
+      if not g[i] == g[i-pn] == g(i) :
+        print('indexing failed for %r'%(g));
   if g.p != p or g.n != n or g.order != pn-1 or len(g) != pn:
     print('.p or .n or .order or len failed');
   x = g.generator;
@@ -79,6 +85,7 @@ def test(p,n) :
   ceq('not z-0',z);
   ceq('not 1-o',o);
   ceq('not 0-z',z);
+  
   dotprint('  op tests');
   for i in xrange(pn) :
     test1(g,i);
@@ -133,7 +140,7 @@ def mtest(g) :    # matrix tests
   z = g(0);
   o = g(1);
   while True :    # find an invertible matrix and verify inverse works
-    M = matrix((3,3),tuple(g(randrange(pn)) for i in range(9)));
+    M = matrix((3,3),tuple(g(randrange(pn)) for i in xrange(9)));
     if M.det :
       ceq('1/v[1]*v[1]==matrix.Identity(3,o)==v[1]*v[1].inverse',z,M);
       break;
@@ -356,7 +363,6 @@ def timetest() :
   G = ffield(3,5);
   timing('._',G,'r[i]._n,r[i]._p,r[i]._poly,r[i]._x',1<<20);
   timing('.',G,'r[i].n,r[i].p,r[i].poly,r[i].x',1<<20);
-
 
 if __name__=='__main__' :
   gtest();
