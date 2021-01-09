@@ -168,16 +168,16 @@ Coefficients are indexed by the associated exponent, so 0 indicates the constant
 indices larger than the degree give 0; indices < 0 raise exception;
 [::-1] gives a tuple of coeffs with constant term last"""
     if isint(key) :
-      if key < 0 : raise IndexError('Negative indices not allowed');
+      if key < 0 : raise IndexError('negative indices not allowed');
       return self._p[len(self._p)-1-key] if 0 <= key < len(self._p) else 0;
     if isinstance(key,slice) :
       x = [key.start,key.stop,key.step];
       if x[2] == None : x[2] = 1;
       if x[0] == None : x[0] = 0 if x[2] > 0 else len(self._p)-1;
       if x[1] in NONE : x[1] = -1 if x[2] < 0 else len(self._p);
-      if x[0] < 0 or x[1] < -1 : raise IndexError('Negative indices not allowed');
+      if x[0] < 0 or x[1] < -1 : raise IndexError('negative indices not allowed');
       return tuple(self[i] for i in xrange(*x));
-    return KeyError('index must be integer or slice');
+    raise KeyError('index must be integer or slice');
 
   def __call__(self,x) :
     """Evaluate the polynomial at x"""
@@ -351,9 +351,9 @@ indices larger than the degree give 0; indices < 0 raise exception;
   def __pow__(self,e,m=None) :
     """Return self raised to integer e: self**e; if m, mod polynomial m"""
     if not isint(e) :
-      raise TypeError('Exponent must be an integer');
+      raise TypeError('exponent must be an integer');
     if not (m is None or isinstance(m,polynomial) and m.degree > 0) :
-      raise TypeError('Modulus must be polynomial of degree > 0')
+      raise TypeError('modulus must be polynomial of degree > 0')
     if self.degree <= 0 :
       return self.__class__(self[0]**e);
     if e <= 0:
