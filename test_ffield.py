@@ -28,9 +28,9 @@ LIMITP = 32;     # limit on number of minpoly test elements
 LIMITQ = 1024;   # limit on size of field for irreducibles testing
 LIMITL = 512;    # limit on number of log tests
 
+z,o = 0,1;    # replaced by field elements
+
 def ceq(c,*v) :
-  z = v[0].__class__(0);
-  o = v[0].__class__(1);
   if not eval(c) : print(c,v);
 
 def cvs(g) :
@@ -51,8 +51,10 @@ def randfield(p,n) :
   return ffield(p,n,find_irr(p,n));
 
 def test(p,n) :
+  global z,o
   g = randfield(p,n);
   dotprint('%r'%(g));
+  z,o = g[:2];
   pn = p**n;
   if pn <= LIMIT2 :
     if len(g) != pn or tuple(g) != g[:] :
@@ -66,7 +68,8 @@ def test(p,n) :
   print('  generator %r'%(x));
   ceq('isgenerator(v[0])',x);
   if pn <= LIMITQ :
-    ceq('v[0]==len(v[1])',irreducible_count(p,n),irreducibles(p,n));
+    if irreducible_count(p,n) != len(irreducibles(p,n)) :
+      print('GF(%d**%d) irreducible_count != len(irreducibles)'%(p,n));
     t=tuple(g);
     if not len(g)==len(t)==len(set(t)) :
       print('__iter__ failed');
@@ -77,15 +80,12 @@ def test(p,n) :
       t = tuple(g.iterpow(y,alt=1));
       s = set(t);
       ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',y,s,t);
-  z = g(0);
-  o = g(1);
-  ceq('not o+-1',o);
-  ceq('not -1+o',o);
-  ceq('not o-1',o);
-  ceq('not z-0',z);
-  ceq('not 1-o',o);
-  ceq('not 0-z',z);
-  
+  ceq('not o+-1');
+  ceq('not -1+o');
+  ceq('not o-1');
+  ceq('not z-0');
+  ceq('not 1-o');
+  ceq('not 0-z');
   dotprint('  op tests');
   for i in xrange(pn) :
     test1(g,i);
@@ -133,27 +133,27 @@ def ltest(g) :    # log test
         vo = vo[-1::-1];
 
 def mtest(g) :    # matrix tests
+  global z,o
+  z,o = g[:2];
   print('  matrix tests');
   p = g.p;
   n = g.n;
   pn = p**n;
-  z = g(0);
-  o = g(1);
   while True :    # find an invertible matrix and verify inverse works
     M = matrix((3,3),tuple(g(randrange(pn)) for i in xrange(9)));
     if M.det :
-      ceq('1/v[1]*v[1]==matrix.Identity(3,o)==v[1]*v[1].inverse',z,M);
+      ceq('1/v[0]*v[0]==matrix.Identity(3,o)==v[0]*v[0].inverse',M);
       break;
   d = min(pn-1,LIMITM);    # check Vandermonde matrix determinant
   M = matrix.Identity(d,z);
-  p = o;
+  x = o;
   for i,a in enumerate(sample(xrange(1,pn),d)) :
     a = g(a);
     for j in xrange(i) :
-      p *= a-M[j,1];
+      x *= a-M[j,1];
     for j in xrange(d) :
       M[i,j] = a**j;
-  ceq('v[0]==v[1].det',p,M);
+  ceq('v[0]==v[1].det',x,M);
 
 def ptest(g) :    # polynomial tests
   print('  polynomial tests')
@@ -164,14 +164,20 @@ def ptest(g) :    # polynomial tests
     x = g(randrange(pn));
     for m in set(chain.from_iterable((a,n//a) for a in chain((1,),factors(n)))) :
       P = polynomial(*x.minpoly(m));
-      ceq('v[0].isirreducible(v[1]**v[2])',P,p,m);    # make sure irreducible
+      if not P.isirreducible(p**m) :
+        print('%r.minpoly(%d) not irreducible'%(x,m));
       o = p**m-1;
-      ceq('v[0].degree <= v[2]//v[1]',P,m,n);    # make sure degree is not too big
+      if P.degree > n//m :
+        print('%r.minpoly(%d) degree > %d/%d'%(x,m,n,m));
       for c in P :
-        ceq('not v[2] % (v[1].order or 1)',P,c,o);    # make sure coeff in GF(p**m)
-      ceq('not v[0](v[1])',P,x);    # make sure element is a root
+        if o%(c.order or 1) :
+          print('coeff %r of %r.minpoly(%d) not in GF(%d**%d)'%(c,x,m,p,m));
+      if P(x) :
+        print('%r not a root of its minpoly(%d)'%(x,m));
 
 def test1(g,i) :
+  global z,o
+  z,o = g[:2];
   p = g.p;
   n = g.n;
   pn = p**n;
