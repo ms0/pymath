@@ -350,13 +350,17 @@ def radstix(s,r=None) :
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x
 The polynomial can be represented as
-  an integer with absolute value < p**n, the value (mod p**n) of the polynomial at x=p
-  a tuple or list comprising at most n integers, each in [0,p);
-    these are the polynomial coefficients, ending with the constant
+  a callable, whose value at p gives one of the following
+  an integer with absolute value < p**n :
+    if nonnegative, x is the value of the polynomial at p
+    if negative, -x is the representation of the negative of the field element
   if p <= 36, a string of at most n zits, each having a value < p;
     these values are the polynomial coefficients, ending with the constant;
     the string is stripped and converted to lower case before evaluation;
     zit values are their positions in '0123456789abcdefghijklmnopqrstuvwxyz'
+  an iterable of integers, each with absolute value < p
+    these (mod p) are the polynomial coefficients, ending with the constant
+    the polynomial evaluated at p must be < p**n
 Instance variables:
   _p: the characterisitic of the field (inherited from the type)
   _n: the degree of the polynomial modulus (inherited from the type)
@@ -368,35 +372,66 @@ Instance variables:
     return;
   p = self._p;
   n = self._n;
+  pn = p**n;
+  try :
+    x = x(p);
+  except Exception :
+    pass;
   if isint(x) :
-    pn = p**n;
     if -pn < x < pn :
-      self._x = x%pn;
-    else : raise ValueError('absolute value must be < %d'%(pn));
-  elif isinstance(x,(tuple,list)) :
-    if len(x) > n :
-      raise ValueError('tuple must have length at most %d'%(n)) ;
+      if x < 0 :
+        if p == 2 :
+          x = -x;
+        elif x > -p :
+          x += p;
+        else :
+          x = -x;
+          a = [];
+          while x :
+            a.append(-x%p);
+            x //= p;
+          for c in reversed(a) :
+            x *= p;
+            x += c;
+      self._x = x;
     else :
-      s = 0;
-      for i in x :
-        if not isint(i) :
-          raise TypeError('tuple elements must be integers');
-        if not 0 <= i < p :
-          raise ValueError('tuple elements must be in [0,%d)'%(p));
-        s *= p
-        s += i;
-      self._x = s;
-  elif isinstance(x,(str,unicode)) and p <= 36 : # allow sequence of base-p chars if p <= 36
-    if len(x) > n : raise ValueError('string must be at most n zits long')
-    try:
-      s = x.strip().lower();
-      x = 0;
-      for c in s :
+      raise ValueError('absolute value must be < %d'%(pn));
+  elif isinstance(x,(str,unicode)) :
+    if p > 36 :    # string not acceptable if p > 36
+      raise TypeError('string not acceptable for p > 36');
+    s = x.strip().lower();
+    x = 0;
+    for c in s :
+      try :
         x = x*p + zits[:p].index(c);    # will raise ValueError if illegal
-    except ValueError :
-      raise ValueError('zits in string must be in "%s"'%(zits[:p]));
+      except ValueError :
+        raise ValueError('zits in string must be in "%s"'%(zits[:p]));
+      if x > pn :
+        raise ValueError('value must be < %d'%(pn));
     self._x = x;
-  else : raise TypeError('uninterpretable arg');
+  elif isinstance(type(x),ffield) :
+    if x._p != p :
+      raise TypeError('ffield element must have same field characteristic');
+    if x._x < p or x._n == n :
+      self._x = x._x;
+    else :
+      raise TypeError('ffield element must be in field');
+  else :
+    try :
+      c = iter(x);
+      x = 0;
+      for i in c :
+        if not isint(i) :
+          raise TypeError('iterable elements must be integers');
+        if not -p < i < p :
+          raise ValueError('absolute value of iterable elements must be < %d)'%(p));
+        x *= p
+        x += i%p;
+        if x >= pn :
+          raise ValueError('value must be < %d'%(pn));
+      self._x = x;
+    except Exception :
+      raise TypeError('uninterpretable arg');
 
 @property
 def element(self) :
@@ -542,14 +577,13 @@ def __neg__(self) :
   if p == 2 : return self;
   if n == 1 : return self.__class__(-x%p);
   a = [];
-  for i in xrange(n) :
+  while x :
     a.append(-x%p);
     x //= p;
-  s = 0;
   for c in reversed(a) :
-    s *= p;
-    s += c;
-  return self.__class__(s);
+    x *= p;
+    x += c;
+  return self.__class__(x);
 
 def __sub__(self,other) :
   """Return the difference of the two finite field elements; integers are treated mod p"""

@@ -73,7 +73,7 @@ def test(p,n) :
     t=tuple(g);
     if not len(g)==len(t)==len(set(t)) :
       print('__iter__ failed');
-    for y in (x,g(-1)) :
+    for y in (x,-o,g[-1]) :
       t = tuple(g.iterpow(y));
       s = set(t);
       ceq('v[0].order==len(v[1])==len(v[2]) and v[0] in v[1] and o in v[1] and not z in v[1]',y,s,t);
@@ -186,8 +186,12 @@ def test1(g,i) :
   ceq('v[0] in v[1]',gi,g);
   if not ((i in g) == (-i in g) == (abs(i) < p)) :
     print('+-%d in g failed'%(i));
+  ceq('type(v[0])(v[0])==v[0]',gi);
+  ceq('type(v[0])(-v[0].x)==-v[0]',gi);
   ceq('type(v[0])(unpack(v[0].p,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
-  if p < 16 : ceq('type(v[0])(cvs(v[0]))==v[0]',gi);
+  ceq('type(v[0])(map(lambda x:-x,unpack(v[0].p,v[0].x)))==-v[0]',gi);
+  ceq('type(v[0])(polynomial(*(unpack(v[0].p,v[0].x))))==v[0]',gi);
+  if p < 36 : ceq('type(v[0])(cvs(v[0]))==v[0]',gi);
   ceq('not v[0]+-v[0]',gi);
   ceq('v[0]*z==z==z*v[0]',gi);
   ceq('v[0]*0==z==0*v[0]',gi);
