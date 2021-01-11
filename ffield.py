@@ -180,12 +180,12 @@ integer coefficients interpreted mod p, ending with the constant term, but
 without the leading coefficient, which is taken to be 1"""
   p = primepower(q);
   if not p : raise ValueError('q must be a power of a prime');
-  p = p[0];
+  p,k = p;
   n = len(poly);
   if n <= 1 : return True;
   x = (1,0);
   f = (1,)+poly;
-  if q == 2 : return isirreducible2(pack(2,f));
+  if p == 2 : return isirreducible2(pack(2,f),k);
   for r in factors(n) :
     if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
   return not mpdivrem(p,mpsub(p,mppow(p,x,q**n,f),x),f)[1];
@@ -1256,14 +1256,14 @@ def m2pow(b,e,m=0) :
     n >>= 1;
   return x;
 
-def isirreducible2(p) :
-  """Return True iff p, a packed GF(2) polynomial, is irreducible"""
+def isirreducible2(p,k=1) :
+  """Return True iff p, a packed GF(2) polynomial, is irreducible over GF(2**k)"""
   n = bit_length(p)-1;
   if n <= 1 : return True;
   if not (p&1 and bit_count(p)&1) : return False;
   for r in factors(n) :
-    if m2gcd(p,m2pow(2,1<<(n//r),p)^2) != 1 : return False;
-  return not m2divrem(m2pow(2,1<<n,p)^2,p)[1];
+    if m2gcd(p,m2pow(2,1<<(n//r*k),p)^2) != 1 : return False;
+  return not m2divrem(m2pow(2,1<<(n*k),p)^2,p)[1];
 
 def mu(n) :
   """Return the Mobius function of n"""
@@ -1291,6 +1291,7 @@ def mu(n) :
 
 def irreducible_count(q,n) :
   """Return the number of monic irreducible degree n polynomials over GF(q)"""
+  if not primepower(q) : raise ValueError('q must be a power of a prime');
   s = 0;
   for d in xrange(1,n+1) :
     if not n%d :
@@ -1298,14 +1299,19 @@ def irreducible_count(q,n) :
   return s//n;
 
 def irreducibles(q,n) :
-  """Return a tuple of all monic irreducible degree n polynomials over GF(q)"""
+  """Return a tuple of all monic irreducible degree n polynomials over GF(q)
+  whose coefficients lie in GF(p), where q = p**k, as tuples of integers.
+  All monic irreducible degree n polynomials over GF(q): poly.irreducibles"""
+  p = primepower(q);
+  if not p : raise ValueError('q must be a power of a prime');
+  p = p[0];
   l = [];
-  for i in xrange(q**n) :
+  for i in xrange(p**n) :
     poly = [];
     j = i;
     for k in xrange(n) :
-      poly.append(j%q);
-      j //= q;
+      poly.append(j%p);
+      j //= p;
     poly = tuple(poly);
     if isirreducible(poly,q) : l.append((1,)+poly);
   return tuple(l);

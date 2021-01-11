@@ -3,8 +3,8 @@ from __future__ import division
 
 import sys
 
-from poly import *
-from ffield import ffield,isirreducible,zits
+from poly import polynomial,rationalfunction,irreducibles
+from ffield import ffield,primepower,isirreducible,irreducible_count,zits
 from rational import rational
 from random import Random
 
@@ -89,6 +89,14 @@ def testmp(F) :    # test minimal polys and isirreducible in ffield F
       if not polynomial(*g.minpoly(k)).isirreducible(p**k) :
         error('%r.minpoly(%d) not irreducible over GF%d_%d?'%(g,k,p,k));
 
+def testir(F) :    # test irreducibles
+  dotprint('\n%s '%(F) );
+  for i in range(2,10) :
+    if len(F)**i > 1000 : break;
+    dotprint(zits[i]);
+    if len(irreducibles(F,i)) != irreducible_count(len(F),i) :
+      error('len(irreducibles(%d,%d)) incorrect'%(len(F),i));
+
 def factest(F) :
   dotprint('\n%s '%(F));
   for i in range(FREPEATS) :
@@ -145,6 +153,9 @@ if __name__ == '__main__' :
   GF729 = ffield(3,6);
   print('\nminpoly and isirreducible test')
   testmp(GF729);
+  dotprint('\nirreducibles test')
+  for q in range(32) :
+    if primepower(q) : testir(ffield(q));
   print('\nrandom polynomial ops test, gcd test')
   optests();
   print('\nCompleted');
