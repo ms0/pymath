@@ -824,12 +824,16 @@ RATFUN = (polynomial,rationalfunction);
 def irreducibles(q,n) :
   """Return a tuple of all monic irreducible degree n polynomials over F;
   F is q if q is an ffield; else q must be a prime power, and F=ffield(q)"""
+  return tuple(irreducibleg(q,n));
+
+def irreducibleg(q,n) :
+  """Generate all monic irreducible degree n polynomials over F;
+  F is q if q is an ffield; else q must be a prime power, and F=ffield(q)"""
   if isinstance(q,ffield) :
     F = q;
     q = F.__len__();
   else :
     F = ffield(q);
-  l = [];
   for i in range(q**n) :
     poly = [F(1)];
     j = i;
@@ -837,5 +841,4 @@ def irreducibles(q,n) :
       poly.append(F(j%q));
       j //= q;
     poly = polynomial(*poly);
-    if poly.isirreducible() : l.append(poly);
-  return tuple(l);
+    if poly.isirreducible() : yield poly;

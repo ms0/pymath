@@ -1336,10 +1336,15 @@ def irreducibles(q,n) :
   """Return a tuple of all monic irreducible degree n polynomials over GF(q)
   whose coefficients lie in GF(p), where q = p**k, as tuples of integers.
   All monic irreducible degree n polynomials over GF(q): poly.irreducibles"""
+  return tuple(irreducibleg(q,n));
+
+def irreducibleg(q,n) :
+  """Generate all monic irreducible degree n polynomials over GF(q)
+  whose coefficients lie in GF(p), where q = p**k, as tuples of integers.
+  All monic irreducible degree n polynomials over GF(q): poly.irreducibleg"""
   p = primepower(q);
   if not p : raise ValueError('q must be a power of a prime');
   p = p[0];
-  l = [];
   for i in xrange(p**n) :
     poly = [];
     j = i;
@@ -1347,8 +1352,7 @@ def irreducibles(q,n) :
       poly.append(j%p);
       j //= p;
     poly = tuple(poly);
-    if isirreducible(poly,q) : l.append((1,)+poly);
-  return tuple(l);
+    if isirreducible(poly,q) : yield (1,)+poly;
 
 def phi(n) :
   """Return the Euler totient function of n"""
