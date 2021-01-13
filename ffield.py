@@ -952,7 +952,8 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
       raise ValueError('Bad power');
     q = p**n;
     if not poly and n > 1:    # pick least irreducible poly
-      for poly in xrange(q+1,q+q) :
+      d = p if p==2 or (p-1)%matrix.product(factors(n),1 if n&3 else 2) else 0;
+      for poly in xrange(q+d+1,q+q) :
         if isirreducible(unpack(p,poly)[1:],p) : break;
       poly -= q;
     if isint(poly) :

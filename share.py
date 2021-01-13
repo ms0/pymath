@@ -35,8 +35,10 @@ and columns corresponding to powers from 0 to degree-1"""
   k = k or n;
   return matrix(n,k,[x**i for i in range(k) for x in xs]);
 
-F = ffield(2,256,1061)
-#F = ffield(2,128,135)
+#F = ffield(2,1024,717);
+#F = ffield(2,512,293);
+F = ffield(2,256,1061);
+#F = ffield(2,128,135);
 #F = ffield(2,64,27);
 hexify(F);
 
@@ -46,6 +48,12 @@ hexify(F);
 #GF2_276 = ffield(2,276,75);  # 42 ASCII characters (95 possibilities each)
 #GF2_322 = ffield(2,322,759); # 49 ASCII characters (95 possibilities each)
 G = GF2_368 = ffield(2,368,141); # 56 ASCII characters (95 possibilities each)
+#GF2_414 = ffield(2,414,315); # 63 ASCII characters (95 possibilities each)
+#GF2_460 = ffield(2,460,547); # 70 ASCII characters (95 possibilities each)
+#GF2_506 = ffield(2,506,791); # 77 ASCII characters (95 possibilities each)
+#GF2_552 = ffield(2,552,111); # 84 ASCII characters (95 possibilities each)
+#GF2_598 = ffield(2,598,195); # 91 ASCII characters (95 possibilities each)
+#GF2_644 = ffield(2,644,873); # 98 ASCII characters (95 possibilities each)
 
 def asciify(x) :
   """Turn int x into a printable ASCII string"""
