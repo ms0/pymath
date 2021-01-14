@@ -419,19 +419,19 @@ Instance variables:
   else :
     try :
       c = iter(x);
-      x = 0;
-      for i in c :
-        if not isint(i) :
-          raise TypeError('iterable elements must be integers');
-        if not -p < i < p :
-          raise ValueError('absolute value of iterable elements must be < %d)'%(p));
-        x *= p
-        x += i%p;
-        if x >= pn :
-          raise ValueError('value must be < %d'%(pn));
-      self._x = x;
     except Exception :
       raise TypeError('uninterpretable arg');
+    x = 0;
+    for i in c :
+      if not isint(i) :
+        raise TypeError('iterable elements must be integers');
+      if not -p < i < p :
+        raise ValueError('absolute value of iterable elements must be < %d)'%(p));
+      x *= p
+      x += i%p;
+      if x >= pn :
+        raise ValueError('value must be < %d'%(pn));
+    self._x = x;
 
 @property
 def element(self) :
