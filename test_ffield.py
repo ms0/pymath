@@ -20,7 +20,7 @@ from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreduc
 from matrix import *
 from poly import *
 
-MAXCHAR = 16;    # limit on characteristics to test
+MAXCHAR = 10;    # limit on characteristics to test
 LIMIT2 = 128;    # limit on ff size for full pair testing
 LIMIT3 = 64;     # limit on ff size for full triple testing
 LIMITM = 16;     # limit on size of vandermonde matrix
@@ -31,7 +31,11 @@ LIMITL = 512;    # limit on number of log tests
 z,o = 0,1;    # replaced by field elements
 
 def ceq(c,*v) :
-  if not eval(c) : print(c,v);
+  try :
+    if not eval(c) : print(c,v);
+  except Exception:
+    print(c,v);
+    raise;
 
 def cvs(g) :
   return ''.join(map(lambda x: zits[x],unpack(g.p,g.x)));
@@ -367,12 +371,20 @@ def timing(name,G,stmt,repeats=16,nargs=1) :
     setup='from ffield import ffield\nfrom test_ffield import R\nG=ffield(%d,%d)\nr=tuple(G(R.randrange(G.order+1)) for _ in %s(%d))'%(
       G.order+1,G.poly,xrange.__name__,repeats*nargs),
     timer=process_time,number=1);
-  print('%s\t%s\t%f'%(G,name,t/repeats));
+  print('%s\t%s\t%.6f'%(G,name,t/repeats));
 
 def timetest() :
-  G = ffield(3,5);
-  timing('._',G,'r[i]._n,r[i]._p,r[i]._poly,r[i]._x',1<<20);
-  timing('.',G,'r[i].n,r[i].p,r[i].poly,r[i].x',1<<20);
+  for g in (ffield(2,8),ffield(3,5)) :
+    timing('unary -',g,'-r[i]',1<<10);
+    timing('1/x',g,'1/(r[i] or r[i]+1)',1<<10);
+    timing('**-1',g,'(r[i] or r[i]+1)**-1',1<<10);
+    timing('+',g,'r[i]+r[i+1]',1<<10,2);
+    timing('*',g,'r[i]*r[i+1]',1<<10,2);
+    timing('/',g,'r[i]/(r[i+1] or r[i+1]+1)',1<<10,2);
+    timing('minpoly',g,'r[i].minpoly()',1<<7);
+    timing('log',g,'(r[i] or r[i]+1).log()',1<<7);
+    timing('logalt',g,'(r[i] or r[i]+1).log(alt=1)',1<<7);
+
 
 if __name__=='__main__' :
   gtest();
@@ -385,7 +397,7 @@ if __name__=='__main__' :
       test(p,1);
       test(p,2);
       test(p,3);
-
+  timetest();
 
 # NOTE: we should test whether gcd is faster than exp for computing inverse
 #   We did, and gcd is faster

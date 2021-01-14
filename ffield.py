@@ -365,11 +365,6 @@ Instance variables:
   _p: the characterisitic of the field (inherited from the type)
   _n: the degree of the polynomial modulus (inherited from the type)
   _x: the polynomial representation, evaluated at x=p"""
-  if x.__class__ == self.__class__ or \
-     x.__class__.__class__ == ffield and x._p == self._p and (
-       x._n == 1 or self._n == 1 and x._x < x._p) :
-    self._x = x._x;
-    return;
   p = self._p;
   n = self._n;
   pn = p**n;
