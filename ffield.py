@@ -930,7 +930,7 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
         if (dn or n != 1) and poly != None :
           raise TypeError('too many arguments');
         x = args[0]
-        if n == 1 and isint(x) :
+        if n == 1 and isint(x) and x :
           n = x;
         elif poly == None :
           poly = x;

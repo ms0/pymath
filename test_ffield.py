@@ -368,23 +368,22 @@ def timing(name,G,stmt,repeats=16,nargs=1) :
   t = timeit(
     stmt=stmt if not '[i]' in stmt else
     'for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
-    setup='from ffield import ffield\nfrom test_ffield import R\nG=ffield(%d,%d)\nr=tuple(G(R.randrange(G.order+1)) for _ in %s(%d))'%(
-      G.order+1,G.poly,xrange.__name__,repeats*nargs),
+    setup='from ffield import ffield\nfrom test_ffield import R\nG=ffield(%d,%d)\nr=tuple(G(R.randrange(len(G))) for _ in %s(%d))'%(
+      len(G),G.poly,xrange.__name__,repeats*nargs),
     timer=process_time,number=1);
-  print('%s\t%s\t%.6f'%(G,name,t/repeats));
+  print('%s\t%s\t%.6f'%(G.__name__,name,t/repeats));
 
-def timetest() :
-  for g in (ffield(2,8),ffield(3,5)) :
-    timing('unary -',g,'-r[i]',1<<10);
-    timing('1/x',g,'1/(r[i] or r[i]+1)',1<<10);
-    timing('**-1',g,'(r[i] or r[i]+1)**-1',1<<10);
-    timing('+',g,'r[i]+r[i+1]',1<<10,2);
-    timing('*',g,'r[i]*r[i+1]',1<<10,2);
-    timing('/',g,'r[i]/(r[i+1] or r[i+1]+1)',1<<10,2);
-    timing('minpoly',g,'r[i].minpoly()',1<<7);
+def timetest(g) :
+  timing('-x',g,'-r[i]',1<<10);
+  timing('1/x',g,'1/(r[i] or r[i]+1)',1<<10);
+  timing('x**-1',g,'(r[i] or r[i]+1)**-1',1<<10);
+  timing('x+y',g,'r[i]+r[i+1]',1<<10,2);
+  timing('x*y',g,'r[i]*r[i+1]',1<<10,2);
+  timing('x/y',g,'r[i]/(r[i+1] or r[i+1]+1)',1<<10,2);
+  timing('minpoly',g,'r[i].minpoly()',1<<10);
+  if len(g) <= 1<<10 :
     timing('log',g,'(r[i] or r[i]+1).log()',1<<7);
     timing('logalt',g,'(r[i] or r[i]+1).log(alt=1)',1<<7);
-
 
 if __name__=='__main__' :
   gtest();
@@ -397,7 +396,12 @@ if __name__=='__main__' :
       test(p,1);
       test(p,2);
       test(p,3);
-  timetest();
+  for g in (ffield(2,8),ffield(3,5),    # pairs with similar sizes
+            ffield(2,9),ffield(23,2),
+            ffield(2,17),ffield(19,4),
+            ffield(2**2**4+1),
+            ffield(2**61-1)) :
+    timetest(g);
 
 # NOTE: we should test whether gcd is faster than exp for computing inverse
 #   We did, and gcd is faster
