@@ -63,6 +63,7 @@ random.seed();
 
 from itertools import chain, count
 import matrix
+from rational import root
 
 def modpow(b,x,p) :    # b**x mod p
   """Compute b**x%p"""
@@ -106,7 +107,42 @@ def oplist(m) :    # odd primes < 2*3*5*7 then larger ints relatively prime to 2
 def oplist11(m) : # oplist, but starting at 11
   for i in op210[3:] : yield i;
   for i in xrange(210,m,210) if m else count(210,210):    # give up after m
-    for p in Z210 : yield i+p;
+    for d in Z210 : yield i+d;
+
+def primes() :
+  """Generator for primes"""
+  yield 2;
+  for p in op210: yield p;
+  for i in count(210,210) :
+    for d in Z210 :
+      p = i+d;
+      if isprime(p) : yield p;
+
+def primesto(stop) :
+  """Generator for primes up to stop"""
+  if stop <= 210 :
+    if stop > 2 :
+      yield 2;
+      for p in op210 :
+        if p >= stop : break;
+        yield p;
+  else :
+    yield 2;
+    for p in op210 : yield p;
+    for i in xrange(210,stop-210,210) :
+      for d in Z210 :
+        p = i+d;
+      if isprime(p) : yield p;
+    i = (stop-1)//210*210;
+    for d in Z210 :
+      p = i+d;
+      if p >= stop : break;
+      if isprime(p) : yield p;
+
+def primesfrom(start=2,stop=None) :
+  """Generator for primes starting at start, up to stop if not None"""
+  for p in primes() if stop == None else primesto(stop) :
+    if p >= start : yield p;
   
 def isprime(n) :
   """Test if n is prime, if no "small" factors,
@@ -154,10 +190,34 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
     c = (c*c-2)%n;
   return not c;
 
+bigp = 53;    # "big" prime
+lps = set(primesto(bigp));    # "little" primes
+plps = matrix.product(lps);   # product of "little" primes
+
 def primepower(q) :
   """Return (p,n) if q == p**n, else None"""
-  for f in factor(q) :
-    return f if q == f[0]**f[1] else None;
+  g = gcd(plps,q);
+  if g != 1 :
+    if not g in lps : return None;
+    if g == 2 :
+      c = bit_length(q&-q)-1;
+      q >>= c;
+      return (2,c) if q==1 else None;
+    for c in count(1) :
+      q,r = divmod(q,g);
+      if r : return None;
+      if q == 1 : return (g,c);
+  return bigprimepower(q);
+
+def bigprimepower(q) :
+  x = 1;
+  for p in primes() :
+    while True :
+      if bigp**p > q : return (q,x) if isprime(q) else None;
+      r = root(q,p);
+      if r**p != q : break;
+      x *= p;
+      q = r;
 
 # test for irreducibility [Rabin]
 # let p be our prime, and n our exponent
