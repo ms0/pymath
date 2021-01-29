@@ -4,7 +4,7 @@ from __future__ import division
 import sys
 
 from poly import polynomial,rationalfunction,irreducibles
-from ffield import ffield,primepower,isirreducible,irreducible_count,zits
+from ffield import ffield,primepower,divisors,isirreducible,irreducible_count,zits
 from rational import rational
 from random import Random
 
@@ -82,11 +82,19 @@ def testmp(F) :    # test minimal polys and isirreducible in ffield F
   print('%s'%(F));
   p = F.p;
   n = F.n;
-  for k in range(1,n) :
-    if n%k : continue;
+  for k in divisors(n) :
     for g in F :
       dotprint();
-      if not polynomial(*g.minpoly(k)).isirreducible(p**k) :
+      f = polynomial(*g.minpoly(k));
+      if not f :
+        error('%r.minpoly(%d) is 0?'%(g,k));
+      o = p**k-1;
+      for c in f :
+        if o%(c.order or 1) :
+          error('coeff %r of %r.minpoly(%d) not in GF(%d**%d)'%(c,g,k,p,k));
+      if f(g) :
+        error('%r not a root of its minpoly(%d)?'%(g,k));
+      if not f.isirreducible(p**k) :
         error('%r.minpoly(%d) not irreducible over GF%d_%d?'%(g,k,p,k));
 
 def testir(F) :    # test irreducibles
