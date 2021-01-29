@@ -207,9 +207,6 @@ def primepower(q) :
       q,r = divmod(q,g);
       if r : return None;
       if q == 1 : return (g,c);
-  return bigprimepower(q);
-
-def bigprimepower(q) :
   x = 1;
   for p in primes() :
     while True :
