@@ -109,40 +109,62 @@ def oplist11(m) : # oplist, but starting at 11
   for i in xrange(210,m,210) if m else count(210,210):    # give up after m
     for d in Z210 : yield i+d;
 
-def primes() :
+def primes(start=2,stop=None) :
   """Generator for primes"""
-  yield 2;
-  for p in op210: yield p;
-  for i in count(210,210) :
-    for d in Z210 :
-      p = i+d;
-      if isprime(p) : yield p;
-
-def primesto(stop) :
-  """Generator for primes up to stop"""
-  if stop <= 210 :
-    if stop > 2 :
+  if stop is None :
+    if start <= 2 :
       yield 2;
-      for p in op210 :
-        if p >= stop : break;
-        yield p;
-  else :
-    yield 2;
-    for p in op210 : yield p;
-    for i in xrange(210,stop-210,210) :
+      for p in op210: yield p;
+      for i in count(210,210) :
+        for d in Z210 :
+          p = i+d;
+          if isprime(p) : yield p;
+    else :
+      z = start-start%210;
+      if z :
+        for d in Z210 :
+          p = z+d;
+          if start <= p and isprime(p) : yield p;
+      else :
+        for p in op210:
+          if start <= p : yield p;
+      for i in count(z+210,210) :
+        for d in Z210 :
+          p = i+d;
+          if isprime(p) : yield p;
+  elif start < stop :
+    if start <= 2 < stop :
+      yield 2;
+    z = start-start%210;    # initial block
+    t = stop-stop%210;      # final block
+    if not z :    # start in [0,210)
+      if t :
+        for p in op210 :
+          if start <= p : yield p;
+      else :    # start and end in [0,210)
+        for p in op210 :
+          if p >= stop : return;
+          if start <= p : yield p;
+        return;
+    else :    # start from 210 or greater
+      if z < t :
+        for d in Z210 :
+          p = z+d;
+          if start <= p and isprime(p) : yield p;
+      else :    # start and end in same block
+        for d in Z210 :
+          p = z+d;
+          if p >= stop : return;
+          if start <= p and isprime(p) : yield p;
+        return;
+    for i in xrange(z+210,t,210) :    # full blocks
       for d in Z210 :
         p = i+d;
+        if isprime(p) : yield p;
+    for d in Z210 :    # final block
+      p = t+d;
+      if p >= stop : return;
       if isprime(p) : yield p;
-    i = (stop-1)//210*210;
-    for d in Z210 :
-      p = i+d;
-      if p >= stop : break;
-      if isprime(p) : yield p;
-
-def primesfrom(start=2,stop=None) :
-  """Generator for primes starting at start, up to stop if not None"""
-  for p in primes() if stop == None else primesto(stop) :
-    if p >= start : yield p;
   
 def isprime(n) :
   """Test if n is prime, if no "small" factors,
@@ -191,7 +213,7 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
   return not c;
 
 bigp = 53;    # "big" prime
-lps = set(primesto(bigp));    # "little" primes
+lps = set(primes(2,bigp));    # "little" primes
 plps = matrix.product(lps);   # product of "little" primes
 
 def primepower(q) :
