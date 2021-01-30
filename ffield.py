@@ -135,8 +135,8 @@ def primes(start=2,stop=None) :
   elif start < stop :
     if start <= 2 < stop :
       yield 2;
-    z = start-start%210;    # initial block
-    t = stop-stop%210;      # final block
+    z = start-start%210;    # initial tranche
+    t = stop-stop%210;      # final tranche
     if not z :    # start in [0,210)
       if t :
         for p in op210 :
@@ -151,17 +151,17 @@ def primes(start=2,stop=None) :
         for d in Z210 :
           p = z+d;
           if start <= p and isprime(p) : yield p;
-      else :    # start and end in same block
+      else :    # start and end in same tranche
         for d in Z210 :
           p = z+d;
           if p >= stop : return;
           if start <= p and isprime(p) : yield p;
         return;
-    for i in xrange(z+210,t,210) :    # full blocks
+    for i in xrange(z+210,t,210) :    # full tranches
       for d in Z210 :
         p = i+d;
         if isprime(p) : yield p;
-    for d in Z210 :    # final block
+    for d in Z210 :    # final tranche
       p = t+d;
       if p >= stop : return;
       if isprime(p) : yield p;
