@@ -175,7 +175,6 @@ def isprime(n) :
   """Test if n is prime, if no "small" factors,
 use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
   n = rint(n);
-  if n is None : return False;
   if n < 210 : return isp210[n];
   if not isZ210[n%210] : return False;
   if n&(n+1) :    # not Mersenne number
@@ -1151,7 +1150,7 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
 
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""
-    return (isinstance(x,self) or isinstance(x,int) and abs(x) < self._p or
+    return (isinstance(x,self) or isint(rint(x)) and abs(x) < self._p or
             isinstance(type(x),ffield) and x._p == self._p and x._x < x._p);
 
   def iterpow(self,x=0,alt=False) :
