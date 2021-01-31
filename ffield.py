@@ -4,6 +4,13 @@ __all__ = ['ffield']
 
 import sys
 
+import random
+random.seed();
+
+from itertools import chain, count
+import matrix
+from rational import root, rational
+
 if sys.version_info>(3,) :
   unicode = str;
   xrange = range;
@@ -56,14 +63,12 @@ def bit_count(n) :
   """Return number of 1 bits in |n|"""
   return bin(n).count('1');
 
+def rint(x) :
+  """If x is a rational integer, return x.numerator, else, return x"""
+  return x.numerator if isinstance(x,rational) and abs(x.denominator)==1 else x;
+
+
 # finite field class
-
-import random
-random.seed();
-
-from itertools import chain, count
-import matrix
-from rational import root
 
 def modpow(b,x,p) :    # b**x mod p
   """Compute b**x%p"""
@@ -169,7 +174,8 @@ def primes(start=2,stop=None) :
 def isprime(n) :
   """Test if n is prime, if no "small" factors,
 use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
-  if not isint(n) : return False;
+  n = rint(n);
+  if n is None : return False;
   if n < 210 : return isp210[n];
   if not isZ210[n%210] : return False;
   if n&(n+1) :    # not Mersenne number
@@ -564,15 +570,17 @@ def generates(self) :
   return True;
 
 def __hash__(self) :
-  return hash(self.__class__) ^ hash(self._x);
+  return hash(self._x) if 0 <= self._x < self._p else \
+    hash(type(self)) ^ hash(self._x);
 
 def __eq__(self,other) :
-  """Test if two elements are in the same class and have the same value"""
-  return self.__class__ == other.__class__ and self._x == other._x;
+  """Test if two elements are equal"""
+  return type(self) == type(other) and self._x == other._x or \
+         0 <= self._x < self._p and self._x == other;
 
 def __ne__(self,other) :
-  """Test if two elements are in different classes or have different values"""
-  return self.__class__ != other.__class__ or self._x != other._x;
+  """Test if two elements are unequal"""
+  return not self == other;
 
 __le__ = __ge__ = __eq__;
 __lt__ = __gt__ = lambda x,y:False;
@@ -609,24 +617,25 @@ def __add__(self,other) :
   p = self._p;
   n = self._n;
   x = self._x;
-  if other.__class__ != self.__class__ :
-    if other.__class__.__class__ == ffield and other._p == p :
+  if type(other) != type(self) :
+    if type(type(other)) == ffield and other._p == p :
       if n == 1 :
         return other+x;
       if other._n == 1 :
         other = other._x;
+    other = rint(other);
     if isint(other) :
       if p == 2 :
-        return self.__class__(x^1) if other&1 else self;
+        return type(self)(x^1) if other&1 else self;
       other %= p;
-      return self.__class__(x-x%p+(x+other)%p) if other else self;
+      return type(self)(x-x%p+(x+other)%p) if other else self;
     return NotImplemented;
   y = other._x;
   if not y : return self;
   if p == 2 :
-    return self.__class__(x^y);
+    return type(self)(x^y);
   if n == 1 :
-    return self.__class__((x+y)%p);
+    return type(self)((x+y)%p);
   a = [];
   for i in xrange(n) :
     a.append((x+y)%p);
@@ -636,7 +645,7 @@ def __add__(self,other) :
   for c in reversed(a) :
     s *= p;
     s += c;
-  return self.__class__(s);
+  return type(self)(s);
 
 def __pos__(self) :
   """Return the element"""
@@ -649,7 +658,7 @@ def __neg__(self) :
   p = self._p;
   n = self._n;
   if p == 2 : return self;
-  if n == 1 : return self.__class__(-x%p);
+  if n == 1 : return type(self)(-x%p);
   a = [];
   while x :
     a.append(-x%p);
@@ -657,30 +666,31 @@ def __neg__(self) :
   for c in reversed(a) :
     x *= p;
     x += c;
-  return self.__class__(x);
+  return type(self)(x);
 
 def __sub__(self,other) :
   """Return the difference of the two finite field elements; integers are treated mod p"""
   p = self._p;
   n = self._n;
   x = self._x;
-  if other.__class__ != self.__class__ :
-    if other.__class__.__class__ == ffield and other._p == p :
+  if type(other) != type(self) :
+    if type(type(other)) == ffield and other._p == p :
       if n == 1 :
         return x-other;
       if other._n == 1 :
         other = other._x;
+    other = rint(other);
     if isint(other) :
       if p == 2 :
-        return self.__class__(x^1) if other&1 else self;
+        return type(self)(x^1) if other&1 else self;
       other %= p;
-      return self.__class__(x-x%p+(x-other)%p) if other else self;
+      return type(self)(x-x%p+(x-other)%p) if other else self;
     else :
       return NotImplemented;
   y = other._x;
   if not y : return self;
-  if p == 2 : return self.__class__(x^y);
-  if n == 1 : return self.__class__((x-y)%p);
+  if p == 2 : return type(self)(x^y);
+  if n == 1 : return type(self)((x-y)%p);
   a = [];
   for i in xrange(n) :
     a.append((x-y)%p);
@@ -690,29 +700,31 @@ def __sub__(self,other) :
   for c in reversed(a) :
     s *= p;
     s += c;
-  return self.__class__(s);
+  return type(self)(s);
 
 def __rsub__(self,y) :
   """Return the difference of the swapped finite field elements; integers  are treated mod p"""
   p = self._p;
+  y = rint(y);
   if not isint(y) :
     return NotImplemented;
   if p == 2 :
-    return self.__class__(self._x^1) if y&1 else self;
+    return type(self)(self._x^1) if y&1 else self;
   y %= p;
-  return self.__class__(y)-self if y else -self;
+  return type(self)(y)-self if y else -self;
 
 def __div__(self,y) :
   """Return the quotient of the two finite field elements; integers are treated mod p"""
   p = self._p;
   x = self._x;
   n = self._n;
-  if y.__class__ != self.__class__ :
-    if y.__class__.__class__ == ffield and y._p == p :
+  if type(y) != type(self) :
+    if type(type(y)) == ffield and y._p == p :
       if n == 1 :
         return x/y;
       if y._n == 1 :
         y = y._x;
+    y = rint(y);
     if isint(y) :
       y %= p;
       if not y : raise ZeroDivisionError;
@@ -726,17 +738,18 @@ def __div__(self,y) :
       for c in reversed(a) :
         s *= p;
         s += c;
-      return self.__class__(s);
+      return type(self)(s);
     else : return NotImplemented;
   yx = y._x;
   if yx < p : return self/yx;
   if p == 2 : return self*y**((1<<n)-2);    # self*y**(p**n-2)
-  return self*self.__class__(pack(p,xmpgcd(p,self._tupoly,unpack(p,yx))[2]));
+  return self*type(self)(pack(p,xmpgcd(p,self._tupoly,unpack(p,yx))[2]));
 
 
 def __rdiv__(self,y) :    # y/self
   """Return y/self; y must be an integer and is interpreted mod p"""
   p = self._p;
+  y = rint(y);
   if not isint(y) :
     return NotImplemented;
   x = self._x;
@@ -752,22 +765,23 @@ def __rdiv__(self,y) :    # y/self
     z = 0;
     for i in xmpgcd(p,self._tupoly,unpack(p,x))[2] :
       z = p*z+i*y%p;
-  return self.__class__(z);
+  return type(self)(z);
 
 def __mul__(self,y) :
   """Return the product of the two finite field elements; integers are treated mod p"""
   p = self._p;
   x = self._x;
   n = self._n;
-  if y.__class__ != self.__class__ :
-    if y.__class__.__class__ == ffield and y._p == p :
+  if type(y) != type(self) :
+    if type(type(y)) == ffield and y._p == p :
       if n == 1 :
         return y*x;
       if y._n == 1 :
         y = y._x;
+    y = rint(y);
     if isint(y) :
       y %= p;
-      if not y : return self.__class__(0);
+      if not y : return type(self)(0);
       if y == 1 : return self;
       a = [];
       for i in xrange(n) :
@@ -777,10 +791,10 @@ def __mul__(self,y) :
       for c in reversed(a) :
         s *= p;
         s += c;
-      return self.__class__(s);
+      return type(self)(s);
     else : return NotImplemented;
   if n == 1 :
-    return self.__class__(x*y._x%p);
+    return type(self)(x*y._x%p);
   if p == 2 :
     y = y._x;
     g = self._poly;
@@ -792,11 +806,12 @@ def __mul__(self,y) :
       xy = ((xy&N)<<1)^g if xy&M else xy<<1;
       if y&m : xy ^= x;
       m >>= 1;
-    return self.__class__(xy);
-  return self.__class__(pack(p,mpmul(p,unpack(p,x),unpack(p,y._x),self._tupoly)));
+    return type(self)(xy);
+  return type(self)(pack(p,mpmul(p,unpack(p,x),unpack(p,y._x),self._tupoly)));
 
 def __pow__(self,e) :
   """Raise the finite field element to the specified power mod p**n-1, 0**0=0"""
+  e = rint(e);
   if not isint(e) :
     raise TypeError('power must be integer');
   x = self._x;
@@ -841,7 +856,7 @@ def __pow__(self,e) :
     return 1/self**(o-e);
   else :
     x = pack(p,mppow(p,unpack(p,x),e,self._tupoly));
-  return self.__class__(x);
+  return type(self)(x);
 
 def _log(self,base=None,alt=False) :
   """Return the discrete log base base (default: least generator) of self
@@ -849,16 +864,16 @@ def _log(self,base=None,alt=False) :
   x = self._x;
   if x : 
     if base is None :
-      base = self.__class__.generator;
+      base = type(self).generator;
     elif not base :
       raise ValueError('bad base');
     q,r = divmod(base.order,self.order);
     if not r :
       if alt :
-        for i,g in enumerate(self.__class__.iterpow(base**q,alt),1) :
+        for i,g in enumerate(type(self).iterpow(base**q,alt),1) :
           if g._x == x : return (-(i>>1) if i&1 else (i>>1))*q;
       else :
-        for i,g in enumerate(self.__class__.iterpow(base**q)) :
+        for i,g in enumerate(type(self).iterpow(base**q)) :
           if g._x == x : return i*q;
   raise ValueError('not in multiplicative group');  
 
@@ -878,7 +893,7 @@ over the subfield. Raise an exception if m does not divide self._n.
 """
   n = self._n;
   if m <= 0 or n%m : raise ValueError('m must divide self._n');
-  G = self.__class__;
+  G = type(self);
   o = self.order;
   p = self._p;
   G1 = G(1);
@@ -1102,10 +1117,10 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
     return (_create,(self._p,self._n,self._poly));
 
   def __hash__(self) :
-    return hash(self.__class__)^hash('%s:%s'%(self._p**self._n,self._poly));
+    return hash(type(self))^hash('%s:%s'%(self._p**self._n,self._poly));
 
   def __eq__(self,other) :
-    return self.__class__==other.__class__ and self._p==other._p and self._n==other._n and self._poly==other._poly;
+    return type(self)==type(other) and self._p==other._p and self._n==other._n and self._poly==other._poly;
   
   def __ne__(self,other) :
     return not self==other;
@@ -1137,7 +1152,7 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""
     return (isinstance(x,self) or isinstance(x,int) and abs(x) < self._p or
-            isinstance(x.__class__,ffield) and x._p == self._p and x._x < x._p);
+            isinstance(type(x),ffield) and x._p == self._p and x._x < x._p);
 
   def iterpow(self,x=0,alt=False) :
     """Return an iterator of the powers of x, or powers of smallest generator
