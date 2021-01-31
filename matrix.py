@@ -1130,7 +1130,7 @@ when setting a slice, value must have length matching size of slice"""
         k = key.indices(n);
         dim = len(xrange(*k));
         if isint(value) :
-          if not(0 <= value < 1<<dim or -1<<dim <= value < 0) :
+          if not(0 <= value < 1<<dim or -1<<dim < value < 0) :
             raise TypeError('value must have same length as slice');
         elif isinstance(value,bmatrix) :
           if len(value) != dim :
@@ -1180,7 +1180,10 @@ when setting a slice, value must have length matching size of slice"""
       return;
     # must set a submatrix...
     pdims = product(dims);
-    if not isreal(value) and pdims != len(value) :
+    if isint(value) :
+      if not(0 <= value < 1<<pdims or -1<<pdims < value < 0) :
+        raise TypeError('value must have same length as slice');
+    elif pdims != len(value) :
       raise TypeError('value must have same length as slice');
     x = [0]*len(dims);
     for j in xrange(pdims) :
@@ -1189,8 +1192,8 @@ when setting a slice, value must have length matching size of slice"""
         if len(key[i]) == 1 :
           s = s*self.__dims[i] + key[i][0];
         else :
-          s = s*self.__dims[i] + list(xrange(*key[i]))[x[i]];
-      self[s] = value if isint(value) else value[j];
+          s = s*self.__dims[i] + tuple(xrange(*key[i]))[x[i]];
+      self[s] = (value>>j)&1 if isint(value) else value[j];
       for i in xrange(len(dims)) :
         x[i] = (x[i]+1)%dims[i];
         if x[i] : break;
