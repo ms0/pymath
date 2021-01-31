@@ -620,7 +620,7 @@ def __add__(self,other) :
         return self.__class__(x^1) if other&1 else self;
       other %= p;
       return self.__class__(x-x%p+(x+other)%p) if other else self;
-    raise TypeError('must be elements of same field');
+    return NotImplemented;
   y = other._x;
   if not y : return self;
   if p == 2 :
@@ -676,7 +676,7 @@ def __sub__(self,other) :
       other %= p;
       return self.__class__(x-x%p+(x-other)%p) if other else self;
     else :
-      raise TypeError('must be elements of same field');
+      return NotImplemented;
   y = other._x;
   if not y : return self;
   if p == 2 : return self.__class__(x^y);
@@ -696,7 +696,7 @@ def __rsub__(self,y) :
   """Return the difference of the swapped finite field elements; integers  are treated mod p"""
   p = self._p;
   if not isint(y) :
-    raise TypeError('must be elements of same field');
+    return NotImplemented;
   if p == 2 :
     return self.__class__(self._x^1) if y&1 else self;
   y %= p;
@@ -727,7 +727,7 @@ def __div__(self,y) :
         s *= p;
         s += c;
       return self.__class__(s);
-    else : raise TypeError('must be elements of same field');
+    else : return NotImplemented;
   yx = y._x;
   if yx < p : return self/yx;
   if p == 2 : return self*y**((1<<n)-2);    # self*y**(p**n-2)
@@ -738,7 +738,7 @@ def __rdiv__(self,y) :    # y/self
   """Return y/self; y must be an integer and is interpreted mod p"""
   p = self._p;
   if not isint(y) :
-    raise TypeError('must be elements of same field');
+    return NotImplemented;
   x = self._x;
   if not x : raise ZeroDivisionError;
   y %= p;
@@ -778,7 +778,7 @@ def __mul__(self,y) :
         s *= p;
         s += c;
       return self.__class__(s);
-    else : raise TypeError('must be elements of same field');
+    else : return NotImplemented;
   if n == 1 :
     return self.__class__(x*y._x%p);
   if p == 2 :
