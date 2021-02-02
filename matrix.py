@@ -930,6 +930,16 @@ the product of the new dimensions must equal the product of the old dimensions""
     I = matrix(n,n,v);
     return I;
 
+  @staticmethod
+  def circulant(row) :
+    """Return a circulant matrix given its first row"""
+    n = len(row);
+    M = matrix(n,n);
+    for r in range(n) :
+      M[r,:r] = row[n-r:];
+      M[r,r:] = row[:n-r];
+    return M;
+
 ################################################################
 # boolean [binary] matrices
 
@@ -1690,6 +1700,16 @@ any * scalar :  scalar multiply
     else :
       v = 0;
     return bmatrix((n,n),v);
+
+  @staticmethod
+  def circulant(row) :
+    """Return a circulant bmatrix given its first row"""
+    n = len(row);
+    M = bmatrix(n,n);
+    for r in range(n) :
+      M[r,:r] = row[n-r:];
+      M[r,r:] = row[:n-r];
+    return M;
 
   @staticmethod
   def bT(rows,cols,v) :
