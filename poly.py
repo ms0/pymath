@@ -12,14 +12,12 @@ from ffield import isprime, primepower, factors, isirreducible, modpow, ffield, 
 from random import randrange,randint
 
 if sys.version_info>(3,) :
-  NONE = (None,);
   xrange = range;
   iteritems = lambda x: x.items();
   isint = lambda x: isinstance(x,int);
   INT = set((int,));
   REAL = set((int,float,rational));
 else :
-  NONE = (None,sys.maxint);
   iteritems = lambda x: x.iteritems();
   isint = lambda x: isinstance(x,(int,long));
   INT = set((int,long));
@@ -162,21 +160,35 @@ Methods:
     """Return an iterable of the coefficients starting with the constant term"""
     return reversed(self._p);
 
-  def __getitem__(self,key) :  # get coefficient of x**key
-    """Get coefficent indexed by nonnegative integer, or tuple of coeffs by slice.
-Coefficients are indexed by the associated exponent, so 0 indicates the constant term;
-indices larger than the degree give 0; indices < 0 raise exception;
-[::-1] gives a tuple of coeffs with constant term last"""
+  def __getitem__(self,key) :  # get coefficient(s)
+    """Get coefficent indexed by integer, or tuple of coeffs by slice.
+Coefficients are indexed by the associated exponent, 0 gives the constant term;
+exponents larger than the degree give 0; indices < 0 add degree+1;
+slices are treated normally, but can be extended with 0s for exponent > degree;
+Note that [::-1] gives a tuple of coeffs with constant term last"""
+    l = len(self._p);
     if isint(key) :
-      if key < 0 : raise IndexError('negative indices not allowed');
-      return self._p[len(self._p)-1-key] if 0 <= key < len(self._p) else 0;
+      if key < 0 :
+        key += l;
+        if key < 0 : raise IndexError('index out of range');
+
+      return self._p[l-1-key] if 0 <= key < l else 0;
     if isinstance(key,slice) :
-      x = [key.start,key.stop,key.step];
-      if x[2] == None : x[2] = 1;
-      if x[0] == None : x[0] = 0 if x[2] > 0 else len(self._p)-1;
-      if x[1] in NONE : x[1] = -1 if x[2] < 0 else len(self._p);
-      if x[0] < 0 or x[1] < -1 : raise IndexError('negative indices not allowed');
-      return tuple(self[i] for i in xrange(*x));
+      start,stop,step = key.start,key.stop,key.step;
+      if step is None :
+        step = 1;
+      if start is None :
+        start = l-1 if step < 0 else 0;
+      elif start < 0 :
+        start = start+l if step < 0 else 0;
+      if stop is None :
+        stop = -1 if step < 0 else l;
+      elif stop < 0 :
+        stop += l;
+        if step < 0 and stop < 0 : stop = -1;
+      v = self._p[::-1][key];
+      l = (stop-start)//step - len(v);
+      return v if l <= 0 else (0,)*l+v if step < 0 else v+(0,)*l;
     raise KeyError('index must be integer or slice');
 
   def __call__(self,x) :
@@ -679,7 +691,7 @@ class rationalfunction() :
     if not b : raise ZeroDivisionError;
     a = rationalize(a);
     b = rationalize(b);
-    g = a.gcd(b)*b[b.degree];    # make denominator monic
+    g = a.gcd(b)*b._p[0];    # make denominator monic
     self._a = a//g;
     self._b = b//g;
 
