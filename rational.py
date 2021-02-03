@@ -1316,7 +1316,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def __reduce__(self) :
     """Return tuple for pickling qrational"""
     return (_qrat,(self.__v[0]._a,self.__v[0]._b,self.__v[1]._a,self.__v[1]._b,
-                   self.__v[2]._a,self.__v[2]._b,self.__v[3]._a,self.__v[3]._b,));
+                   self.__v[2]._a,self.__v[2]._b,self.__v[3]._a,self.__v[3]._b));
 
   def __str__(self) :
     """Return a string showing the rational quaternion"""
