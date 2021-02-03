@@ -1253,6 +1253,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return result of applying rational.significate to real and imaginary parts"""
     return self.__class__(self._a.significate(extrabits),self._b.significate(extrabits));
 
+def _qrat(a,b,c,d,e,f,g,h) :
+  """Return qrational given numerator and denominator of real and of i,j,k"""
+  return qrational(rational(a,b),rational(c,d),rational(e,f),rational(g,h));
+
 class qrational(object):
   """Quaternion class
 Instance variables (read only):
@@ -1308,6 +1312,11 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def __init__(self,*args) :
     """Do nothing--all the work has been done by __new__"""
     return;
+
+  def __reduce__(self) :
+    """Return tuple for pickling qrational"""
+    return (_qrat,(self.__v[0]._a,self.__v[0]._b,self.__v[1]._a,self.__v[1]._b,
+                   self.__v[2]._a,self.__v[2]._b,self.__v[3]._a,self.__v[3]._b,));
 
   def __str__(self) :
     """Return a string showing the rational quaternion"""
