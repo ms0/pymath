@@ -590,9 +590,10 @@ def __bool__(self) :
 __nonzero__ = __bool__
 
 def __int__(self) :
-  """Return the polynomial representation of the finite field element evaluated at x=p,
-a nonnegative integer < p**n; for n=1, it is just the obvious mod p integer"""
-  return self._x;
+  """Return self._x if < self._p, else raise TypeError"""
+  if self._x < self._p :
+    return self._x;
+  raise TypeError("can't convert %s element to integer"%(type(self)));
 
 def __str__(self) :
   """Return a string representing the polynomial representation of the finite field element

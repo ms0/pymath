@@ -667,7 +667,7 @@ def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
   for x in xrange(1,F.order-1) :
     j = h**x;
     if not fp(j) : break; # find an x such that h**x has minpoly F.ftupoly
-  F2G = lambda f: polynomial(*unpack(2,int(f))).mapcoeffs(GF2)(j);
+  F2G = lambda f: polynomial(*unpack(2,f.x)).mapcoeffs(GF2)(j);
   v = [G(1),j];
   p = j;
   for i in xrange(2,m) :
