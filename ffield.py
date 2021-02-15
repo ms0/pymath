@@ -8,8 +8,9 @@ import random
 random.seed();
 
 from itertools import chain, count
-import matrix
+from matrix import matrix, product
 from rational import root, rational
+import poly as pn
 
 if sys.version_info>(3,) :
   unicode = str;
@@ -219,7 +220,7 @@ use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
 
 bigp = 53;    # "big" prime
 lps = set(primes(2,bigp));    # "little" primes
-plps = matrix.product(lps);   # product of "little" primes
+plps = product(lps);   # product of "little" primes
 
 def primepower(q) :
   """Return (p,n) if q == p**n, else None"""
@@ -518,6 +519,16 @@ def element(self) :
   return self._x;
 
 @property
+def elementtuple(self) :
+  """the field element's polynomial representation as a tuple"""
+  return unpack(self._p,self._x);
+
+@property
+def elementpolynomial(self) :
+  """the field element's polynomial representation"""
+  return pn.polynomial(*unpack(self._p,self._x)).mapcoeffs(self._basefield);
+
+@property
 def field_p(self) :
   """the field's characteristic"""
   return self._p;
@@ -558,6 +569,11 @@ def field_ftupoly(self) :
 def field_nzi(self) :
   """minus the length of tupoly"""
   return self._nzi;
+
+@property
+def field_basefield(self) :
+  """the field's base field GF(p)"""
+  return self._basefield;
 
 @property
 def generates(self) :
@@ -886,11 +902,16 @@ def _vector(x) :
     yield x%p;
     x //= p;
 
+def minpolynomial(self,m=1) :
+  """Return, as a polynomial with coeffs in the subfield GF(self._p**m),
+the minimal polynomial of self over the subfield.
+Raise an exception if m does not divide self._n."""
+  return pn.polynomial(*minpoly(self,m));
+
 def minpoly(self,m=1) :
   """Return, as a tuple of elements of the subfield GF(self._p**m),
 the coefficients, constant term last, of the minimal polynomial of self
-over the subfield. Raise an exception if m does not divide self._n.
-"""
+over the subfield. Raise an exception if m does not divide self._n."""
   n = self._n;
   if m <= 0 or n%m : raise ValueError('m must divide self._n');
   G = type(self);
@@ -944,10 +965,10 @@ over the subfield. Raise an exception if m does not divide self._n.
     X.append(tuple(map(G,_vector(x))));
     x *= self;
   v = list(_vector(x));    # self**d
-  M = matrix.matrix(n,d,list(chain.from_iterable(X))).T;
+  M = matrix(n,d,list(chain.from_iterable(X))).T;
   if n > d :
     for c in reversed(xrange(n)) :  # eliminate redundant columns from M and v
-      N = matrix.matrix(d,len(v)-1,M[:d*c]+M[d*(c+1):]);
+      N = matrix(d,len(v)-1,M[:d*c]+M[d*(c+1):]);
       if N.rank == d :
         M = N;
         del v[c];
@@ -983,7 +1004,8 @@ Instance variables (treat as read-only!):
   _nzi: minus the length of the tuple representing the elided polynomial modulus
 Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
          __len__, __iter__, __getitem__,  __contains__, iterpow, __reduce__
-Descriptors: p, n, poly, tupoly, ftupoly, order [of field-{0}], generator [of field-{0}]
+Descriptors: p, n, poly, tupoly, ftupoly, polynomial [modulus of field], basefield,
+             order [of field-{0}], generator [of field-{0}]
 
 Signatures:
   ffield(q) : q = p**n, a prime power; use least irreducible polynomial
@@ -1000,9 +1022,10 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __bool__, __nonzero__, __eq__, __ne__, __lt__, __gt__, __le__, __ge__
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
-         __pow__, log, minpoly,
+         __pow__, log, minpoly, minpolynomial
          __reduce__
-Descriptors: p, n, poly, tupoly, ftupoly, x,
+Descriptors: p, n, poly, ftupoly, [field parameters]
+             x, tupoly, polynomial, [element representations]
              order [of element], generator [True if element generates]
 """
 
@@ -1041,7 +1064,7 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
       raise ValueError('Bad power');
     q = p**n;
     if not poly and n > 1:    # pick least irreducible poly
-      d = p if p==2 or (p-1)%matrix.product(factors(n),1 if n&3 else 2) else 0;
+      d = p if p==2 or (p-1)%product(factors(n),1 if n&3 else 2) else 0;
       for poly in xrange(q+d+1,q+q) :
         if isirreducible(unpack(p,poly)[1:],p) : break;
       poly -= q;
@@ -1065,13 +1088,12 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
       return _ffield[x];
     except Exception :
       pass;
-    d = dict(p=field_p,n=field_n,poly=field_poly,x=element,
-             minpoly = minpoly,
-             tupoly = field_tupoly,
-             ftupoly = field_ftupoly,
-             order = element_order,
-             generator = generates,
-             _p=p,_n=n,_poly=poly,_tupoly=_tupoly,_nzi=_nzi,
+    d = dict(_p=p, _n=n, _poly=poly, _tupoly=_tupoly, _nzi=_nzi,
+             p=field_p, n=field_n, poly=field_poly, ftupoly=field_ftupoly,
+             x=element, tupoly=elementtuple, polynomial=elementpolynomial,
+             minpoly=minpoly, minpolynomial=minpolynomial,
+             order=element_order,
+             generator=generates,
              __init__=__init__,
              __repr__=__repr__,
              __str__=__str__,
@@ -1110,7 +1132,7 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
     return f;
 
   def __init__(self,*args,**kwargs) :
-    return;
+    self._basefield = self if self._n == 1 else ffield(self._p);
 
   def __reduce__(self) :
     """Return a tuple for pickling"""
@@ -1183,6 +1205,12 @@ Descriptors: p, n, poly, tupoly, ftupoly, x,
   poly = field_poly;
   tupoly = field_tupoly;
   ftupoly = field_ftupoly;
+  basefield = field_basefield;
+
+  @property
+  def polynomial(self) :
+    """the polynomial modulus"""
+    return pn.polynomial(*self._tupoly).mapcoeffs(self._basefield);
 
   @property
   def order(self) :

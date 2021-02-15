@@ -8,7 +8,7 @@ from itertools import chain, count
 from collections import defaultdict
 from matrix import product, bmatrix
 from rational import rational,xrational,inf
-from ffield import isprime, primepower, factors, isirreducible, modpow, ffield, unpack, lcma, divisors
+import ffield as ff
 from random import randrange,randint
 
 if sys.version_info>(3,) :
@@ -51,7 +51,7 @@ complexall = lambda x: x.mapcoeffs(complex);
 identity = lambda x: x;
 
 def leastfactor(n,maxfactor=None) :
-  for p in factors(n,maxfactor) :
+  for p in ff.factors(n,maxfactor) :
     return p;
   return 1;
 
@@ -433,7 +433,7 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
 if q is specified, it is the size of the field;
 if q is not specified, the field is inferred from self's coefficients"""
     if q :
-      r = primepower(q);
+      r = ff.primepower(q);
       if not r :
         raise ValueError('q must be a prime power')
     d = self.degree;
@@ -445,12 +445,12 @@ if q is not specified, the field is inferred from self's coefficients"""
     if types <= INT and q > 0:
       r = r[0];
       if self._p[0] != 1 :
-        i = modpow(self._p[0],r-2,r);    # make monic
+        i = ff.modpow(self._p[0],r-2,r);    # make monic
         self = self.mapcoeffs(lambda x: x*i%r);
         if d != self.degree :
           raise ValueError('leading coefficient is 0 mod %d'%(r));
-      return isirreducible(self._p[1:],q);
-    if len(types) == 1 and tuple(types)[0].__class__ == ffield :
+      return ff.isirreducible(self._p[1:],q);
+    if len(types) == 1 and type(tuple(types)[0]) == ff.ffield :
       p0 = self._p[0];
       if int(p0) != 1 :
         self = self.mapcoeffs(lambda x: x/p0);    # make monic
@@ -459,7 +459,7 @@ if q is not specified, the field is inferred from self's coefficients"""
         if (q-1)%(c.order or 1) :
           raise ValueError('coefficients not all elements of GF(%d)'%(q));
       x = self.__class__(self._p[0],self._p[0]*0);    # Rabin test...
-      for s in chain(factors(d),(1,)) :
+      for s in chain(ff.factors(d),(1,)) :
         e = q**(d//s);
         n = 1 << (bit_length(e)-1);
         y = x;
@@ -562,7 +562,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
             if leastfactor(q**i-1,7) > 7 :
               saved = (c,q,z,o)
               q **= 2
-              c = ffield(q);
+              c = ff.ffield(q);
               z = c(0);
               o = c(1);
               maps = fieldmaps(saved[0],c);
@@ -604,7 +604,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
         facdict[self.__class__(self._p[0],self._p[-1])] += e;    # add x as factor
         self = self.__class__(*self._p[:-1]);    # divide by x
       if isinstance(self._p[0],rational) :
-        m = lcma(map(lambda x:x.denominator,self._p));
+        m = ff.lcma(map(lambda x:x.denominator,self._p));
         if m != 1 : facdict[self.__class__(rational(1,m))] += e;
         self = self.mapcoeffs(lambda x:m*x);
         m = 1;    # combine constant factors
@@ -617,8 +617,8 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
         if m != 1 : facdict[self.__class__(m)] += 1;
         t = set();        # look for linear factors
         while self.degree > 1 :
-          for a in divisors(int(self._p[0])) :
-            for b in divisors(int(self._p[-1])) :
+          for a in ff.divisors(int(self._p[0])) :
+            for b in ff.divisors(int(self._p[-1])) :
               r = rational(b,a);
               if r not in t :
                 t.add(r);
@@ -656,8 +656,7 @@ multiplied by p if specified"""
 def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
   if F.n == 1 :
     return (G,F);
-  GF2 = ffield(2);
-  fp = polynomial(*F.ftupoly).mapcoeffs(GF2);    #F(2).minpoly();
+  fp = F.polynomial;    #F(2).minpoly();
   m = F.n;
   n = G.n;
   while True :    # find generator of G
@@ -667,7 +666,7 @@ def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
   for x in xrange(1,F.order-1) :
     j = h**x;
     if not fp(j) : break; # find an x such that h**x has minpoly F.ftupoly
-  F2G = lambda f: polynomial(*unpack(2,f.x)).mapcoeffs(GF2)(j);
+  F2G = lambda f: f.polynomial(j);
   v = [G(1),j];
   p = j;
   for i in xrange(2,m) :
@@ -841,11 +840,11 @@ def irreducibles(q,n) :
 def irreducibleg(q,n) :
   """Generate all monic irreducible degree n polynomials over F;
   F is q if q is an ffield; else q must be a prime power, and F=ffield(q)"""
-  if isinstance(q,ffield) :
+  if isinstance(q,ff.ffield) :
     F = q;
     q = F.__len__();
   else :
-    F = ffield(q);
+    F = ff.ffield(q);
   for i in range(q**n) :
     poly = [F(1)];
     j = i;
