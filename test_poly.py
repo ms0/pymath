@@ -85,7 +85,7 @@ def testmp(F) :    # test minimal polys and isirreducible in ffield F
   for k in divisors(n) :
     for g in F :
       dotprint();
-      f = polynomial(*g.minpoly(k));
+      f = g.minpolynomial(k);
       if not f :
         error('%r.minpoly(%d) is 0?'%(g,k));
       o = p**k-1;

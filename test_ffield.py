@@ -167,7 +167,7 @@ def ptest(g) :    # polynomial tests
   for i in xrange(min(pn,LIMITP)) :
     x = g(randrange(pn));
     for m in set(chain.from_iterable((a,n//a) for a in chain((1,),factors(n)))) :
-      P = polynomial(*x.minpoly(m));
+      P = x.minpolynomial(m);
       if not P.isirreducible(p**m) :
         print('%r.minpoly(%d) not irreducible'%(x,m));
       o = p**m-1;
