@@ -83,7 +83,7 @@ def matmul(p,q,r,v1,v2) :
 def listr(v) :    # output string for list, using str rather than repr
   return '[ '+', '.join(map(str,v))+' ]';
 
-class matrix() :    # multidimensional array
+class matrix(object) :    # multidimensional array
   """Multidimensional array
 2-D: matrix(nrows,ncolumns)
 1-D (so nrows only), can be considered a column vector or a row vector
@@ -245,14 +245,14 @@ with successive lines varying the remaining dimensions, earlier faster"""
 
   def __neg__(self) :
     """Return the additive inverse of the array"""
-    s = self.__class__(self);
+    s = type(self)(self);
     for i in xrange(len(s.__v)) :
       s.__v[i] = -s.__v[i];
     return s;
 
   def __invert__(self) :
     """Apply ~ to each element of a copy of the array"""
-    s = self.__class__(self);
+    s = type(self)(self);
     for i in xrange(len(s.__v)) :
       s.__v[i] = ~s.__v[i];
     return s;
@@ -282,7 +282,7 @@ if other is a scalar, add the scalar to each element of this array"""
   def __add__(self, other) :
     """Return the elementwise sum of two arrays, or, if other is a scalar,
 return a copy of the first array with each element incremented by the scalar"""
-    a = self.__class__(self);
+    a = type(self)(self);
     return a.__iadd__(other);
 
   __radd__ = __add__;
@@ -308,7 +308,7 @@ if other is a scalar, subtract the scalar from each element of this array"""
   def __sub__(self, other) :
     """Return the elementwise difference of two arrays, or, if other is a scalar,
 return a copy of the first array with each element decremented by the scalar"""
-    a = self.__class__(self);
+    a = type(self)(self);
     return a.__isub__(other);
 
   def __rsub__(self, other) :
@@ -354,7 +354,7 @@ any * scalar :  scalar multiply
         else : raise TypeError('only matrices can be multiplied');
       else : raise TypeError('only matrices can be multiplied');
     elif islistlike(other) :
-      return self.__imul__(self.__class__(len(other),other));
+      return self.__imul__(type(self)(len(other),other));
     else :    # matrix * scalar
       for i in xrange(len(self.__v)) :
         self.__v[i] *= other;
@@ -362,13 +362,13 @@ any * scalar :  scalar multiply
 
   def __mul__(self,other) :
     """Return the product of the two args, as for __imul__"""
-    return self.__class__(self).__imul__(other);
+    return type(self)(self).__imul__(other);
 
   def __rmul__(self,other) :    # can only be scalar*matrix or vector*matrix
     """Return the product of the two args, as for __imul__"""
     if islistlike(other) :
-      return self.__class__(len(other),other).__imul__(self);
-    b = self.__class__(self);
+      return type(self)(len(other),other).__imul__(self);
+    b = type(self)(self);
     for i in xrange(len(b.__v)) :
       b.__v[i] = other*b.__v[i];
     return b;
@@ -397,7 +397,7 @@ any * scalar :  scalar multiply
 
   def __truediv__(self,other) :
     """Return the quotient self/other"""
-    return self.__class__(self).__itruediv__(other);
+    return type(self)(self).__itruediv__(other);
 
   __div__ = __truediv__;
 
@@ -423,7 +423,7 @@ any * scalar :  scalar multiply
       m = self.inverse;
       e = -e;
     else :
-      m = self.__class__(self);
+      m = type(self)(self);
     v = [0]*(n*n);
     v[0::(n+1)] = (1,)*n;
     self.__v[:] = v;
@@ -436,13 +436,13 @@ any * scalar :  scalar multiply
 
   def __pow__(self,x) :
     """Return the exponentiation of a scalar to a power or a square matrix to an integer power"""
-    return self.__class__(self).__ipow__(x);
+    return type(self)(self).__ipow__(x);
 
   def __rpow__(self,b) :
     """Return scalar b to a square matrix power"""
     # base ** matrix
     if len(self.__v) == 1 :
-      return self.__class__(self.__dims,b**self.__v[0]);
+      return type(self)(self.__dims,b**self.__v[0]);
     n = self.__dims[0];
     if len(self.__dims) != 2 or n != self.__dims[1] :
       return TypeError('exponent must be square matrix');
@@ -494,7 +494,7 @@ treat the array as a list of its elements in storage order"""
         #    have multiple dimensions, then return the element or element list
         return v;
       # return the submatrix...
-      return self.__class__([len(v)] if self.__dims else [] ,v);
+      return type(self)([len(v)] if self.__dims else [] ,v);
     if len(key) != len(self.__dims) :
       raise ParameterError('length of index list must be number of dimensions');
     key = list(key);    # so can modify it
@@ -538,7 +538,7 @@ treat the array as a list of its elements in storage order"""
       else : break;
     for i in reversed(xrange(len(dims))) :
       if len(key[i]) == 1 : del dims[i];
-    return self.__class__(dims,v);
+    return type(self)(dims,v);
 
 
   def __setitem__(self,key,value) :
@@ -632,7 +632,7 @@ when setting a slice, value must have length matching size of slice"""
   @property
   def squeeze(self) :
     """squeeze (length 1 dimensions elided)"""
-    s = self.__class__(self);
+    s = type(self)(self);
     for i in reversed(xrange(len(s.__dims))) :
       if s.__dims[i] == 1 : del s.__dims[i];
     return s;
@@ -643,7 +643,7 @@ when setting a slice, value must have length matching size of slice"""
     # if 2D, return transposed matrix
     # if 1D, return copy of self
     # else, raise exception
-    s = self.__class__(self);
+    s = type(self)(self);
     if len(s.__dims) == 2 :
       s.__dims[:] = self.__dims[1],self.__dims[0];
       for c in xrange(s.__dims[1]) :    # column of the result
@@ -805,7 +805,7 @@ when setting a slice, value must have length matching size of slice"""
   def inverse(self) :
     """inverse"""
     if len(self.__v) <= 1 :
-      s = self.__class__(self);
+      s = type(self)(self);
       s.__v[0] = 1/s.__v[0];
       return s;
     n = self.__dims[0];
@@ -837,7 +837,7 @@ when setting a slice, value must have length matching size of slice"""
         x = v[n2+r+n*c];
         for cc in xrange(n) :
           v[r+n*cc] -= x*v[c+n*cc];
-    return self.__class__(n,n,v[0:n2]);
+    return type(self)(n,n,v[0:n2]);
 
   def reshape(self,*dims) :
     """Return a new array with the same elements but different dimensions,
@@ -865,7 +865,7 @@ the product of the new dimensions must equal the product of the old dimensions""
         raise ParameterError('desired dimensions not possible');
     else :
       dims[x] = q;
-    return self.__class__(dims,self.__v);
+    return type(self)(dims,self.__v);
 
   def sum(self,*d) :
     """Return the sum of the array elements"""
@@ -916,7 +916,7 @@ the product of the new dimensions must equal the product of the old dimensions""
 
   def mapped(m,map,*d) :
     """Return a copy of m with map applied to each element"""
-    m = m.__class__(m);
+    m = type(m)(m);
     m.map(map,*d);
     return m;
 
@@ -953,7 +953,7 @@ def parity(iterable,start=0) :
 
 _v = '_bmatrix__v'
 
-class bmatrix() :
+class bmatrix(object) :
 
   """boolean matrix"""
 
@@ -1077,7 +1077,7 @@ treat the array as a list of its elements in storage order"""
         for k in reversed(xrange(*key.indices(n))) :
           v = 2*v+((self.__v>>k)&1);
           c += 1;
-        return self.__class__((c,),v) if c > 0 else [];
+        return type(self)((c,),v) if c > 0 else [];
       else :
         return IndexError('index neither int nor slice');
     if len(key) != len(self.__dims) :
@@ -1127,7 +1127,7 @@ treat the array as a list of its elements in storage order"""
     rv = 0;
     for i in xrange(d) :
       rv = 2*rv|(v>>i)&1;
-    return self.__class__(dims,rv);
+    return type(self)(dims,rv);
 
 
   def __setitem__(self,key,value) :
@@ -1217,7 +1217,7 @@ when setting a slice, value must have length matching size of slice"""
   @property
   def conjugate(self) :
     """conjugate"""
-    return self.__class__(self);
+    return type(self)(self);
 
   @property
   def dims(self) :
@@ -1242,7 +1242,7 @@ when setting a slice, value must have length matching size of slice"""
   @property
   def squeeze(self) :
     """squeeze (length 1 dimensions elided)"""
-    s = self.__class__(self);
+    s = type(self)(self);
     for i in reversed(xrange(len(s.__dims))) :
       if s.__dims[i] == 1 : del s.__dims[i];
     return s;
@@ -1255,9 +1255,9 @@ when setting a slice, value must have length matching size of slice"""
     # else, raise exception
     if len(self.__dims) == 2 :
       rows,cols = self.__dims;
-      return self.__class__((cols,rows),self.bT(rows,cols,self.__v));
+      return type(self)((cols,rows),self.bT(rows,cols,self.__v));
     if len(self.__dims) <= 1 :
-      return self.__class__(self);
+      return type(self)(self);
     raise AttributeError('transpose not defined for >2D bmatrices');
 
   @property
@@ -1346,7 +1346,7 @@ when setting a slice, value must have length matching size of slice"""
   def inverse(self) :
     """inverse"""
     if len(self) == 1 :
-      s = self.__class__(self);
+      s = type(self)(self);
       if not s[0] :
         raise ZeroDivisionError('bmatrix not invertible');
       return s;
@@ -1382,7 +1382,7 @@ when setting a slice, value must have length matching size of slice"""
       for c in xrange(r) :
         if (v>>(n*c+r))&1 :
           w ^= rw<<n*c;
-    return self.__class__((n,n),w);
+    return type(self)((n,n),w);
 
   @property
   def _bits(self) :
@@ -1415,14 +1415,14 @@ the product of the new dimensions must equal the product of the old dimensions""
         raise ParameterError('desired dimensions not possible');
     else :
       dims[x] = q;
-    return self.__class__(dims,self.__v);
+    return type(self)(dims,self.__v);
 
   def dot(self,other) :
     """Return the dot product of two bmatrices"""
     if islistlike(other) :
-      other = self.__class__((len(other),),other);
+      other = type(self)((len(other),),other);
     elif isint(other) :
-      other = self.__class__(self.__dims, other);
+      other = type(self)(self.__dims, other);
     elif not isinstance(other,bmatrix) :
       raise TypeError('args must be vectors');
     if len(self) != len(other) :
@@ -1465,11 +1465,11 @@ the product of the new dimensions must equal the product of the old dimensions""
 
   def __neg__(self) :
     """Return a copy of the array"""
-    return self.__class__(self);
+    return type(self)(self);
 
   def __invert__(self) :
     """Return a same-dimensioned array with each element complemented"""
-    s = self.__class__(self);
+    s = type(self)(self);
     s.__dict__[_v] = (1<<len(s))-1-s.__v;
     return s;
 
@@ -1496,7 +1496,7 @@ if other is a scalar, add the scalar to each element of this array"""
   def __add__(self, other) :
     """Return the elementwise sum of two arrays, or, if other is a scalar,
 return a copy of the first array with each element incremented by the scalar"""
-    a = self.__class__(self);
+    a = type(self)(self);
     return a.__iadd__(other);
 
   __radd__ = __add__;
@@ -1536,7 +1536,7 @@ if other is a scalar, or the scalar to each element of this array"""
   def __or__(self,other) :
     """Return the elementwise or of two arrays, or, if other is a scalar,
 return a copy of the first array with each element or'd with the scalar"""
-    a = self.__class__(self);
+    a = type(self)(self);
     return a.__ior__(other);
 
   __ror__ = __or__
@@ -1565,7 +1565,7 @@ if other is a scalar, and the scalar to each element of this array"""
   def __and__(self,other) :
     """Return the elementwise and of two arrays, or, if other is a scalar,
 return a copy of the first array with each element and'd with the scalar"""
-    a = self.__class__(self);
+    a = type(self)(self);
     return a.__iand__(other);
 
   __rand__ = __and__
@@ -1628,13 +1628,13 @@ any * scalar :  scalar multiply
 
   def __mul__(self,other) :
     """Return the product of the two args, as for __imul__"""
-    return self.__class__(self).__imul__(other);
+    return type(self)(self).__imul__(other);
 
   def __rmul__(self,other) :    # can only be scalar*matrix or vector*matrix
     """Return the product of the two args, as for __imul__"""
     if islistlike(other) :
-      return self.__class__(len(other),other).__imul__(self);
-    return self.__class__(self.__dims,self.__v if (other&1 if isint(other) else other) else 0);
+      return type(self)(len(other),other).__imul__(self);
+    return type(self)(self.__dims,self.__v if (other&1 if isint(other) else other) else 0);
 
   def __itruediv__(self,b) :
     """Multiply self by b**-1"""
@@ -1644,7 +1644,7 @@ any * scalar :  scalar multiply
 
   def __truediv__(self,b) :
     """Return the product self*b**-1"""
-    return self.__class__(self).__itruediv__(b);
+    return type(self)(self).__itruediv__(b);
 
   __div__ = __truediv__;
 
@@ -1670,7 +1670,7 @@ any * scalar :  scalar multiply
       m = self.inverse;
       e = -e;
     else :
-      m = self.__class__(self);
+      m = type(self)(self);
     v = 1;
     for i in xrange(n-1) :
       v = (v<<(n+1))|1;
@@ -1684,7 +1684,7 @@ any * scalar :  scalar multiply
 
   def __pow__(self,x) :
     """Return the exponentiation of a scalar to a power or a square bmatrix to an integer power"""
-    return self.__class__(self).__ipow__(x);
+    return type(self)(self).__ipow__(x);
 
   # no rpow: can only work for real matrix exponents
 

@@ -282,10 +282,10 @@ def isgenerator(x) :
   o = p**n-1;
   for q in factors(o) :
     if not x**(o//q)-1 :
-      ceq('v[0].order!=v[0].__class__.order and not v[0].__class__.order%v[0].order',x);
+      ceq('v[0].order!=type(v[0]).order and not type(v[0]).order%v[0].order',x);
       ceq('not v[0].generator',x);
       return False;
-  ceq('v[0].order==v[0].__class__.order',x);
+  ceq('v[0].order==type(v[0]).order',x);
   ceq('v[0].generator',x);
   return True;
 

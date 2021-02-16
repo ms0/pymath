@@ -103,7 +103,7 @@ def evaluate(p,x) :
     v = v*x+c*one;
   return v;
 
-class polynomial() :
+class polynomial(object) :
   """polynomial in one variable
 sequence of coefficients ending with constant term; leading zeroes are elided;
 a zero polynomial has an empty sequence of coefficients
@@ -214,32 +214,32 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
 
   def __lt__(self,other) :
     """Compare by degree, and if equal, lexicographically by coeff sequence, constant last"""
-    if not isinstance(other,self.__class__) : other = self.__class__(other);
+    if not isinstance(other,type(self)) : other = type(self)(other);
     return len(self._p) < len(other._p) or len(self._p) == len(other._p) and self._p < other._p;
 
   def __le__(self,other) :
     """Compare by degree, and if equal, lexicographically by coeff sequence, constant last"""
-    if not isinstance(other,self.__class__) : other = self.__class__(other);
+    if not isinstance(other,type(self)) : other = type(self)(other);
     return len(self._p) < len(other._p) or len(self._p) == len(other._p) and self._p <= other._p;
 
   def __eq__(self,other) :
     """Return True iff coeff sequences of self and other compare equal"""
-    if not isinstance(other,self.__class__) : other = self.__class__(other);
+    if not isinstance(other,type(self)) : other = type(self)(other);
     return self._p == other._p;
 
   def __ne__(self,other) :
     """Return False iff coeff sequences of self and other compare equal"""
-    if not isinstance(other,self.__class__) : other = self.__class__(other);
+    if not isinstance(other,type(self)) : other = type(self)(other);
     return self._p != other._p;
 
   def __ge__(self,other) :
     """Compare by degree, and if equal, lexicographically by coeff sequence, constant last"""
-    if not isinstance(other,self.__class__) : other = self.__class__(other);
+    if not isinstance(other,type(self)) : other = type(self)(other);
     return len(self._p) > len(other._p) or len(self._p) == len(other._p) and self._p >= other._p;
 
   def __gt__(self,other) :
     """Compare by degree, and if equal, lexicographically by coeff sequence, constant last"""
-    if not isinstance(other,self.__class__) : other = self.__class__(other);
+    if not isinstance(other,type(self)) : other = type(self)(other);
     return len(self._p) > len(other._p) or len(self._p) == len(other._p) and self._p > other._p;
 
   def __pos__(self) :
@@ -248,16 +248,16 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
 
   def __neg__(self) :
     """Return -self, a poly with all coeffs negated"""
-    return self.__class__(*tuple(-cs for cs in self._p));
+    return type(self)(*tuple(-cs for cs in self._p));
 
   def __add__(self,other) :
     """Return the sum self+other"""
-    if not isinstance(other,self.__class__) :
+    if not isinstance(other,type(self)) :
       if isinstance(other,rationalfunction) : return other+self;
-      other = self.__class__(other);
+      other = type(self)(other);
     if len(self._p) < len(other._p) : self,other = other,self;
     d = len(self._p) - len(other._p);
-    return self.__class__(*tuple(cs if i<0 else cs+other._p[i] for i,cs in enumerate(self._p,-d)));
+    return type(self)(*tuple(cs if i<0 else cs+other._p[i] for i,cs in enumerate(self._p,-d)));
 
   __radd__ = __add__;
 
@@ -272,31 +272,31 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
   def __mul__(self,other) :      
     """Return the product self*other"""
     if not self or not other : return _zero;
-    if not isinstance(other,self.__class__) :
+    if not isinstance(other,type(self)) :
       if isinstance(other,rationalfunction) : return other*self;
-      other = self.__class__(other);
-    return self.__class__(*nzpolymul(self._p,other._p));
+      other = type(self)(other);
+    return type(self)(*nzpolymul(self._p,other._p));
 
   __rmul__ = __mul__
 
   def __floordiv__(self,other) :
     """Return the quotient self//other, dropping the remainder"""
     if not other : raise ZeroDivisionError;
-    if not isinstance(other,self.__class__) :
+    if not isinstance(other,type(self)) :
       if isinstance(other,rationalfunction) :
         if other._b != 1 :
           return other.__rfloordiv__(self);
         other = other._a;
       else :
-        other = self.__class__(other);
+        other = type(self)(other);
     if not self._p : return self;
-    return self.__class__(*(nzpolydivrem(self._p,other._p)[0]));
+    return type(self)(*(nzpolydivrem(self._p,other._p)[0]));
 
   def __rfloordiv__(self,other) :
     """Return the quotient other//self"""
     if not self._p : raise ZeroDivisionError;
     if not other : return _zero;
-    return self.__class__(other)//self;
+    return type(self)(other)//self;
 
   def __div__(self,other) :
     """Return the quotient self/other as a polynomial or rationalfunction"""
@@ -316,7 +316,7 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
 
   def __rdiv__(self,other) :
     """Return the quotient other/self"""
-    return self.__class__(other)/self;
+    return type(self)(other)/self;
 
   __truediv__ = __div__
   __rtruediv__ = __rdiv__
@@ -325,40 +325,40 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
     """Return the quotient and remainder when dividing self by other"""
     if not other : raise ZeroDivisionError;
     if not self._p : return self,self;
-    if not isinstance(other,self.__class__) :
+    if not isinstance(other,type(self)) :
       if isinstance(other,rationalfunction) :
         if other._b != 1 :
           return other.__rdiv__(self),_zero;
         other = other._a;
       else :
-        other = self.__class__(other);
+        other = type(self)(other);
     q,r = nzpolydivrem(self._p,other._p);
-    return self.__class__(*q),self.__class__(*r);
+    return type(self)(*q),type(self)(*r);
 
   def __rdivmod__(self,other) :
     """Return the quotient and remainder when dividing other by self"""
     if not self._p : raise ZeroDivisionError;
     if not other : return _zero,_zero;
-    return divmod(self.__class__(other),self);
+    return divmod(type(self)(other),self);
 
   def __mod__(self,other) :
     """Return the remainder when dividing self by other"""
     if not other : raise ZeroDivisionError;
     if not self._p : return self;
-    if not isinstance(other,self.__class__) :
+    if not isinstance(other,type(self)) :
       if isinstance(other,rationalfunction) :
         if other._b == 1 :
           other = other._a;
         return _zero;
       else :
-        other = self.__class__(other);
-    return self.__class__(*(nzpolydivrem(self._p,other._p)[1]));
+        other = type(self)(other);
+    return type(self)(*(nzpolydivrem(self._p,other._p)[1]));
 
   def __rmod__(self,other) :
     """Return the remainder when dividing other by self"""
     if not self._p : raise ZeroDivisionError;
     if not other : return _zero;
-    return self.__class__(other)%self;
+    return type(self)(other)%self;
 
   def __pow__(self,e,m=None) :
     """Return self raised to integer e: self**e; if m, mod polynomial m"""
@@ -367,29 +367,29 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
     if not (m is None or isinstance(m,polynomial) and m.degree > 0) :
       raise TypeError('modulus must be polynomial of degree > 0')
     if self.degree <= 0 :
-      return self.__class__(self[0]**e);
+      return type(self)(self[0]**e);
     if e <= 0:
       if e :
         if m :
           raise ValueError('2nd arg cannot be negative when 3rd arg specified');
-        return rationalfunction(self[self.degree].__class__(1),self.__class__(*nzpolypow(self._p,-e)));
-      return self.__class__(self[self.degree].__class__(1));
-    return self.__class__(*nzpolypow(self._p,e,m and m._p));
+        return rationalfunction(type(self[self.degree])(1),type(self)(*nzpolypow(self._p,-e)));
+      return type(self)(type(self[self.degree])(1));
+    return type(self)(*nzpolypow(self._p,e,m and m._p));
 
   def derivative(self,k=1) :    # kth derivative
     """Return the kth derivative of self"""
     if not (isint(k) and k >= 0) :
       raise TypeError('kth derivative only defined for k nonegative integer');
     d = len(self._p);
-    return self.__class__(*tuple(product(xrange(d-i,d-i-k,-1),c)
+    return type(self)(*tuple(product(xrange(d-i,d-i-k,-1),c)
                              for i,c in enumerate(self._p[:d-k],1)));
   def gcd(p,q) :
     """Return the greatest common divisor of polynomials p and q"""
-    if not isinstance(q,p.__class__) :
+    if not isinstance(q,type(p)) :
       raise TypeError('both args must be polynomials');
     types = set();
     for x in chain(p,q) :
-      types.add(x.__class__);
+      types.add(type(x));
     if types <= REAL and not types <= RATIONAL :
       p = p.mapcoeffs(rational);
       q = q.mapcoeffs(rational);
@@ -406,11 +406,11 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
 
   def xgcd(p,q) :
     """Return (g,u,v), where g = gcd of p and q, and g=up+vq"""
-    if not isinstance(q,p.__class__) :
+    if not isinstance(q,type(p)) :
       raise TypeError('both args must be polynomials');
     types = set();
     for x in chain(p,q) :
-      types.add(x.__class__);
+      types.add(type(x));
     if set() < types <= REAL and not types <= RATIONAL :
       p = p.mapcoeffs(rational);
       q = q.mapcoeffs(rational);
@@ -441,7 +441,7 @@ if q is not specified, the field is inferred from self's coefficients"""
       return True;
     types = set();
     for x in self :
-      types.add(x.__class__);
+      types.add(type(x));
     if types <= INT and q > 0:
       r = r[0];
       if self._p[0] != 1 :
@@ -458,7 +458,7 @@ if q is not specified, the field is inferred from self's coefficients"""
       for c in self :
         if (q-1)%(c.order or 1) :
           raise ValueError('coefficients not all elements of GF(%d)'%(q));
-      x = self.__class__(self._p[0],self._p[0]*0);    # Rabin test...
+      x = type(self)(self._p[0],self._p[0]*0);    # Rabin test...
       for s in chain(ff.factors(d),(1,)) :
         e = q**(d//s);
         n = 1 << (bit_length(e)-1);
@@ -489,7 +489,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       return facdict;
     types = set();
     for x in self :
-      types.add(x.__class__);
+      types.add(type(x));
     if set() < types <= REAL and not types <= RATIONAL :
       if types <= INT :
         for k,v in iteritems(self.mapcoeffs(rational).factor()) :
@@ -506,14 +506,14 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               k /= c;
             facdict[k.mapcoeffs(int_float)] += v;
         if f != 1 :
-          facdict[self.__class__(int_float(f))] += 1;
+          facdict[type(self)(int_float(f))] += 1;
       return facdict;
     elif types <= COMPLEX and not types <= XRATIONAL :
       for k,v in iteritems(self.mapcoeffs(xrational).factor()) :
         facdict[k.mapcoeffs(complex)] += v;
       return facdict;
     if self._p[0]**2 != self._p[0] :
-      facdict[self.__class__(self._p[0])] += e;
+      facdict[type(self)(self._p[0])] += e;
       self /= self._p[0];
     g = self.gcd(self.derivative());
     self //= g
@@ -530,26 +530,26 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       c = g._p[0];
       p = c.p;    # characteristic
       px = p**(c.n-1);    # exponent for mapping a**p -> a for a in GF(p**n)
-      return self.__class__(*(x**px for x in g._p[::p])).factor(facdict,p*e);
+      return type(self)(*(x**px for x in g._p[::p])).factor(facdict,p*e);
     else :
       return facdict;
 
   def _factor(self,facdict,e) :    # self is square-free and monic
     try :
-      c = self._p[0].__class__;
+      c = type(self._p[0]);
       q = c.p**c.n;
       i = 1;
       s = ();
       while 2*i <= self.degree :
         z = c(0);
         o = c(1);
-        h = b = self.__class__(o,z);    # compute x**q**i % self ...
+        h = b = type(self)(o,z);    # compute x**q**i % self ...
         x = q**i;
         m = (1<<(bit_length(x)-1)) >> 1;
         while m :
           h = h*h%self;
           if x&m :
-            h = self.__class__(*h._p+(z,))%self;
+            h = type(self)(*h._p+(z,))%self;
           m >>= 1;
         g = self.gcd(h-b);
         n = g.degree;
@@ -572,7 +572,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               saved = ();
             x = (q**i-1)//leastfactor(q**i-1);
             while len(f) < r :
-              h = b = self.__class__(o,
+              h = b = type(self)(o,
                 *(c(randrange(q)) for j in xrange(i)))
               m = (1<<(bit_length(x)-1)) >> 1;
               while m :
@@ -601,11 +601,11 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
         facdict[self] += e;     # must be irreducible
     except AttributeError :
       if not self._p[-1] :    # self(0) == 0
-        facdict[self.__class__(self._p[0],self._p[-1])] += e;    # add x as factor
-        self = self.__class__(*self._p[:-1]);    # divide by x
+        facdict[type(self)(self._p[0],self._p[-1])] += e;    # add x as factor
+        self = type(self)(*self._p[:-1]);    # divide by x
       if isinstance(self._p[0],rational) :
         m = ff.lcma(map(lambda x:x.denominator,self._p));
-        if m != 1 : facdict[self.__class__(rational(1,m))] += e;
+        if m != 1 : facdict[type(self)(rational(1,m))] += e;
         self = self.mapcoeffs(lambda x:m*x);
         m = 1;    # combine constant factors
         i = [];
@@ -614,7 +614,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
             i.append(f);
             m *= f._p[0]**k;
         for f in i : del facdict[f];
-        if m != 1 : facdict[self.__class__(m)] += 1;
+        if m != 1 : facdict[type(self)(m)] += 1;
         t = set();        # look for linear factors
         while self.degree > 1 :
           for a in ff.divisors(int(self._p[0])) :
@@ -623,7 +623,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               if r not in t :
                 t.add(r);
                 if not self(r) :
-                  f = self.__class__(a,-b);
+                  f = type(self)(a,-b);
                   facdict[f] += e;
                   self /= f;
                   break;
@@ -631,7 +631,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               if r not in t :
                 t.add(r);
                 if not self(r) :
-                  f = self.__class__(a,b);
+                  f = type(self)(a,b);
                   facdict[f] += e;
                   self /= f;
                   break;
@@ -642,7 +642,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
 
   def mapcoeffs(self,f) :
     """Apply f to each coefficient and return the resulting polynomial"""
-    return self.__class__(*map(f,self._p));
+    return type(self)(*map(f,self._p));
 
   @staticmethod
   def unfactor(facdict,p=None) :
@@ -685,7 +685,7 @@ def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
   G2F = lambda g: F((bmatrix((n,),g.x)*M)._bits);
   return (F2G,G2F);
 
-class rationalfunction() :
+class rationalfunction(object) :
   def __init__(self,a,b=1) :
     if not b : raise ZeroDivisionError;
     a = rationalize(a);
@@ -816,14 +816,14 @@ def rationalize(p) :
   if isinstance(p,polynomial) :
     types = set();
     for x in p :
-      types.add(x.__class__);
+      types.add(type(x));
     if set() < types <= REAL and not types <= RATIONAL :
       return p.mapcoeffs(rational);
     elif types <= COMPLEX and not types <= XRATIONAL :
       return p.mapcoeffs(xrational);
-  elif p.__class__ in REAL :
+  elif type(p) in REAL :
     return polynomial(rational(p));
-  elif p.__class__ in COMPLEX :
+  elif type(p) in COMPLEX :
     return polynomial(xrational(p));
   return p;
 

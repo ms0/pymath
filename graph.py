@@ -11,7 +11,7 @@ if sys.version_info>(3,) :
   xmap = map;
   map = lambda *x: list(xmap(*x));
 
-class graph() :
+class graph(object) :
   """Undirected graph
  Instance variables (read-only):
   n: the number of nodes, numbered 0 through n-1
@@ -52,7 +52,7 @@ class graph() :
     self.__e = edges;
 
   def __hash__(self) :
-    return hash((self.__class__,self.__n,self.__e));
+    return hash((type(self),self.__n,self.__e));
 
   def __repr__(self) :
     return 'graph(%d,%s)'%(self.__n,str(tuple(sorted(self.edges))));
@@ -144,7 +144,7 @@ class graph() :
 
   def isomorphism(self,other) :
     """Return an isomorphism from self to other, if any, else None"""
-    if not isinstance(other,self.__class__) : return None;
+    if not isinstance(other,type(self)) : return None;
     n = self.__n;
     if other.__n != n : return None;
     if self.__e == other.__e : return range(n);

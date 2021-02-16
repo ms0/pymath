@@ -82,13 +82,13 @@ any k of which can recover the secret.
 Note that built-in numeric classes might not recover the secret exactly."""
   if isinstance(s,str) :
     s = G(iicsa(s));
-  sharers = mp(s.__class__,range(1,n+1));
+  sharers = mp(type(s),range(1,n+1));
   try :
     pn = s.p**s.n;
   except Exception :
     pn = 1;
     while pn <= abs(s) : pn *= 2;
-  return zp(sharers,Vandermonde(sharers,k)*([s]+[s.__class__(randrange(pn)) for i in range(k-1)]));
+  return zp(sharers,Vandermonde(sharers,k)*([s]+[type(s)(randrange(pn)) for i in range(k-1)]));
 
 def secret(xs) :
   """Given a list of k (sharer,share) pairs, return the secret"""

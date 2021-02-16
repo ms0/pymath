@@ -34,7 +34,7 @@ def testf(p) :    # verify that unfactor(factor) is the identity transform
     error('%s != %s'%(p,f));
   for q in f :
     if not q.isirreducible() :
-      error('factor %s is not irreducible over %s'%(q,q[0].__class__));
+      error('factor %s is not irreducible over %s'%(q,type(q[0])));
   return f;
 
 def randp() :
