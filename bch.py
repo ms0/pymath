@@ -76,7 +76,7 @@ n-bit codewords and Hamming distance >= d"""
 # given generator matrix, return parity check matrix
 def pcheckmatrix(G) :
   """Given generator matrix G, return parity check matrix"""
-  c = G.__class__;
+  c = type(G);
   k,n = G.dims;    # number of data bits and size of codeword
   H = c(n,n-k);
   H[:k,:] = G[:,k:]
