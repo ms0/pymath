@@ -2289,14 +2289,15 @@ def lgamma(x,base=e) :
   """Return the log of the gamma function at x for the specified base"""
   x = rational(x);
   base = rational(base);
-  if base.imag or not base._b or base <= 0 or base == 1 : raise ValueError('bad base');
+  if base.imag or not base._b or base <= 0 or base == 1 :
+    raise ValueError('bad base');
   if not x.imag :
     if abs(x._b) == 1 :
       if x._a <= MAX_SIGNIFICANCE :
         return log(factorial(x._a-1),base) if x._a > 0 else _nan;
     elif not x._b :
       return (_pinf if base > 1 else _minf) if x > 0 else _nan;
-  if x.real <= 0 :
+  if x.real < 1 :
     z = 1-x;
     return -sinc(z).log(base)-lgamma(1+z,base);
   p = 1;
@@ -2307,8 +2308,8 @@ def lgamma(x,base=e) :
   t = x.log() * (x-_half) - x + _half*tau.log();
   u = x;
   w = (x*x).approximate(1<<(_SIGNIFICANCE+16));
-  for i in count(1) :
-    s = bernoulli(2*i)/(2*i*(2*i-1))/u;
+  for i in count(2,2) :
+    s = bernoulli(i)/(i*(i-1))/u;
     t += s;
     if _isinsignificant(s.maxnorm(),t.maxnorm(),_SIGNIFICANCE+8) : break;
     u *= w;
@@ -2333,6 +2334,55 @@ def factorial(x) :
   for n in xrange(x,1,-1) :
     y *= n;
   return y;
+
+def digamma(x,base=e) :    # for base=e, digamma(x+1) = digamma(x) + 1/x
+  """Return the digamma function at x"""
+  # -eulerconstant+(x-1)sum(n=0,inf) 1/((n+1)(n+x)); x not 0,-1,-2,...
+  # ln x - 1/(2*x) - sum(n=1,N) B[2*n]/(2*n*x**(2*n)) - (-1)**N*2/x**(2*N) *
+  #                 integral(0,inf) t**(2*N+1)/((t*t+z*z)(exp(2*pi*t)-1)) dt
+  x = rational(x);
+  base = rational(base);
+  if base.imag or not base._b or base <= 0 or base == 1 :
+    raise ValueError('bad base');
+  if not x.imag :
+    if abs(x._b) <= 1 :
+      if x._a <= 0 or not x._b : return _nan;
+      return harmonic(x._a-1) - eulerconstant;
+    elif x._a > 0 and x._b == 2 :
+      return 2*oddharmonic(x._a-1) - 2/log2e - eulerconstant;
+  s = 0;
+  while x.maxnorm() < (1<<5) :
+    if x.real < 0 :
+      x -= 1;   # dg(x) = dg(x-1)+1/(x-1)
+      s += 1/x;
+    else :      
+      s -= 1/x; # dg(x) = dg(x+1)-1/x
+      x += 1;
+  u = w = (x*x).approximate(1<<(_SIGNIFICANCE+16));
+  for i in count(2,2) :
+    t = bernoulli(i)/(i*u);
+    s -= t;
+    if _isinsignificant(t.maxnorm(),s.maxnorm(),_SIGNIFICANCE+8) : break;
+    u *= w;
+  return (x.log()-_half/x+s).approximate(1<<(_SIGNIFICANCE+8))/log(base);
+
+def harmonic(n) :
+  """Return the nth harmonic number sum(k=1,floor(n)) 1/k"""
+  n = int(n);
+  if n<0 : raise ValueError('arg must be nonnegtive integer');
+  s = 0;
+  for i in range(1,n+1) :
+    s += rational(1,i);
+  return s;
+
+def oddharmonic(n) :
+  """Return sum(k=0,ceil(floor(n)/2)) 1/(2k+1) = harmonic(n)-harmonic(n/2)/2"""
+  n = int(n);
+  if n<0 : raise ValueError('arg must be nonnegative integer');
+  s = 0;
+  for i in range(1,n+1,2) :
+    s += rational(1,i);
+  return s;
 
 def combinations(n,k) :    # n!/(k!(n-k)!) = n*(n-1)*...(n-k+1)/k!
   """Return the number of combinations of n things taken k at a time"""
