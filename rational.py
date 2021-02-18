@@ -2347,9 +2347,9 @@ def digamma(x,base=e) :    # for base=e, digamma(x+1) = digamma(x) + 1/x
   if not x.imag :
     if abs(x._b) <= 1 :
       if x._a <= 0 or not x._b : return _nan;
-      return harmonic(x._a-1) - eulerconstant;
+      return (harmonic(x._a-1) - eulerconstant)/log(base);
     elif x._a > 0 and x._b == 2 :
-      return 2*oddharmonic(x._a-1) - 2/log2e - eulerconstant;
+      return (2*oddharmonic(x._a-1) - 2/log2e - eulerconstant)/log(base);
   s = 0;
   while x.maxnorm() < (1<<5) :
     if x.real < 0 :
