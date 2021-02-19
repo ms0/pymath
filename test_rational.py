@@ -57,7 +57,7 @@ def timing(name,stmt,repeats=16,nargs=1,plex=0) :
   t = timeit(
     stmt=stmt if not '[i]' in stmt else
     'for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
-    setup='from rational import rational,xrational,qrational,set_significance,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma,fsum\nfrom test_rational import random\nr=[qrational(2*random()-1,2*random()-1,2*random()-1,2*random()-1) if %d > 1 else xrational(2*random()-1,2*random()-1) if %d else 2*random()-1 for _ in %s(%d)]\nu=[(1+x.real)/2 for x in r]'%(plex,plex,xrange.__name__,repeats*nargs),
+    setup='from rational import rational,xrational,qrational,set_significance,exp,sin,cos,tan,log,asin,acos,atan,atan2,sinh,cosh,tanh,asinh,acosh,atanh,erf,erfc,gamma,lgamma,digamma,fsum\nfrom test_rational import random\nr=[qrational(2*random()-1,2*random()-1,2*random()-1,2*random()-1) if %d > 1 else xrational(2*random()-1,2*random()-1) if %d else 2*random()-1 for _ in %s(%d)]\nu=[(1+x.real)/2 for x in r]'%(plex,plex,xrange.__name__,repeats*nargs),
     timer=process_time,number=1);
   print('%s\t%f'%(name,t/repeats));
 
@@ -389,7 +389,7 @@ def mtest(repeats=10) :
   """Test math functions using random real arguments"""
 # acos, acosh, asin, asinh, atan, atan2, atanh,
 # ceil, copysign, cos, cosh, degrees, erf, erfc, exp, expm1,
-# fabs*, factorial*, floor, fmod*, frexp, fsum, gamma, gcd+, hypot,
+# fabs*, factorial*, floor, fmod*, frexp, fsum, gamma, digamma, gcd+, hypot,
 # isclose, isfinite*, isinf*, isnan*, ldexp*, lgamma, log, log10, log1p, log2,
 # modf, pow, radians, sin, sinh, sqrt, tan, tanh, trunc*
 # NOT IN math: combinations-, bernoulli-, integral
@@ -475,6 +475,20 @@ def mtest(repeats=10) :
     z = lgamma(x);
     if not isclose(y,z,rel_tol=rel_tol) :
       print('x, ln(gamma(x)) ~ lgamma(x): %s, %s ~ %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
+    # test digamma with lgamma, as digamma is its derivative
+    # digamma(x) ~ (lgamma(x+d/2)-lgamma(x-d/2))/d; d can be complex
+    #     error term: -d^2 * lgamma'''(x+c)/24 for some c in (-d/2,d/2)
+    # digamma(x) ~ (-lgamma(x+d/2)+8lgamma(x+d/4)-8lgamma(x-d/4)+lgamma(x-d/2))/3d
+    #     error term: +d^4 * lgamma'''''(x+c)/480 for some c in (-d/2,d/2)
+    # Cauchy: f^(n) (a) = n!/(tau*i) circintegral(f(z)/(z-a)^(n+1) dz)
+    # Suppose x has b bits of significance
+    # Suppose f(x) also has b bits of significance
+    # Any error in f is divided by d
+    b = set_significance()//2;
+    y = lgamma(x+(one>>b))-lgamma(x-(one>>b))<<(b-1);
+    z = digamma(x);
+    if not isclose(y,z,rel_tol=rel_tol<<b) :
+      print('x, (lgamma(x+d/2)-lgamma(x-d/2))/d ~ digamma(x): %s, %s ~ %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
     x = 16*u;
     y = erf(x);
     z = erfc(x);
@@ -538,6 +552,32 @@ def gtest(repeats=64) :
             isclose(z.imag,y.imag,rel_tol=0,abs_tol = tau*rel_tol)) :
       print('(lgamma(z+1)-lgamma(z=%s)).exp() ~ %s'
             %(x.bstr(30),y.exp().bstr(30)));
+
+def dgtest() :
+  """Test digamma with special complex args"""
+  rel_tol = rational(1,1<<set_significance());
+  v = ((one,-eulerconstant),(half,-2*log(2)-eulerconstant),
+       (rational(1,3),-pi/2/sqrt(3)-3*log(3)/2-eulerconstant),
+       (rational(1,4),-pi/2-3*log(2)-eulerconstant),
+       (rational(1,6),-pi*sqrt(3)/2-2*log(2)-3*log(3)/2-eulerconstant),
+       (rational(1,8),-pi/2-4*log(2)-(pi+log(sqrt(2)+1)-log(sqrt(2)-1))/sqrt(2)-eulerconstant),
+      );
+  for x,z in v :
+    y = digamma(x);
+    if not isclose(y,z,rel_tol=rel_tol) :
+      print('digamma(%s) ~ %s != %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
+  for i in range(1,13) :
+    b = rational(i,3);
+    x = xrational(0,b);
+    y = digamma(x).imag;
+    z = half/b + hpi/tanh(pi*b);
+    if not isclose(y,z,rel_tol=rel_tol) :
+      print('digamma(%s).imag ~ %s != %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
+    x += half;
+    y = digamma(x).imag;
+    z = hpi*tanh(pi*b);
+    if not isclose(y,z,rel_tol=rel_tol) :
+      print('digamma(%s).imag ~ %s != %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
 
 def stest(repeats=10) :
   """Test math functions against higher-significance results"""
@@ -653,6 +693,12 @@ def stest(repeats=10) :
     if not isclose(y,z,rel_tol=rel_tol) :
       print('lgamma(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
     set_significance(sig);
+    y = digamma(x);
+    set_significance(sig+10);
+    z = digamma(x);
+    if not isclose(y,z,rel_tol=rel_tol) :
+      print('digamma(%s): %s ~ %s'%(x.bstr(dig+3),y.bstr(dig),z.bstr(dig+3)))
+    set_significance(sig);
     x = 16*u;
     y = erf(x);
     set_significance(sig+10);
@@ -740,6 +786,8 @@ def timingtest() :
   timing('gamma(complex)','gamma(r[i])',plex=1);
   timing('lgamma(real)','lgamma(u[i])');
   timing('lgamma(complex)','lgamma(r[i])',plex=1);
+  timing('digamma(real)','digamma(u[i])');
+  timing('digamma(comp)','digamma(r[i])',plex=1);
   timing('fsum(unsigned)','fsum(u)',4096);
   timing('fsum(real)', 'fsum(r)',4096);
   timing('fsum(complex)','fsum(r)',4096,plex=1);
@@ -800,6 +848,8 @@ if __name__ == '__main__' :
   mxtest();
   print('lgamma test');
   gtest();
+  print('digamma test');
+  dgtest();
   print('significance test');
   stest();
   print('timing test');
