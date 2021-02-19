@@ -2340,6 +2340,7 @@ def digamma(x,base=e) :    # for base=e, digamma(x+1) = digamma(x) + 1/x
   # -eulerconstant+(x-1)sum(n=0,inf) 1/((n+1)(n+x)); x not 0,-1,-2,...
   # ln x - 1/(2*x) - sum(n=1,N) B[2*n]/(2*n*x**(2*n)) - (-1)**N*2/x**(2*N) *
   #                 integral(0,inf) t**(2*N+1)/((t*t+z*z)(exp(2*pi*t)-1)) dt
+  # digamma(1-x) - digamma(x) = pi/tan(pi*x)
   x = rational(x);
   base = rational(base);
   if base.imag or not base._b or base <= 0 or base == 1 :
@@ -2350,14 +2351,14 @@ def digamma(x,base=e) :    # for base=e, digamma(x+1) = digamma(x) + 1/x
       return (harmonic(x._a-1) - eulerconstant)/log(base);
     elif x._a > 0 and x._b == 2 :
       return (2*oddharmonic(x._a-1) - 2/log2e - eulerconstant)/log(base);
-  s = 0;
+  if x.real < _half :
+    x = 1-x;
+    s = pi/tan(pi*x);
+  else :
+    s = 0;
   while x.maxnorm() < (1<<5) :
-    if x.real < 0 :
-      x -= 1;   # dg(x) = dg(x-1)+1/(x-1)
-      s += 1/x;
-    else :      
-      s -= 1/x; # dg(x) = dg(x+1)-1/x
-      x += 1;
+    s -= 1/x; # dg(x) = dg(x+1)-1/x
+    x += 1;
   u = w = (x*x).approximate(1<<(_SIGNIFICANCE+16));
   for i in count(2,2) :
     t = bernoulli(i)/(i*u);
