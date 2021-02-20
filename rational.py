@@ -2302,7 +2302,7 @@ def lgamma(x,base=e) :
     return -sinc(z).log(base)-lgamma(1+z,base);
   p = 1;
   x = x.approximate(1<<(_SIGNIFICANCE+16));
-  while x.real < 32 :    # this increases required intermediate significance
+  while x.real < 1<<5 :    # this increases required intermediate significance
     p *= x;
     x += 1;
   t = x.log() * (x-_half) - x + _half*tau.log();
@@ -2356,7 +2356,7 @@ def digamma(x,base=e) :    # for base=e, digamma(x+1) = digamma(x) + 1/x
     s = pi/tan(pi*x);
   else :
     s = 0;
-  while x.maxnorm() < (1<<5) :
+  while x.real < 1<<5 :    # this increases required intermediate significance
     s -= 1/x; # dg(x) = dg(x+1)-1/x
     x += 1;
   u = w = (x*x).approximate(1<<(_SIGNIFICANCE+16));
