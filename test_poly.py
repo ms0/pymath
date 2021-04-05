@@ -61,6 +61,12 @@ def testpops(p,q,r) :    # test polynomial operations
     error('failure for %s**6'%(p));
   if pow(q,5,r) != pow(q,5)%r :
     error('failure for pow(%s,5,%s)'%(q,r));
+  if p<<3 != p>>-3 or p<<-3 != p>>3 :
+    error('failure of %s<<3 or <<-3 or >>3 or >>-3'%(p));
+  if ((p<<3)>>3) != p :
+    error('failure for (%s<<3)>>3'%(p));
+  if ((p>>3)<<3) != p :
+    error('failure for (%s>>3)<<3'%(p));
 
 def testpgcd(p,q) :   # test gcd and xgcd
   g = p.gcd(q);

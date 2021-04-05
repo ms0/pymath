@@ -88,8 +88,9 @@ def nzpolydivrem(f,g) :
   dr = len(r)-1;
   dg = len(g)-1;
   q = [];
+  x = 1/g[0];
   for i in xrange(dr-dg+1) :
-    q.append(r[i]/g[0]);
+    q.append(r[i]*x);
     for j in xrange(dg+1) :
       r[i+j] = (r[i+j]-q[-1]*g[j]);
   while r and not r[0] : r = r[1:];
@@ -117,7 +118,7 @@ Methods:
   __lt__, __le__, __eq__, __ne__, __ge__, __gt__, __pos__, __neg__,
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__,
   __truediv__, __rtruediv__, __div__, __rdiv__, __floordiv__, __rfloordiv__,
-  __divmod__, __mod__, __rmod__, __pow__,
+  __divmod__, __mod__, __rmod__, __pow__, __lshift__, __rshift__,
   mapcoeffs, derivative, gcd, xgcd, isirreducible, factor, @staticmethod unfactor"""
 
   def __init__(self,*p) :
@@ -375,6 +376,30 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
         return rationalfunction(type(self[self.degree])(1),type(self)(*nzpolypow(self._p,-e)));
       return type(self)(type(self[self.degree])(1));
     return type(self)(*nzpolypow(self._p,e,m and m._p));
+
+  def __lshift__(self,k) :
+    """Return self * x**k"""
+    if not isint(k) :
+      raise TypeError('k must be an integer');
+    d = self.degree;
+    if d < 0 or not k :
+      return self;
+    p = type(self)();
+    p._p = self._p;
+    if k > 0 :
+      p._p += (type(self._p[0])(0),)*k;
+    else :
+      for i in xrange(d,d+k-1,-1) :
+        if p._p[i] : break;
+      p._p = p._p[0:i+1];
+      k += d-i;
+      if k < 0 :
+        return rationalfunction(p,_x.mapcoeffs(type(self._p[0]))**-k);
+    return p;
+
+  def __rshift__(self,k) :
+    """Return self * x**-k"""
+    return self.__lshift__(-k);
 
   def derivative(self,k=1) :    # kth derivative
     """Return the kth derivative of self"""
@@ -686,13 +711,21 @@ def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
   return (F2G,G2F);
 
 class rationalfunction(object) :
-  def __init__(self,a,b=1) :
+  def __new__(cls,a,b=1) :
     if not b : raise ZeroDivisionError;
     a = rationalize(a);
     b = rationalize(b);
     g = a.gcd(b)*b._p[0];    # make denominator monic
+    if b == g:
+      return a//g;
+    self = super(rationalfunction,cls).__new__(cls);
     self._a = a//g;
     self._b = b//g;
+    return self;
+
+  def __init__(self,a,b=1) :
+    """Do nothing--all the work has been done by __new__"""
+    return;
 
   def __str__(self) :
     return '%s/%s'%(self._a,self._b) if self._b != 1 else str(self._a);
@@ -740,36 +773,50 @@ class rationalfunction(object) :
   def __eq__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return self._a == self._b*other;
     return self._a*other._b == self._b*other._a;
 
   def __ne__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return self._a != self._b*other;
     return self._a*other._b != self._b*other._a;
 
   def __le__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return self._a <= self._b*other;
     return self._a*other._b <= self._b*other._a;
 
   def __lt__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return self._a < self._b*other;
     return self._a*other._b < self._b*other._a;
 
   def __ge__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return self._a >= self._b*other;
     return self._a*other._b >= self._b*other._a;
 
   def __gt__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return self._a > self._b*other;
     return self._a*other._b > self._b*other._a;
 
   def __add__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);      
+      if isinstance(other,polynomial) :
+        return rationalfunction(self._a+self._b*other,self._b);
     return rationalfunction(self._a*other._b+self._b*other._a,self._b*other._b);
 
   __radd__ = __add__
@@ -777,16 +824,22 @@ class rationalfunction(object) :
   def __sub__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return rational_function(self._a-self._b*other,self._b);
     return rationalfunction(self._a*other._b-self._b*other._a,self._b*other._b);
 
   def __rsub__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return rationalfunction(other*self._b-self._a,self._b);
     return rationalfunction(other._a*self._b-other._b*self._a,self._b*other._b);
 
   def __mul__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);      
+      if isinstance(other,polynomial) :
+        return rationalfunction(self._a*other,self._b);
     return rationalfunction(self._a*other._a,self._b*other._b);
 
   __rmul__ = __mul__
@@ -794,11 +847,15 @@ class rationalfunction(object) :
   def __div__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return rationalfunction(self._a,self._b*other);
     return rationalfunction(self._a*other._b,self._b*other._a);
 
   def __rdiv__(self,other) :
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
+      if isinstance(other,polynomial) :
+        return rationalfunction(self._b*other,self._a)
     return rationalfunction(self._b*other._a,self._a*other._b);
 
   __truediv__ = __floordiv__ = __div__
@@ -811,6 +868,21 @@ class rationalfunction(object) :
       if not self : raise ZeroDivisionError;
       return rationalfunction(self._b**-other,self.__a**-other);
     return rationalfunction(self.a**other,self.b**other);
+
+  def __lshift__(self,k) :
+    """Return self * x**k"""
+    if not isint(k) :
+      raise TypeError('k must be an integer');
+    if k > 0 :
+      return rationalfunction(self._a.__lshift__(k),self._b);
+    elif k :
+      return rationalfunction(self._a,self._b.__lshift(-k));
+    else:
+      return self;
+
+  def __rshift__(self,k) :
+    """Return self * x**-k"""
+    return self.__lshift__(-k);
   
 def rationalize(p) :
   if isinstance(p,polynomial) :
@@ -829,6 +901,7 @@ def rationalize(p) :
 
 _zero = polynomial();
 _one = polynomial(1);
+_x = polynomial(1,0);
 
 RATFUN = (polynomial,rationalfunction);
 
