@@ -39,7 +39,7 @@ def bch(q,n,d,c=1) :
   a = a**(a.order//n);    # primitive nth root in F = GF(q**m)
   g = polynomial(F(1));
   for e in range(c,c+d-1) :
-    g = lcm(g,polynomial(*(a**e).minpoly(k)));
+    g = lcm(g,(a**e).minpolynomial(k));
   return g;    # note m can be retrieved from g[0] attributes
 
 # n is the number of symbols in codeword
