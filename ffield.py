@@ -64,6 +64,13 @@ def bit_count(n) :
   """Return number of 1 bits in |n|"""
   return bin(n).count('1');
 
+def bump_bits(n) :
+  """Return the next larger int with the same bit_count (for positive n)"""
+  o = n&-n;  # rightmost 1
+  n += o;    # carries to next 0
+  n |= ((n&-n)-o)>>bit_length(o);  # restore remaining bits as LSBs
+  return n;
+
 def rint(x) :
   """If x is a rational integer, return x.numerator, else, return x"""
   return x.numerator if isinstance(x,rational) and abs(x.denominator)==1 else x;
@@ -1142,10 +1149,10 @@ Descriptors: p, n, poly, ftupoly, [field parameters]
     return hash(type(self))^hash('%s:%s'%(self._p**self._n,self._poly));
 
   def __eq__(self,other) :
-    return type(self)==type(other) and self._p==other._p and self._n==other._n and self._poly==other._poly;
+    return self is other;
   
   def __ne__(self,other) :
-    return not self==other;
+    return not self is other;
 
   __le__ = __eq__;
   __ge__ = __eq__;
