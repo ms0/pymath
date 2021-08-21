@@ -1019,6 +1019,8 @@ Signatures:
   ffield(q,n,poly) : q, a prime; n, a positive int; poly, a la tupoly or poly
   ffield(q,n) : q, a prime; n, a positive int; use least irreducible polynomial
   ffield(q,poly) : q, a prime power; poly, a la tupoly or poly
+  Note: if poly is specified and not poly, use least irreducible polynomial
+   unless p==2 in which case use least irreducible polynomial with fewest ones
 
 Each instance of the created type is an element of the finite field:
 Instance variable (treat as read-only!):
@@ -1066,15 +1068,29 @@ Descriptors: p, n, poly, ftupoly, [field parameters]
         n,poly = args;
       else :
         raise TypeError('too many arguments');
-    poly = poly or 0;
     if  n < 1 or not isint(n) :
       raise ValueError('Bad power');
     q = p**n;
     if not poly and n > 1:    # pick least irreducible poly
-      d = p if p==2 or (p-1)%product(factors(n),1 if n&3 else 2) else 0;
-      for poly in xrange(q+d+1,q+q) :
-        if isirreducible(unpack(p,poly)[1:],p) : break;
-      poly -= q;
+      if p != 2 :
+        d = p if (p-1)%product(factors(n),1 if n&3 else 2) else 0;
+        for poly in xrange(q+d+1,q+q) :
+          if isirreducible(unpack(p,poly)[1:],p) : break;
+        poly -= q;
+      elif poly == None :
+        for poly in xrange(3,q) :
+          if isirreducible2(q+poly) : break;
+      else :    # with fewest possible bits
+        for b in range(2,n+1,2) :
+          poly = (1<<b)-1;
+          while poly < q :
+            if isirreducible2(q+poly) :
+              break;
+            poly = bump_bits(poly);
+          else :
+            continue;
+          break;
+    poly = poly or 0;
     if isint(poly) :
       if not 0 <= poly < q : raise ValueError('Bad poly');
     elif isinstance(poly,tuple) and len(poly) <= n :
