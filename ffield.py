@@ -64,6 +64,10 @@ def bit_count(n) :
   """Return number of 1 bits in |n|"""
   return bin(n).count('1');
 
+def bit_reverse(n) :    # empirically faster in all practical cases
+  """Return bit-reversed non-negative integer"""
+  return int(bin(n)[-1:1:-1],2);
+
 def bump_bits(n) :
   """Return the next larger int with the same bit_count (for positive n)"""
   o = n&-n;  # rightmost 1
@@ -1020,7 +1024,7 @@ Signatures:
   ffield(q,n) : q, a prime; n, a positive int; use least irreducible polynomial
   ffield(q,poly) : q, a prime power; poly, a la tupoly or poly
   Note: if poly is specified and not poly, use least irreducible polynomial
-   unless p==2 in which case use least irreducible polynomial with fewest ones
+   unless p==2 in which case use least irreducible polynomial with fewest 1s
 
 Each instance of the created type is an element of the finite field:
 Instance variable (treat as read-only!):
@@ -1074,22 +1078,32 @@ Descriptors: p, n, poly, ftupoly, [field parameters]
     if not poly and n > 1:    # pick least irreducible poly
       if p != 2 :
         d = p if (p-1)%product(factors(n),1 if n&3 else 2) else 0;
-        for poly in xrange(q+d+1,q+q) :
+        for poly in xrange(1+d+q,q+q) :
           if isirreducible(unpack(p,poly)[1:],p) : break;
         poly -= q;
       elif poly == None :
-        for poly in xrange(3,q) :
-          if isirreducible2(q+poly) : break;
+        for poly in xrange(3,q,2) :
+          if isirreducible2(poly|q) : break;
       else :    # with fewest possible bits
-        for b in range(2,n+1,2) :
-          poly = (1<<b)-1;
-          while poly < q :
-            if isirreducible2(q+poly) :
-              break;
-            poly = bump_bits(poly);
-          else :
-            continue;
-          break;
+        poly = 3;    # first, special case 3 bits, for speed
+        for _ in xrange(n>>1) :
+          if isirreducible2(q|poly) :
+            break;
+          poly = (poly<<1)-1;
+        else :    # if no irreducibles with 3 bits, try bigger odds
+          q1 = q|1;
+          hq = q>>1;
+          for b in xrange(3,n,2) :    # number of inner bits
+            hpoly = (1<<b)-1;    # inner bits
+            while hpoly < hq :
+              poly = q1|(hpoly<<1);    # only try if poly <= bit_reverse(poly)
+              if poly <= bit_reverse(poly) and isirreducible2(poly) :
+                poly -= q;
+                break;
+              hpoly = bump_bits(hpoly);
+            else :
+              continue; 
+            break;
     poly = poly or 0;
     if isint(poly) :
       if not 0 <= poly < q : raise ValueError('Bad poly');
