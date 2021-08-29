@@ -684,9 +684,7 @@ def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
   fp = F.polynomial;    #F(2).minpoly();
   m = F.n;
   n = G.n;
-  while True :    # find generator of G
-    g = G(randrange(2,2**n));
-    if g.order==G.order : break;
+  g = G.generator;
   h = g**(G.order//F.order);    # generator of F in G
   for x in xrange(1,F.order-1) :
     j = h**x;
