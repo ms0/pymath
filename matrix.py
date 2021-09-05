@@ -327,6 +327,7 @@ any * scalar :  scalar multiply
           self.__v[i] *= other.__v[0];   # assume a *= b means a = a*b
       elif len(self.__v) == 1 :          # self is scalar
         c = self.__v[0];
+        self.__dims[:] = other.__dims;
         self.__v[:] = other.__v;
         for i in xrange(len(self.__v)) :
           self.__v[i] = c*other.__v[i];  # allows non-commutativity

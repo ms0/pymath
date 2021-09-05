@@ -113,7 +113,7 @@ def ceq(c,*v) :
 
 def testb(dim) :
   # bmatrix tests
-  M0,M1,M2 = (bmatrix((dim,dim),randrange(dim*dim)) for _ in range(3));
+  M0,M1,M2 = (bmatrix((dim,dim),randrange(1<<(dim*dim))) for _ in range(3));
   ceq('v[0] == -v[0]',M0);
   ceq('v[0]*v[0].Identity(v[0].dims[1]) == v[0]',M0);
   ceq('v[0].Identity(v[0].dims[0])*v[0] == v[0]',M0);
@@ -157,3 +157,16 @@ if __name__=='__main__' :
     testb(dim);
     testcp(dim);
     testinv(dim);
+    djm = randint(MINDIM,MAXDIM);
+    dkm = randint(MINDIM,MAXDIM);
+    dlm = randint(MINDIM,MAXDIM);
+    M0 = matrix(dim,djm,tuple(xrational(random(),random()) for i in range(dim*djm)));
+    M1 = matrix(djm,dkm,tuple(xrational(random(),random()) for i in range(djm*dkm)));
+    M2 = matrix(dkm,dlm,tuple(xrational(random(),random()) for i in range(dkm*dlm)));
+    ceq('(v[0]*v[1]).T == v[1].T*v[0].T',M0,M1);
+    ceq('(v[0]*v[1])*v[2] == v[0]*(v[1]*v[2])',M0,M1,M2);
+    M0 = bmatrix((dim,djm),randrange(1<<(dim*djm)));
+    M1 = bmatrix((djm,dkm),randrange(1<<(djm*dkm)));
+    M2 = bmatrix((dkm,dlm),randrange(1<<(dkm*dlm)));
+    ceq('(v[0]*v[1]).T == v[1].T*v[0].T',M0,M1);
+    ceq('(v[0]*v[1])*v[2] == v[0]*(v[1]*v[2])',M0,M1,M2);
