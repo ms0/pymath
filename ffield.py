@@ -1405,12 +1405,17 @@ m2sub = m2add;
 
 def m2mul(a,b,m=0) :
   """Return the product of a and b, packed GF(2) polynomials, mod m"""
-  p = 0;
   if not a or not b : return 0;
+  p = 0;
   while b :
     if b&1 : p ^= a;
     b >>= 1;
     a <<= 1;
+  return m2divrem(p,m)[1] if m else p;
+
+def m2sq(a,m=0) :
+  """Return the square of a, a packed GF(2) polynomial, mod m"""
+  p = int(bin(a)[2:],4);
   return m2divrem(p,m)[1] if m else p;
 
 def m2divrem(a,b) :
@@ -1439,7 +1444,7 @@ def m2pow(b,e,m=0) :
   x = b;
   n >>= 1;
   while n :
-    x = m2mul(x,x,m);
+    x = m2sq(x,m);
     if e&n :
       x = m2mul(x,b,m);
     n >>= 1;
