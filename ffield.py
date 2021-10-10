@@ -284,7 +284,7 @@ without the leading coefficient, which is taken to be 1"""
   if p == 2 : return isirreducible2(pack(2,f),k);
   for r in factors(n) :
     if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
-  return not mpdivrem(p,mpsub(p,mppow(p,x,q**n,f),x),f)[1];
+  return not mpmod(p,mpsub(p,mppow(p,x,q**n,f),x),f);
 
 def factors(n,maxfactor=None) :
   """Return the prime factors of n in increasing order as a generator"""
@@ -463,13 +463,13 @@ Instance variables:
   _x: the polynomial representation, evaluated at x=p"""
   p = self._p;
   n = self._n;
-  pn = p**n;
+  q = self._q;
   try :
     x = x(p);
   except Exception :
     pass;
   if isint(x) :
-    if -pn < x < pn :
+    if -q < x < q :
       if x < 0 :
         if p == 2 :
           x = -x;
@@ -486,7 +486,7 @@ Instance variables:
             x += c;
       self._x = x;
     else :
-      raise ValueError('absolute value must be < %d'%(pn));
+      raise ValueError('absolute value must be < %d'%(q));
   elif isinstance(x,(str,unicode)) :
     if p > 36 :    # string not acceptable if p > 36
       raise TypeError('string not acceptable for p > 36');
@@ -497,8 +497,8 @@ Instance variables:
         x = x*p + zits[:p].index(c);    # will raise ValueError if illegal
       except ValueError :
         raise ValueError('zits in string must be in "%s"'%(zits[:p]));
-      if x > pn :
-        raise ValueError('value must be < %d'%(pn));
+      if x > q :
+        raise ValueError('value must be < %d'%(q));
     self._x = x;
   elif isinstance(type(x),ffield) :
     if x._p != p :
@@ -520,8 +520,8 @@ Instance variables:
         raise ValueError('absolute value of iterable elements must be < %d)'%(p));
       x *= p
       x += i%p;
-      if x >= pn :
-        raise ValueError('value must be < %d'%(pn));
+      if x >= q :
+        raise ValueError('value must be < %d'%(q));
     self._x = x;
 
 @property
@@ -550,9 +550,19 @@ def field_n(self) :
   return self._n;
 
 @property
+def field_q(self) :
+  """the size of the field"""
+  return self._q;
+
+@property
 def field_poly(self) :
   """the field representation's polynomial modulus minus x**n, evaluated at x=p"""
   return self._poly;
+
+@property
+def field_fpoly(self) :
+  """the field representation's polynomial modulus, evaluated at x=p"""
+  return self._p**self._n+self._poly;
 
 @property
 def field_tupoly(self) :
@@ -769,7 +779,7 @@ def __div__(self,y) :
     else : return NotImplemented;
   yx = y._x;
   if yx < p : return self/yx;
-  if p == 2 : return self*y**((1<<n)-2);    # self*y**(p**n-2)
+  if p == 2 : return self*type(self)(xm2gcd(self._fpoly,yx)[2]);
   return self*type(self)(pack(p,xmpgcd(p,self._tupoly,unpack(p,yx))[2]));
 
 
@@ -785,7 +795,7 @@ def __rdiv__(self,y) :    # y/self
   if not y :
     z = 0;
   elif p == 2 :
-    return self**-1;
+    return type(self)(xm2gcd(self._fpoly,x)[2]);
   elif x < p :
     z = y*pow(x,p-2,p)%p;
   else :
@@ -848,7 +858,7 @@ def __pow__(self,e) :
     return self+1;
   p = self._p;
   n = self._n;
-  o = p**n-1;
+  o = self._q-1;
   e %= o;
   if e == 0:
     x = 1;
@@ -856,19 +866,17 @@ def __pow__(self,e) :
     return self;
   elif x < p :
     x = pow(x,e,p);
+  elif o-e <= o//8 :
+    return 1/self**(o-e);
   elif p == 2 :
     g = self._poly;
+    f = self._q | g;
     M = 1<<(n-1);
     N = M-1;
     n = 1<<(bit_length(e)-2);
     b = x;
     while n :
-      z = 0;      # compute z = x*x mod g ...
-      m = M;
-      while m :
-        z = ((z&N)<<1)^g if z&M else z<<1; 
-        if x&m : z ^= x
-        m >>= 1;
+      z = m2sq(x,f);   # z = x*x mod g
       if e&n :
         x = 0;    # compute x = z*b mod g ...
         m = M;
@@ -879,8 +887,6 @@ def __pow__(self,e) :
       else :
         x = z;
       n >>= 1;
-  elif o-e <= o//8 :
-    return 1/self**(o-e);
   else :
     x = pack(p,mppow(p,unpack(p,x),e,self._tupoly));
   return type(self)(x);
@@ -941,7 +947,7 @@ over the subfield. Raise an exception if m does not divide self._n."""
     # n/m is the max possible degree
     G0 = G(0);
     P = [G0]*(n//m) + [G1];    # coeffs of 1, x, x**2, x**3, ... x**(n/m)
-    for i in xrange(p,G.__len__()) :  # find generator of superfield of subfield
+    for i in xrange(p,G._q) :  # find generator of superfield of subfield
       g = G(i);
       if not g.order % O: break;
     g **= g.order // O;   # generator of subfield
@@ -1010,12 +1016,15 @@ The polynomial modulus can be specified in either of those ways.
 Instance variables (treat as read-only!):
   _p: characteristic (a prime)
   _n: dimension (giving the field p**n elements)
+  _q: size of the field (p**n)
   _tupoly: the unelided polynomial modulus as a tuple with first element 1
-  _poly: an integer giving the value of the elided polynomial at x = __p
+  _poly: an integer giving the value of the elided polynomial at x = _p
+  _fpoly: an integer giving the value of the polynomial modulus at x = _p
   _nzi: minus the length of the tuple representing the elided polynomial modulus
 Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
          __len__, __iter__, __getitem__,  __contains__, iterpow, __reduce__
-Descriptors: p, n, poly, tupoly, ftupoly, polynomial [modulus of field], basefield,
+Descriptors: p, n, q, poly, fpoly, tupoly, ftupoly,
+             polynomial [modulus of field], basefield,
              order [of field-{0}], generator [of field-{0}]
 
 Signatures:
@@ -1037,7 +1046,7 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
          __pow__, log, minpoly, minpolynomial
          __reduce__
-Descriptors: p, n, poly, ftupoly, [field parameters]
+Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
              x, tupoly, polynomial, [element representations]
              order [of element], generator [True if element generates]
 """
@@ -1125,8 +1134,9 @@ Descriptors: p, n, poly, ftupoly, [field parameters]
       return _ffield[x];
     except Exception :
       pass;
-    d = dict(_p=p, _n=n, _poly=poly, _tupoly=_tupoly, _nzi=_nzi,
-             p=field_p, n=field_n, poly=field_poly, ftupoly=field_ftupoly,
+    d = dict(_p=p, _n=n, _q=q, _poly=poly, _tupoly=_tupoly, _nzi=_nzi,
+             _fpoly=q+poly, p=field_p, n=field_n, q=field_q,
+             poly=field_poly, fpoly=field_fpoly, ftupoly=field_ftupoly,
              x=element, tupoly=elementtuple, polynomial=elementpolynomial,
              minpoly=minpoly, minpolynomial=minpolynomial,
              order=element_order,
@@ -1191,21 +1201,21 @@ Descriptors: p, n, poly, ftupoly, [field parameters]
 
   def __len__(self) :
     """Return p**n, the size of the field"""
-    return self._p**self._n;
+    return self._q;
 
   def __iter__(self) :
     """Return an iterator for the elements of the field"""
-    return (self(x) for x in xrange(self._p**self._n));
+    return (self(x) for x in xrange(self._q));
 
   def __getitem__(self,key) :
     """Return tuple(self)[key]"""
     if isint(key) :
-      pn = self.__len__();
-      if -pn <= key < pn :
-        return self(key%pn);
+      q = self._q;
+      if -q <= key < q :
+        return self(key%q);
       raise IndexError('index out of range');
     elif isinstance(key,slice) :
-      return tuple(self(i) for i in range(*key.indices(self.__len__())));
+      return tuple(self(i) for i in range(*key.indices(self._q)));
     raise IndexError('index must be integer or slice');
 
   def __contains__(self,x) :
@@ -1239,7 +1249,9 @@ Descriptors: p, n, poly, ftupoly, [field parameters]
 
   p = field_p;
   n = field_n;
+  q = field_q;
   poly = field_poly;
+  fpoly = field_fpoly;
   tupoly = field_tupoly;
   ftupoly = field_ftupoly;
   basefield = field_basefield;
@@ -1252,7 +1264,7 @@ Descriptors: p, n, poly, ftupoly, [field parameters]
   @property
   def order(self) :
     """p**n-1, the multiplicative order of the field"""
-    return self._p**self._n-1;
+    return self._q-1;
 
   @property
   def generator(self) :
@@ -1271,35 +1283,6 @@ Descriptors: p, n, poly, ftupoly, [field parameters]
   x = property(foo,foo,foo);
   del foo;
 
-
-# how do we display an instance ?
-# possibility 0:
-#   non-negative integer: coeff(g**0)+p*(coeff(g**1)+p*(...coeff(g**(n-1))...))
-# possibility 1:
-#  if n = 1, just the non-negative integer, in decimal
-#  if n > 1, a tuple of non-negative integers: coeffs of g**(n-1), ...g**1, g**0
-# possibility 1r:
-#  if n > 1, a tuple of non-negative integers: coeffs of g**0, g**1, ...g**(n-1)
-# possibility 2:
-#  if p <= 36, base p representation of possibility 0
-#  else, possibility 0
-# possibility 3:
-#  if p == 2, hexadecimal of possibility 0
-#  else, possibility 2
-
-# mul is hardest
-# pow exponent must be integer
-# div (all versions) is same, and uses pow(-1) = pow(p**n-2); divide by zero raises Error
-# no rdiv? but rmul
-
-# NOTE, if polynomial is not irreducible, the class is still a ring.
-# We can still multiply polynomials mod poly
-# We can still perform gcd.
-
-# modular polynomial functions
-# polynomials represented as tuples of mod p integers, hi to lo
-# note 1/x = x**(p-2)
-
 def mpmul(p,f,g,m=None) :
   """Return the product of f and g, polynomials over GF(p), modulo polynomial m"""
   while f and not f[0] : f = f[1:];
@@ -1310,7 +1293,7 @@ def mpmul(p,f,g,m=None) :
     for j in xrange(len(g)) :
       fg[i+j] = (fg[i+j]+f[i]*g[j])%p;
   while fg and not fg[0] : fg = fg[1:];
-  return tuple(fg) if not m else mpdivrem(p,fg,m)[1];
+  return tuple(fg) if not m else mpmod(p,fg,m);
 
 def mpadd(p,f,g) :
   """Return the sum of f and g, polynomials over GF(p)"""
@@ -1338,6 +1321,21 @@ def mpneg(p,f) :
   for x in f :
     n.append(-x%p);
   return tuple(n);
+
+def mpmod(p,f,g) :
+  """Return f mod g, polynomials over GF(p)"""
+  r = list(f);
+  while r and not r[0] : r = r[1:];
+  while g and not g[0] : g = g[1:];
+  if not g : raise ZeroDivisionError;
+  dr = len(r)-1;
+  dg = len(g)-1;
+  for i in xrange(dr-dg+1) :
+    q = r[i]*pow(g[0],p-2,p)%p;
+    for j in xrange(dg+1) :
+      r[i+j] = (r[i+j]-q*g[j])%p;
+  while r and not r[0] : r = r[1:];
+  return tuple(r);
 
 def mpdivrem(p,f,g) :
   """Return the quotient and remainder from dividing f by g, polynomials over GF(p)"""
@@ -1373,7 +1371,7 @@ def mpgcd(p,f,g) :
   while f and not f[0] : f = f[1:];
   while g and not g[0] : g = g[1:];
   while g :
-    f,g = g, mpdivrem(p,f,g)[1];
+    f,g = g, mpmod(p,f,g);
   return mpmul(p,f,(pow(f[0],p-2,p),)) if f and f[0] != 1 else f;
 
 def xmpgcd(p,f,g) :
@@ -1407,16 +1405,38 @@ def m2mul(a,b,m=0) :
   """Return the product of a and b, packed GF(2) polynomials, mod m"""
   if not a or not b : return 0;
   p = 0;
+  if m :
+    M = 1<<(bit_length(m)-1);    # hi order bit of m
+    g = M^m;
+    M >>= 1;
+    N = M-1;
+    m = M;
+    while m :
+      p = ((p&N)<<1)^g if p&M else p<<1;
+      if b&m : p ^= a;
+      m >>= 1;
+    return p;
   while b :
     if b&1 : p ^= a;
     b >>= 1;
     a <<= 1;
-  return m2divrem(p,m)[1] if m else p;
+  return p;
 
 def m2sq(a,m=0) :
   """Return the square of a, a packed GF(2) polynomial, mod m"""
   p = int(bin(a)[2:],4);
-  return m2divrem(p,m)[1] if m else p;
+  return m2mod(p,m) if m else p;
+
+def m2mod(a,b) :
+  """Return a mod b, packed GF(2) polynomials"""
+  if not b : raise ZeroDivisionError;
+  lb = bit_length(b);
+  while True :
+    la = bit_length(a);
+    if la < lb : break;
+    d = la-lb;
+    a ^= b<<d;
+  return a;
 
 def m2divrem(a,b) :
   """Return the quotient and remainder from dividing a by b, packed GF(2) polynomials"""
@@ -1434,8 +1454,18 @@ def m2divrem(a,b) :
 def m2gcd(a,b) :
   """Return the gcd of a and b, packed GF(2) polynomials"""
   while b :
-    a,b = b,m2divrem(a,b)[1];
+    a,b = b,m2mod(a,b);
   return a;
+
+def xm2gcd(a,b) :
+  """Return the gcd of a and b, together with u,v such that d=uf+vg,
+all packed GF(2) polynomials; not that b**-1 mod a = xm2gcd(a,b)[2]"""
+  u0,v0,u1,v1 = 1,0,0,1;
+  while b :
+    q,r = m2divrem(a,b);
+    a,b = b,r;
+    u0,v0,u1,v1 = u1,v1,u0^m2mul(q,u1),v0^m2mul(q,v1);
+  return a,u0,v0;
 
 def m2pow(b,e,m=0) :
   """Raise b, a packed GF(2) polynomial, to the nonnegative integer power e, mod m"""
@@ -1457,7 +1487,7 @@ def isirreducible2(p,k=1) :
   if not (p&1 and bit_count(p)&1) : return False;
   for r in factors(n) :
     if m2gcd(p,m2pow(2,1<<(n//r*k),p)^2) != 1 : return False;
-  return not m2divrem(m2pow(2,1<<(n*k),p)^2,p)[1];
+  return not m2mod(m2pow(2,1<<(n*k),p)^2,p);
 
 def mu(n) :
   """Return the Mobius function of n"""

@@ -913,7 +913,7 @@ def irreducibleg(q,n) :
   F is q if q is an ffield; else q must be a prime power, and F=ffield(q)"""
   if isinstance(q,ff.ffield) :
     F = q;
-    q = F.__len__();
+    q = F.q;
   else :
     F = ff.ffield(q);
   for i in range(q**n) :

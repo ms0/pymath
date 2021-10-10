@@ -84,11 +84,11 @@ Note that built-in numeric classes might not recover the secret exactly."""
     s = G(iicsa(s));
   sharers = mp(type(s),range(1,n+1));
   try :
-    pn = s.p**s.n;
+    q = s.q;
   except Exception :
-    pn = 1;
-    while pn <= abs(s) : pn *= 2;
-  return zp(sharers,Vandermonde(sharers,k)*([s]+[type(s)(randrange(pn)) for i in range(k-1)]));
+    q = 1;
+    while q <= abs(s) : q *= 2;
+  return zp(sharers,Vandermonde(sharers,k)*([s]+[type(s)(randrange(q)) for i in range(k-1)]));
 
 def secret(xs) :
   """Given a list of k (sharer,share) pairs, return the secret"""

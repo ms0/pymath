@@ -106,10 +106,10 @@ def testmp(F) :    # test minimal polys and isirreducible in ffield F
 def testir(F) :    # test irreducibles
   dotprint('\n%s '%(F) );
   for i in range(2,10) :
-    if len(F)**i > 1000 : break;
+    if F.q**i > 1000 : break;
     dotprint(zits[i]);
-    if len(irreducibles(F,i)) != irreducible_count(len(F),i) :
-      error('len(irreducibles(%d,%d)) incorrect'%(len(F),i));
+    if len(irreducibles(F,i)) != irreducible_count(F.q,i) :
+      error('len(irreducibles(%d,%d)) incorrect'%(F.q,i));
 
 def factest(F) :
   dotprint('\n%s '%(F));

@@ -59,19 +59,19 @@ def test(p,n) :
   g = randfield(p,n);
   dotprint('%r'%(g));
   z,o = g[:2];
-  pn = p**n;
-  if pn <= LIMIT2 :
-    if len(g) != pn or tuple(g) != g[:] :
-      print('len, __iter__, or slice indexing failed for %r'%(g));
-    for i in xrange(pn) :
-      if not g[i] == g[i-pn] == g(i) :
-        print('indexing failed for %r'%(g));
-  if g.p != p or g.n != n or g.order != pn-1 or len(g) != pn:
-    print('.p or .n or .order or len failed');
+  q = g.q;
+  if g.p != p or g.n != n or g.order != q-1 or len(g) != q:
+    print('.p or .n or .q or .order or len failed');
+  if q <= LIMIT2 :
+    if tuple(g) != g[:] :
+      print('__iter__ or slice indexing failed');
+    for i in xrange(q) :
+      if not g[i] == g[i-q] == g(i) :
+        print('indexing failed');
   x = g.generator;
   print('  generator %r'%(x));
   ceq('isgenerator(v[0])',x);
-  if pn <= LIMITQ :
+  if q <= LIMITQ :
     if irreducible_count(p,n) != len(irreducibles(p,n)) :
       print('GF(%d**%d) irreducible_count != len(irreducibles)'%(p,n));
     t=tuple(g);
@@ -91,16 +91,16 @@ def test(p,n) :
   ceq('not 1-o');
   ceq('not 0-z');
   dotprint('  op tests');
-  for i in xrange(pn) :
+  for i in xrange(q) :
     test1(g,i);
-    if not i%(pn//32 or 1) : dotprint();
+    if not i%(q//32 or 1) : dotprint();
   print();
-  if pn > LIMIT3 :
+  if q > LIMIT3 :
     dotprint('  random triples test');
     for i in xrange(LIMIT3) :
       for j in xrange(LIMIT3) :
         for k in xrange(LIMIT3) :
-          test3(g,randrange(pn),randrange(pn),randrange(pn));
+          test3(g,randrange(q),randrange(q),randrange(q));
       if not i%(LIMIT3//32 or 1) : dotprint();
     print();
   mtest(g);
@@ -111,8 +111,8 @@ def ltest(g) :    # log test
   print('  log tests');
   p = g.p;
   n = g.n;
-  pn = p**n;
-  o = pn-1;
+  q = g.q;
+  o = q-1;
   g1 = g.generator;
   g2 = 1/g1;
   for e in xrange(min(o,17)) :
@@ -122,7 +122,7 @@ def ltest(g) :    # log test
     ceq('v[0]==v[1]**v[0].log(v[1],True)',g2**e,g1);
   if o <= LIMITL :
     for i in xrange(LIMITL) :
-      v = list(g(randrange(1,pn)) for j in xrange(2));
+      v = list(g(randrange(1,q)) for j in xrange(2));
       vo = list(map(lambda x:x.order,v));
       for k in xrange(2) :
         if vo[1]%vo[0] :
@@ -142,16 +142,16 @@ def mtest(g) :    # matrix tests
   print('  matrix tests');
   p = g.p;
   n = g.n;
-  pn = p**n;
+  q = g.q;
   while True :    # find an invertible matrix and verify inverse works
-    M = matrix((3,3),tuple(g(randrange(pn)) for i in xrange(9)));
+    M = matrix((3,3),tuple(g(randrange(q)) for i in xrange(9)));
     if M.det :
       ceq('1/v[0]*v[0]==matrix.Identity(3,o)==v[0]*v[0].inverse',M);
       break;
-  d = min(pn-1,LIMITM);    # check Vandermonde matrix determinant
+  d = min(q-1,LIMITM);    # check Vandermonde matrix determinant
   M = matrix.Identity(d,z);
   x = o;
-  for i,a in enumerate(sample(xrange(1,pn),d)) :
+  for i,a in enumerate(sample(xrange(1,q),d)) :
     a = g(a);
     for j in xrange(i) :
       x *= a-M[j,1];
@@ -163,9 +163,9 @@ def ptest(g) :    # polynomial tests
   print('  polynomial tests')
   p = g.p;
   n = g.n;
-  pn = p**n;
-  for i in xrange(min(pn,LIMITP)) :
-    x = g(randrange(pn));
+  q = g.q;
+  for i in xrange(min(q,LIMITP)) :
+    x = g(randrange(q));
     for m in set(chain.from_iterable((a,n//a) for a in chain((1,),factors(n)))) :
       P = x.minpolynomial(m);
       if not P.isirreducible(p**m) :
@@ -184,7 +184,7 @@ def test1(g,i) :
   z,o = g[:2];
   p = g.p;
   n = g.n;
-  pn = p**n;
+  q = g.q;
   gi = g(i);
   isgenerator(gi);
   ceq('v[0] in v[1]',gi,g);
@@ -230,15 +230,15 @@ def test1(g,i) :
     for k in xrange(7) :
       ceq('v[0]**(v[1]+v[2])==v[0]**v[1]*v[0]**v[2]',gi,j,k)
       ceq('v[0]**(v[1]*v[2])==(v[0]**v[1])**v[2]',gi,j,k)
-  if pn <= LIMIT2 :
-    for j in xrange(pn) :
+  if q <= LIMIT2 :
+    for j in xrange(q) :
       test2(g,i,j);
-      if pn <= LIMIT3 :
-        for k in xrange(pn) :
+      if q <= LIMIT3 :
+        for k in xrange(q) :
           test3(g,i,j,k);
   else :
     for j in xrange(LIMIT2) :
-      test2(g,i,randrange(pn));
+      test2(g,i,randrange(q));
 
 def test2(g,i,j) :    # pair testing
   gi = g(i);
@@ -362,14 +362,13 @@ def dtest1(n) :
 R=Random();
 R.seed(0);
 
-
 def timing(name,G,stmt,repeats=16,nargs=1) :
   """Print time taken by stmt with nargs random args selected from G"""
   t = timeit(
     stmt=stmt if not '[i]' in stmt else
     'for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
-    setup='from ffield import ffield\nfrom test_ffield import R\nG=ffield(%d,%d)\nr=tuple(G(R.randrange(len(G))) for _ in %s(%d))'%(
-      len(G),G.poly,xrange.__name__,repeats*nargs),
+    setup='from ffield import ffield\nfrom test_ffield import R\nG=ffield(%d,%d)\nr=tuple(G(R.randrange(G.q)) for _ in %s(%d))'%(
+      G.q,G.poly,xrange.__name__,repeats*nargs),
     timer=process_time,number=1);
   print('%s\t%s\t%.6f'%(G.__name__,name,t/repeats));
 
@@ -380,28 +379,46 @@ def timetest(g) :
   timing('x+y',g,'r[i]+r[i+1]',1<<10,2);
   timing('x*y',g,'r[i]*r[i+1]',1<<10,2);
   timing('x/y',g,'r[i]/(r[i+1] or r[i+1]+1)',1<<10,2);
-  timing('minpoly',g,'r[i].minpoly()',1<<10);
-  if len(g) <= 1<<10 :
+  timing('x**y',g,'r[i]**r[i+1].x',1<<10,2);
+  timing('minpoly',g,'r[i].minpoly()',1<<7);
+  if g.q <= 1<<10 :
     timing('log',g,'(r[i] or r[i]+1).log()',1<<7);
     timing('logalt',g,'(r[i] or r[i]+1).log(alt=1)',1<<7);
 
 if __name__=='__main__' :
-  gtest();
-  dtest();
-  ftest(xrange(1,2**12+2),(2**i-1 for i in xrange(13,65)),(2**i+1 for i in xrange(13,65)));
-  test(2,6);
-  test(3,4);
+
+  def usage() :
+    print("""
+Usage: python test_ffield.py [options]
+   Options:  -h        print this message
+             -x        exclude integer tests
+             -z q      max field size to test [default 81 (i.e., 3**4)]
+             -t        print timing info""");
+
+  import sys,getopt
+  opts,args = getopt.gnu_getopt(sys.argv[1:],"hxtz:");
+  optdict = {};
+  for pair in opts : optdict[pair[0][1:]]=pair[1];
+  if 'h' in optdict :
+    usage();
+    sys.exit();
+  if not 'x' in optdict :
+    gtest();
+    dtest();
+    ftest(xrange(1,2**12+2),(2**i-1 for i in xrange(13,65)),(2**i+1 for i in xrange(13,65)));
+  q = int(optdict.get('z',3**4));
   for p in xrange(MAXCHAR) :
     if isprime(p) :
-      test(p,1);
-      test(p,2);
-      test(p,3);
-  for g in (ffield(2,8),ffield(3,5),    # pairs with similar sizes
-            ffield(2,9),ffield(23,2),
-            ffield(2,17),ffield(19,4),
-            ffield(2**2**4+1),
-            ffield(2**61-1)) :
-    timetest(g);
+      for i in range(1,7) :
+        if p**i <= q : test(p,i);
+  if 't' in optdict :
+    for g in (ffield(2,8),ffield(3,5),    # pairs with similar sizes
+              ffield(2,9),ffield(23,2),
+              ffield(2,17),ffield(19,4),
+              ffield(2**2**4+1),
+              ffield(2**61-1),
+              ffield(2**61)) :
+      timetest(g);
 
 # NOTE: we should test whether gcd is faster than exp for computing inverse
 #   We did, and gcd is faster
