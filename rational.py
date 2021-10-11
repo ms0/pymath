@@ -276,7 +276,7 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
           raise TypeError('iterable must not have additional structure');
         except TypeError :
           if a.imag :
-            return xrational(a);
+            return xrational(a.real,a.imag);
           elif isinstance(a.real,float) :
             a = a.real;
             if isnan(a) :
@@ -303,6 +303,8 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
                     c += 1
                   x = int(1/fx)<<c;
               a,b = sgn(a)*int(n0),int(n1);
+          elif isinstance(a.real,rational) :
+            return a.real;
           else :
             raise TypeError('arg must be a number or an iterable of cf terms')
       else :
