@@ -932,13 +932,18 @@ the product of the new dimensions must equal the product of the old dimensions""
     return I;
 
   @staticmethod
-  def circulant(row) :
+  def circulant(row,anti=False) :
     """Return a circulant matrix given its first row"""
     n = len(row);
     M = matrix(n,n);
-    for r in range(n) :
-      M[r,:r] = row[n-r:];
-      M[r,r:] = row[:n-r];
+    if anti :
+      for r in range(n) :
+        M[r,:n-r] = row[r:];
+        M[r,n-r:] = row[:r];
+    else :
+      for r in range(n) :
+        M[r,:r] = row[n-r:];
+        M[r,r:] = row[:n-r];
     return M;
 
 ################################################################
@@ -1703,13 +1708,18 @@ any * scalar :  scalar multiply
     return bmatrix((n,n),v);
 
   @staticmethod
-  def circulant(row) :
+  def circulant(row,anti=False) :
     """Return a circulant bmatrix given its first row"""
     n = len(row);
     M = bmatrix(n,n);
-    for r in range(n) :
-      M[r,:r] = row[n-r:];
-      M[r,r:] = row[:n-r];
+    if anti :
+      for r in range(n) :
+        M[r,:n-r] = row[r:];
+        M[r,n-r:] = row[:r];
+    else :
+      for r in range(n) :
+        M[r,:r] = row[n-r:];
+        M[r,r:] = row[:n-r];
     return M;
 
   @staticmethod
