@@ -53,6 +53,10 @@ def testpops(p,q,r) :    # test polynomial operations
     error('associativity failure for %s+%s+%s'%(p,q,r));
   if (p+q)*r != p*r+q*r or p*(q+r) != p*q+p*r :
     error('distributivity failure for %s, %s, %s'%(p,q,r));
+  if q and r and (p*r)/(q*r) != p/q :
+    error('division failure for %s, %s, %s'%(p,q,r));
+  if q and (p*q)/q != p :
+    error('division failure for %s, %s'%(p,q));
   if p+q != q+p :
     error('commutativity failure for %s+%s'%(p,q));
   if p*q != q*p :
