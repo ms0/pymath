@@ -312,8 +312,7 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
       if other :
         return self.mapcoeffs(lambda x:x/other);
       raise ZeroDivisionError;
-    q = rationalfunction(self,other);
-    return q if q._b != 1 else q._a;
+    return rationalfunction(self,other);
 
   def __rdiv__(self,other) :
     """Return the quotient other/self"""
