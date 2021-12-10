@@ -1330,7 +1330,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
       self.__v[2],
       '' if self.__v[3]._a < 0 or self.__v[3]._b < 0 else '+',
       self.__v[3]
-      ) if self.__v[1] is not _0 or self.__v[2] is not _0 or self.__v[3] is not 0 else '%s'%(self.__v[0]);
+      ) if self.__v[1] is not _0 or self.__v[2] is not _0 or self.__v[3] is not _0 else '%s'%(self.__v[0]);
 
   def __repr__(self) :
     """Return a string showing the rational quaternion"""
