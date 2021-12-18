@@ -1622,7 +1622,8 @@ def gcda(*args) :
   return d;
 
 def getorder(n) :
-  """Return a method that returns the multiplicative order of an element mod n"""
+  """Return a method that returns the multiplicative order of an element mod n
+method attributes: modulus = n, maxorder = lam(n)"""
   l = lam(n);
   f = tuple(factors(l));
   def order(x) :
@@ -1634,4 +1635,6 @@ def getorder(n) :
         if pow(x,o//p,n) != 1 : break;
         o //= p;
     return o;
+  order.modulus = n;
+  order.maxorder = l;
   return order;
