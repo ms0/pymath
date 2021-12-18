@@ -1625,8 +1625,6 @@ def getorder(n) :
   """Return a method that returns the multiplicative order of an element mod n"""
   l = lam(n);
   f = tuple(factors(l));
-  l = lam(n);
-  f = tuple(factors(l));
   def order(x) :
     x = x%n;
     if gcd(x,n) != 1 : return 0;
