@@ -86,7 +86,7 @@ def testpgcd(p,q) :   # test gcd and xgcd
   if g != xg[1]*p + xg[2]*q :
     error('%s != %s*%s + %s*%s'%(g,xg[1],p,xg[2],q));
   if xh[0] != g or xh[2:0:-1] != xg[1:] :
-    error('p.xgcd(q) disagrees with q.gcd(p): %s, %s'(xg,xh));
+    error('p.xgcd(q) disagrees with q.gcd(p): %s, %s'%(xg,xh));
 
 def testmp(F) :    # test minimal polys and isirreducible in ffield F
   print('%s'%(F));
