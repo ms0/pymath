@@ -1021,6 +1021,7 @@ Instance variables (treat as read-only!):
   _poly: an integer giving the value of the elided polynomial at x = _p
   _fpoly: an integer giving the value of the polynomial modulus at x = _p
   _nzi: minus the length of the tuple representing the elided polynomial modulus
+  _basefield: ffield(_p)
 Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
          __len__, __iter__, __getitem__,  __contains__, iterpow, __reduce__
 Descriptors: p, n, q, poly, fpoly, tupoly, ftupoly,
@@ -1529,8 +1530,9 @@ def irreducibles(q,n) :
   return tuple(irreducibleg(q,n));
 
 def irreducibleg(q,n) :
-  """Generate all monic irreducible degree n polynomials over GF(q)
-  whose coefficients lie in GF(p), where q = p**k, as tuples of integers.
+  """Generate lexicographically as tuples of nonnegative integers < p,
+  all monic irreducible degree n polynomials over GF(q)
+  whose coefficients lie in GF(p), where q = p**k.
   All monic irreducible degree n polynomials over GF(q): poly.irreducibleg"""
   p = primepower(q);
   if not p : raise ValueError('q must be a power of a prime');
@@ -1541,7 +1543,7 @@ def irreducibleg(q,n) :
     for k in xrange(n) :
       poly.append(j%p);
       j //= p;
-    poly = tuple(poly);
+    poly = tuple(reversed(poly));
     if isirreducible(poly,q) : yield (1,)+poly;
 
 def phi(n) :
