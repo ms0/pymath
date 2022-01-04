@@ -278,13 +278,29 @@ without the leading coefficient, which is taken to be 1"""
   if not p : raise ValueError('q must be a power of a prime');
   p,k = p;
   n = len(poly);
-  if n <= 1 : return True;
+  if n <= 1 : return n==1;
   x = (1,0);
   f = (1,)+poly;
   if p == 2 : return isirreducible2(pack(2,f),k);
   for r in factors(n) :
     if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
   return not mpmod(p,mpsub(p,mppow(p,x,q**n,f),x),f);
+
+# An irreducible polynomial f(x) of degree m over GF(p), where p is prime,
+# is a primitive polynomial iff the smallest positive integer n such that
+# f(x) | x^n - 1 is n = p^m - 1.
+
+def isprimitive(p,g) :
+  """Return True iff monic irreducible g is a primitive polynomial over GF(p);
+  g is represented as a tuple or list of integers mod p"""
+  if p == 2 : return isprimitive2(pack(2,g));
+  if not g[-1] : return False;
+  n = len(g)-1;
+  o = p**n-1;
+  for f in factors(o) :
+    d = (1,)+(0,)*(o//f-1)+(p-1,);
+    if not mpmod(p,d,g) : return False;
+  return True;
 
 def factors(n,maxfactor=None) :
   """Return the prime factors of n in increasing order as a generator"""
@@ -1484,11 +1500,78 @@ def m2pow(b,e,m=0) :
 def isirreducible2(p,k=1) :
   """Return True iff p, a packed GF(2) polynomial, is irreducible over GF(2**k)"""
   n = bit_length(p)-1;
-  if n <= 1 : return True;
+  if n <= 1 : return n==1;
   if not (p&1 and bit_count(p)&1) : return False;
   for r in factors(n) :
     if m2gcd(p,m2pow(2,1<<(n//r*k),p)^2) != 1 : return False;
   return not m2mod(m2pow(2,1<<(n*k),p)^2,p);
+
+def isprimitive2(g) :
+  """Return True iff packed GF(2) irreducible polynomial g is primitive"""
+  if not g&1 : return False;
+  n = bit_length(g)-1;
+  o = (1<<n)-1;
+  for f in factors(o) :
+    d = (1<<(o//f))|1;
+    if not m2mod(d,g) : return False;
+  return True;
+
+"""The Conway polynomial for q = p^n is the "least" degree n primitive GF(p) polynomial
+g_{q} such that if n/m is a prime, g_{q}(x) | g_{p^m}(x^((p^n-1)/(p^m-1))}.
+The ordering of polynomials x^n - a_{n-1}x^(n-1) + a_{n-2}x^(n-2) ... (-1)^n a_0
+is lexicographically by a_{n-1} a_{n-2} ... a_0."""
+
+_cpdict = {};    # q -> packed Conway polynomial for GF(q) with leading term elided
+
+def conwaypoly(q) :
+  """Return the Conway polynomial for GF(q) as a packed GF(p) polynomial,
+  where q = p**n, with the coefficient of x**n elided"""
+  try :
+    return _cpdict[q];
+  except Exception :
+    pass;
+  try :
+    p,n = primepower(q);
+  except Exception :
+    raise ValueError('Not prime power');
+  if p == 2 :
+    for g in xrange(1,q,2) :
+      if isirreducible2(g|q) and isprimitive2(g|q) :
+        for f in factors(n) :
+          m = n//f;
+          r = 1<<m;
+          d = (q-1)//(r-1);
+          c = conwaypoly(r);
+          b = 1<<bit_length(c)>>2;
+          a = 1;
+          while b :
+            a <<= d;
+            if b&c : a |= 1;
+            b >>= 1;
+          if m2mod(a|(1<<(d*m)),g|q) : break;
+        else :
+          _cpdict[q] = g;
+          return g;
+  else :
+    for g in irreducibleg(p,n) :
+      # modify g by negating alternate terms
+      g = list(g);
+      for i in xrange(1,len(g),2) :
+        g[i] = -g[i]%p;
+      if not isprimitive(p,g) : continue;
+      for f in factors(n) :
+        m = n//f;
+        r = p**m;
+        d = (q-1)//(r-1);
+        c = unpack(p,conwaypoly(r));
+        gd = [1]+[0]*(d*(m-len(c)))
+        for a in c :
+          gd += [0]*(d-1)+[a];
+        if mpmod(p,gd,g) : break;
+      else :
+        _cpdict[q] = c = pack(p,g[1:]);
+        return c;
+  raise SystemError('Did not find Conway polynomial');
 
 def mu(n) :
   """Return the Mobius function of n"""
