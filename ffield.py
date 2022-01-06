@@ -17,10 +17,12 @@ if sys.version_info>(3,) :
   xrange = range;
   range = lambda *x: list(xrange(*x));
   isint = lambda x: isinstance(x,int);
+  isstr = lambda x: isinstance(x,str);
   xmap = map;
   map = lambda *x: list(xmap(*x));
 else :
   isint = lambda x: isinstance(x,(int,long));
+  isstr = lambda x: isinstance(x,(str,unicode));
   _xrange = xrange
   def xrange(*a) :    # because builtin xrange has limited range
     try :
@@ -41,6 +43,14 @@ else :
     while start < stop :
       yield start;
       start += step;
+
+def isffield(t) :
+  """Return True iff t is a finite field"""
+  try :
+    t._basefield;
+    return isint(t._q);
+  except Exception :
+    return False;
 
 try :
   int.bit_length;
@@ -78,9 +88,6 @@ def bump_bits(n) :
 def rint(x) :
   """If x is a rational integer, return x.numerator, else, return x"""
   return x.numerator if isinstance(x,rational) and abs(x.denominator)==1 else x;
-
-
-# finite field class
 
 def modpow(b,x,p) :    # b**x mod p
   """Compute b**x%p"""
@@ -503,7 +510,7 @@ Instance variables:
       self._x = x;
     else :
       raise ValueError('absolute value must be < %d'%(q));
-  elif isinstance(x,(str,unicode)) :
+  elif isstr(x) :
     if p > 36 :    # string not acceptable if p > 36
       raise TypeError('string not acceptable for p > 36');
     s = x.strip().lower();
@@ -588,7 +595,7 @@ def field_tupoly(self) :
 @property
 def element_order(self) :
   """The multiplicative order of the field element"""
-  o = self._p**self._n-1;
+  o = self._q-1;
   if self._x <= 1 :
     return self._x;
   for p in factors(o) :
@@ -614,7 +621,7 @@ def field_basefield(self) :
 
 @property
 def generates(self) :
-  o = self._p**self._n-1;
+  o = self._q-1;
   if self._x <= 1 :
     return self._x==o;
   for p in factors(o) :
@@ -756,7 +763,7 @@ def __sub__(self,other) :
   return type(self)(s);
 
 def __rsub__(self,y) :
-  """Return the difference of the swapped finite field elements; integers  are treated mod p"""
+  """Return the difference of the swapped finite field elements; integers are treated mod p"""
   p = self._p;
   y = rint(y);
   if not isint(y) :
@@ -797,7 +804,6 @@ def __div__(self,y) :
   if yx < p : return self/yx;
   if p == 2 : return self*type(self)(xm2gcd(self._fpoly,yx)[2]);
   return self*type(self)(pack(p,xmpgcd(p,self._tupoly,unpack(p,yx))[2]));
-
 
 def __rdiv__(self,y) :    # y/self
   """Return y/self; y must be an integer and is interpreted mod p"""
@@ -1238,7 +1244,7 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""
     return (isinstance(x,self) or isint(rint(x)) and abs(x) < self._p or
-            isinstance(type(x),ffield) and x._p == self._p and x._x < x._p);
+            isffield(type(x)) and x._p == self._p and x._x < x._p);
 
   def iterpow(self,x=0,alt=False) :
     """Return an iterator of the powers of x, or powers of smallest generator
