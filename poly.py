@@ -50,14 +50,6 @@ floatall = lambda x: x.mapcoeffs(int_float);
 complexall = lambda x: x.mapcoeffs(complex);
 identity = lambda x: x;
 
-def isffield(t) :
-  """Return True iff t is a finite field"""
-  try :
-    t._basefield;
-    return isint(t._q);
-  except Exception :
-    return False;
-
 def leastfactor(n,maxfactor=None) :
   for p in ff.factors(n,maxfactor) :
     return p;
@@ -482,7 +474,7 @@ if q is not specified, the field is inferred from self's coefficients"""
         if d != self.degree :
           raise ValueError('leading coefficient is 0 mod %d'%(r));
       return ff.isirreducible(self._p[1:],q);
-    if len(types) == 1 and isffield(tuple(types)[0]) :
+    if len(types) == 1 and ff.isffield(tuple(types)[0]) :
       p0 = self._p[0];
       if int(p0) != 1 :
         self = self.mapcoeffs(lambda x: x/p0);    # make monic
@@ -918,7 +910,7 @@ def irreducibles(q,n) :
 def irreducibleg(q,n) :
   """Generate lexicographically all monic irreducible degree n polynomials over F
   F is q if q is a finite field; else q must be a prime power, and F=ffield(q)."""
-  if isffield(q) :
+  if ff.isffield(q) :
     F = q;
     q = F.q;
   else :
