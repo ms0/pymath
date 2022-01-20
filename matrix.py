@@ -102,7 +102,7 @@ Instance variables:
   inverse: the inverse of the [square] matrix
   rank: the rank of the matrix (may be wrong if any float or complex elements)
 Methods:
-  __init__, __repr__, __str__, __getitem__,
+  __init__, __repr__, __str__, __getitem__, __setitem__, __delitem__,
   __bool__, __nonzero__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
   __neg__, __invert__, __iadd__, __add__, __radd__, __isub__, __sub__, __rsub__,
   __imul__, __mul__, __rmul__, __itruediv__, __idiv__, __truediv__, __div__
@@ -541,7 +541,6 @@ treat the array as a list of its elements in storage order"""
       if len(key[i]) == 1 : del dims[i];
     return type(self)(dims,v);
 
-
   def __setitem__(self,key,value) :
     """Set an item or slice of the array, interpreting key as for __getitem__;
 when setting a slice, value must have length matching size of slice"""
@@ -605,6 +604,61 @@ when setting a slice, value must have length matching size of slice"""
       raise UserWarning('value and slice dimensions differ');
     return;
 
+  def __delitem__(self,key) :
+    """Remove a slab from the array; all but one of the keys must be a full slice"""
+    if not isinstance(key,tuple) :
+      key = (key,);
+    if len(key) != len(self.__dims) :
+      raise ParameterError('length of index list must be number of dimensions');
+    key = list(key);
+    d = -1;    # dimension of slab
+    for i in xrange(len(self.__dims)) :
+      if isint(key[i]) :
+        k = -1 if key[i] < 0 else 1;
+        key[i] = slice(key[i],key[i]+k,k);
+      if isinstance(key[i],slice) :
+        key[i] = key[i].indices(self.__dims[i]);
+        dim = len(xrange(*key[i]));
+        if dim != self.__dims[i] :
+          if not dim :
+            raise IndexError('no items selected');
+          if d >= 0 :
+            raise IndexError('more than one partial slice');
+          d = i;
+      else :
+        raise TypeError('matrix indices must be integers or slices');
+    if d < 0 :
+      raise ParameterError('emptying matrix not allowed');
+    a,b,c = key[d];
+    if c < 0 :
+      a,b,c = a+(a-b-1)//-c*c,a-c,-c;
+    r = range(a,b,c);
+    n = self.__dims[d];
+    pre = product(self.__dims[:d]);    # consecutive span in slab
+    skip = pre*n;
+    v = self.__v;
+    l = len(v);
+    s = 0;    # source start position
+    t = 0;    # destination position
+    p = 0;    # previous index (to notice contiguous elements of slab)
+    for b in xrange(0,l,skip) :    # start of source block
+      for j in r :
+        if j == p :    # same slab
+          s += pre;
+        else :    # new slab
+          # copy from source start position to destination position
+          z = b+j*pre-s;    # size of block to copy
+          if s : v[t:t+z] = v[s:s+z];
+          s += z+pre;
+          t += z;
+        p = (j+1)%n;
+    if p :    # do last block
+      z = l-s;
+      v[t:t+z] = v[s:s+z];
+      t += z;
+    self.__dims[d] = n*t//l;
+    del v[t:];
+    
   @property
   def conjugate(self) :
     """conjugate"""
@@ -1219,6 +1273,62 @@ when setting a slice, value must have length matching size of slice"""
     if isinstance(value,bmatrix) and dims != value.__dims :
       raise UserWarning('value and slice dimensions differ');
     return;
+
+  def __delitem__(self,key) :
+    """Remove a slab from the array; all but one of the keys must be a full slice"""
+    if not isinstance(key,tuple) :
+      key = (key,);
+    if len(key) != len(self.__dims) :
+      raise ParameterError('length of index list must be number of dimensions');
+    key = list(key);
+    d = -1;    # dimension of slab
+    for i in xrange(len(self.__dims)) :
+      if isint(key[i]) :
+        k = -1 if key[i] < 0 else 1;
+        key[i] = slice(key[i],key[i]+k,k);
+      if isinstance(key[i],slice) :
+        key[i] = key[i].indices(self.__dims[i]);
+        dim = len(xrange(*key[i]));
+        if dim != self.__dims[i] :
+          if not dim :
+            raise IndexError('no items selected');
+          if d >= 0 :
+            raise IndexError('more than one partial slice');
+          d = i;
+      else :
+        raise TypeError('matrix indices must be integers or slices');
+    if d < 0 :
+      raise ParameterError('emptying matrix not allowed');
+    a,b,c = key[d];
+    if c < 0 :
+      a,b,c = a+(a-b-1)//-c*c,a-c,-c;
+    r = range(a,b,c);
+    n = self.__dims[d];
+    pre = product(self.__dims[:d]);    # consecutive span in slab
+    skip = pre*n;
+    v = self.__v;
+    w = 0;
+    l = len(self);
+    s = 0;    # source start position
+    t = 0;    # destination position
+    p = 0;    # previous index (to notice contiguous elements of slab)
+    for b in xrange(0,l,skip) :    # start of source block
+      for j in r :
+        if j == p :    # same slab
+          s += pre;
+        else :    # new slab
+          # copy from source start position to destination position
+          z = b+j*pre-s;    # size of block to copy
+          w |= ((v>>s)&((1<<z)-1))<<t;
+          s += z+pre;
+          t += z;
+        p = (j+1)%n;
+    if p :    # do last block
+      z = l-s;
+      w |= ((v>>s)&((1<<z)-1))<<t;
+      t += z;
+    self.__dims[d] = n*t//l;
+    self.__v = w;
 
   @property
   def conjugate(self) :

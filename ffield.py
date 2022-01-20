@@ -1,4 +1,5 @@
 """ finite field classes """
+from __future__ import division
 
 __all__ = ['ffield']
 
@@ -1007,7 +1008,8 @@ over the subfield. Raise an exception if m does not divide self._n."""
   M = matrix(n,d,list(chain.from_iterable(X))).T;
   if n > d :
     for c in reversed(xrange(n)) :  # eliminate redundant columns from M and v
-      N = matrix(d,len(v)-1,M[:d*c]+M[d*(c+1):]);
+      N = matrix(M);
+      del N[:,c];
       if N.rank == d :
         M = N;
         del v[c];
