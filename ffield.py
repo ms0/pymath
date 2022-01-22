@@ -1355,12 +1355,19 @@ def mpmod(p,f,g) :
   if not g : raise ZeroDivisionError;
   dr = len(r)-1;
   dg = len(g)-1;
-  for i in xrange(dr-dg+1) :
-    q = r[i]*pow(g[0],p-2,p)%p;
-    for j in xrange(dg+1) :
-      r[i+j] = (r[i+j]-q*g[j])%p;
-  while r and not r[0] : r = r[1:];
-  return tuple(r);
+  if dr < dg :
+    return tuple(r);
+  ig = pow(g[0],p-2,p);
+  for i in xrange(dr+1-dg) :
+    if r[i] :
+      q = r[i]*ig%p;
+      for j in xrange(1,dg+1) :
+        r[i+j] = (r[i+j]-q*g[j])%p;
+  for i in xrange(dr+1-dg,dr+1) :
+    if r[i] : break;
+  else :
+    return ();
+  return tuple(r[i:]);
 
 def mpdivrem(p,f,g) :
   """Return the quotient and remainder from dividing f by g, polynomials over GF(p)"""
@@ -1370,13 +1377,20 @@ def mpdivrem(p,f,g) :
   if not g : raise ZeroDivisionError;
   dr = len(r)-1;
   dg = len(g)-1;
+  if dr < dg :
+    return (),tuple(r);
+  ig = pow(g[0],p-2,p);
   q = [];
-  for i in xrange(dr-dg+1) :
-    q.append(r[i]*pow(g[0],p-2,p)%p);
-    for j in xrange(dg+1) :
-      r[i+j] = (r[i+j]-q[-1]*g[j])%p;
-  while r and not r[0] : r = r[1:];
-  return tuple(q),tuple(r);
+  for i in xrange(dr+1-dg) :
+    q.append(r[i]*ig%p);
+    if q[-1] :
+      for j in xrange(1,dg+1) :
+        r[i+j] = (r[i+j]-q[-1]*g[j])%p;
+  for i in xrange(dr+1-dg,dr+1) :
+    if r[i] : break;
+  else :
+    return tuple(q),();
+  return tuple(q),tuple(r[i:]);
 
 def mppow(p,b,e,m=None) :
   """Raise b, a polynomial over GF(p), to the nonnegative integer power e, modulo polynomial m"""

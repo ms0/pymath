@@ -67,11 +67,11 @@ def nzpolymul(f,g) :
 def nzpolypow(b,e,m=None) :
   n = (1 << (bit_length(e)-1)) >> 1;
   if m :
-    x = b = nzpolydivrem(b,m)[1];
+    x = b = nzpolymod(b,m);
     while n :
-      x = nzpolydivrem(nzpolymul(x,x),m)[1];
+      x = nzpolymod(nzpolymul(x,x),m);
       if e&n :
-        x = nzpolydivrem(nzpolymul(x,b),m)[1];
+        x = nzpolymod(nzpolymul(x,b),m);
       n >>= 1;
   else :
     x = b;
@@ -82,19 +82,44 @@ def nzpolypow(b,e,m=None) :
       n >>= 1;
   return x;
 
+def nzpolymod(f,g) :
+  """Return the remainder from dividing polynomial f by polynomial g"""
+  dr = len(f)-1;
+  dg = len(g)-1;
+  if dr < dg :
+    return f;
+  r = list(f);
+  x = 1/g[0];
+  for i in xrange(dr+1-dg) :
+    if r[i] :
+      q = r[i]*x;
+      for j in xrange(1,dg+1) :
+        r[i+j] = (r[i+j]-q*g[j]);
+  for i in xrange(dr+1-dg,dr+1) :
+    if r[i] : break;
+  else :
+    return ();
+  return tuple(r[i:]);
+
 def nzpolydivrem(f,g) :
   """Return the quotient and remainder from dividing polynomial f by polynomial g"""
-  r = list(f);
-  dr = len(r)-1;
+  dr = len(f)-1;
   dg = len(g)-1;
+  if dr < dg :
+    return (),f;
   q = [];
+  r = list(f);
   x = 1/g[0];
-  for i in xrange(dr-dg+1) :
+  for i in xrange(dr+1-dg) :
     q.append(r[i]*x);
-    for j in xrange(dg+1) :
-      r[i+j] = (r[i+j]-q[-1]*g[j]);
-  while r and not r[0] : r = r[1:];
-  return tuple(q),tuple(r);
+    if q[-1] :
+      for j in xrange(1,dg+1) :
+        r[i+j] = (r[i+j]-q[-1]*g[j]);
+  for i in xrange(dr+1-dg,dr+1) :
+    if r[i] : break;
+  else :
+    return tuple(q),();
+  return tuple(q),tuple(r[i:]);
 
 # evaluate a univariate polynomial (an iterable of coefficients), at a point
 def evaluate(p,x) :
@@ -352,7 +377,7 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
         return _zero;
       else :
         other = type(self)(other);
-    return type(self)(*(nzpolydivrem(self._p,other._p)[1]));
+    return type(self)(*(nzpolymod(self._p,other._p)));
 
   def __rmod__(self,other) :
     """Return the remainder when dividing other by self"""
