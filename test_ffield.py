@@ -16,7 +16,7 @@ try :
 except Exception :
   process_time = default_timer;
 
-from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder
+from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, primepower, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder
 from matrix import *
 from poly import *
 
@@ -170,10 +170,11 @@ def ptest(g) :    # polynomial tests
       P = x.minpolynomial(m);
       if not P.isirreducible(p**m) :
         print('%r.minpoly(%d) not irreducible'%(x,m));
-      if P.degree==n and x.generator!=isprimitive(p,P.mapcoeffs(int)[-2::-1]) :
-        print('isprimitive(%r.minpoly()) != %r.generator'%(x,x));
+      d = P.degree;
+      if m==1 and (x.order==(p**d-1))!=isprimitive(P.mapcoeffs(int)[-2::-1],p) :
+        print('isprimitive(%r.minpoly()) failed'%(x));
       o = p**m-1;
-      if P.degree > n//m :
+      if d > n//m :
         print('%r.minpoly(%d) degree > %d/%d'%(x,m,n,m));
       for c in P :
         if o%(c.order or 1) :

@@ -298,7 +298,7 @@ without the leading coefficient, which is taken to be 1"""
 # is a primitive polynomial iff the smallest positive integer n such that
 # f(x) | x^n - 1 is n = p^m - 1.
 
-def isprimitive(p,g) :
+def isprimitive(g,p) :
   """Return True iff monic irreducible g is a primitive polynomial over GF(p);
   g is represented as a tuple or list of integers mod p without the leading 1"""
   n = len(g);
@@ -1592,7 +1592,7 @@ def conwaypoly(q) :
     for g in irreducibleg(p,n) :
       # modify g by negating alternate terms
       g = tuple(-g[i]%p if i&1 else g[i] for i in range(n+1));
-      if not isprimitive(p,g[1:]) : continue;
+      if not isprimitive(g[1:],p) : continue;
       for f in factors(n) :
         m = n//f;
         r = p**m;
