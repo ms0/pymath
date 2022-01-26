@@ -300,15 +300,29 @@ without the leading coefficient, which is taken to be 1"""
 
 def isprimitive(p,g) :
   """Return True iff monic irreducible g is a primitive polynomial over GF(p);
-  g is represented as a tuple or list of integers mod p"""
-  if p == 2 : return isprimitive2(pack(2,g));
+  g is represented as a tuple or list of integers mod p without the leading 1"""
+  n = len(g);
+  if p == 2 : return isprimitive2((1<<n)|pack(2,g));
   if not g[-1] : return False;
-  n = len(g)-1;
+  if n == 1 and g[0] == p-1 : return False;    # x-1
   o = p**n-1;
-  for f in factors(o) :
-    d = (1,)+(0,)*(o//f-1)+(p-1,);
-    if not mpmod(p,d,g) : return False;
-  return True;
+  # simple algorithm:
+  #   for f in factors(o) :
+  #     d = (1,)*(o//f);    # (x**(o//f)-1)/(x-1)
+  #     if not mpmod(p,d,g) : return False;
+  #   return True;
+  # this instead tests all factors at once and with little memory:
+  d = [1]*(2*n);    # we concatenate 1s as we divide
+  i = 0;    # index (in d) of first nonzero coefficient
+  for _ in xrange(o//2-n) :    # implicitly check through o//2
+    q = d[i];    # leading coefficient of dividend
+    for j in xrange(n) :    # compute remainder so far
+      d[j] = (d[i+j+1]-q*g[j])%p;
+    for i in xrange(n) :
+      if d[i] : break;    # new leading coefficient
+    else :
+      return False;    # remainder was 0
+  return True;    
 
 def factors(n,maxfactor=None) :
   """Return the prime factors of n in increasing order as a generator"""
@@ -1577,10 +1591,8 @@ def conwaypoly(q) :
   else :
     for g in irreducibleg(p,n) :
       # modify g by negating alternate terms
-      g = list(g);
-      for i in xrange(1,len(g),2) :
-        g[i] = -g[i]%p;
-      if not isprimitive(p,g) : continue;
+      g = tuple(-g[i]%p if i&1 else g[i] for i in range(n+1));
+      if not isprimitive(p,g[1:]) : continue;
       for f in factors(n) :
         m = n//f;
         r = p**m;
