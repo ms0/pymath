@@ -487,27 +487,30 @@ if q is not specified, the field is inferred from self's coefficients"""
         raise ValueError('q must be a prime power')
     d = self.degree;
     if d <= 1 :
-      return True;
+      return d==1;
+    p0 = self._p[0];
     types = set();
     for x in self :
       types.add(type(x));
     if types <= INT and q > 0:
       r = r[0];
-      if self._p[0] != 1 :
-        i = ff.modpow(self._p[0],r-2,r);    # make monic
+      if p0 != 1 :
+        i = ff.modpow(p0,r-2,r);    # make monic
         self = self.mapcoeffs(lambda x: x*i%r);
         if d != self.degree :
           raise ValueError('leading coefficient is 0 mod %d'%(r));
       return ff.isirreducible(self._p[1:],q);
-    if len(types) == 1 and ff.isffield(tuple(types)[0]) :
-      p0 = self._p[0];
-      if int(p0) != 1 :
+    F = type(p0);
+    if len(types) == 1 and ff.isffield(F) :
+      if p0 != 1 :
         self = self.mapcoeffs(lambda x: x/p0);    # make monic
-      q = q or p0.p**p0.n;
-      for c in self :
-        if (q-1)%(c.order or 1) :
-          raise ValueError('coefficients not all elements of GF(%d)'%(q));
-      x = type(self)(self._p[0],self._p[0]*0);    # Rabin test...
+      if q :
+        for c in self :
+          if (q-1)%(c.order or 1) :
+            raise ValueError('coefficients not all elements of GF(%d)'%(q));
+      else :
+        q = p0.q;
+      x = type(self)(F(1),F(0));    # Rabin test...
       for s in chain(ff.factors(d),(1,)) :
         e = q**(d//s);
         n = 1 << (bit_length(e)-1);
@@ -522,6 +525,58 @@ if q is not specified, the field is inferred from self's coefficients"""
           if self.gcd(y-x).degree != 0 : return False;
         else :
           return not (y-x)%self;
+    raise TypeError('implemented only for finite fields');
+
+  def isprimitive(self,q=0) :
+    """Return True iff self (assumed irreducible) is primitive over a field;
+if q is specified, it is the size of the field;
+if q is not specified, the field is inferred from self's coefficients"""
+    if q :
+      r = ff.primepower(q);
+      if not r :
+        raise ValueError('q must be a prime power')
+      p = r[0];
+    n = self.degree;
+    if n < 1 : raise ValueError("self can't be constant");
+    p0 = self._p[0];
+    types = set();
+    for x in self :
+      types.add(type(x));
+    if types <= INT and q > 0:
+      if p0 != 1 :
+        i = ff.modpow(p0,p-2,p);    # make monic
+        self = self.mapcoeffs(lambda x: x*i%p);
+        if n != self.degree :
+          raise ValueError('leading coefficient is 0 mod %d'%(r));
+      return p==q and ff.isprimitive(self._p[1:],p);
+    F = type(p0);
+    if len(types) == 1 and ff.isffield(tuple(types)[0]) :
+      if int(p0) != 1 :
+        self = self.mapcoeffs(lambda x: x/p0);    # make monic
+      if q :
+        for c in self :
+          if (q-1)%(c.order or 1) :
+            raise ValueError('coefficients not all elements of GF(%d)'%(q));
+      else :
+        q = F.q;
+      if q == F.p :
+        return ff.isprimitive(self.mapcoeffs(int)._p[1:],q);
+      if not self._p[-1] or n == 1 and not (p0+self._p[1]) : return False; # wx or x-1
+      o = q**n-1;
+      for f in ff.factors(o) :
+        break;
+      d = [1]*(2*n);
+      i = 0;
+      g = self._p[1:]
+      for _ in xrange((q**n-1)//f-n) :
+        q = d[i];
+        for j in xrange(n) :    # compute remainder so far
+          d[j] = d[i+j+1]-q*g[j];
+        for i in xrange(n) :
+          if d[i] : break;    # new leading coefficient
+        else :
+          return False;    # remainder was 0
+      return True;
     raise TypeError('implemented only for finite fields');
 
   def factor(self,facdict=None,e=1) :

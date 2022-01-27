@@ -303,7 +303,9 @@ def isprimitive(g,p) :
   g is represented as a tuple or list of integers mod p without the leading 1"""
   n = len(g);
   if p == 2 : return isprimitive2((1<<n)|pack(2,g));
-  if not g[-1] : return False;
+  q = primepower(p);
+  if not q : raise ValueError('p must be a prime');    # but allow prime power
+  if q[1] != 1 or not g[-1] : return False;
   if n == 1 and g[0] == p-1 : return False;    # x-1
   o = p**n-1;
   # simple algorithm:
