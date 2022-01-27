@@ -33,7 +33,7 @@ def testf(p) :    # verify that unfactor(factor) is the identity transform
   if p.unfactor(f) != p :
     error('%s != %s'%(p,f));
   for q in f :
-    if not q.isirreducible() :
+    if q.degree > 1 and not q.isirreducible() :
       error('factor %s is not irreducible over %s'%(q,type(q[0])));
   return f;
 
@@ -106,6 +106,8 @@ def testmp(F) :    # test minimal polys and isirreducible in ffield F
         error('%r not a root of its minpoly(%d)?'%(g,k));
       if not f.isirreducible(p**k) :
         error('%r.minpoly(%d) not irreducible over GF%d_%d?'%(g,k,p,k));
+      if (g.order==p**(k*f.degree)-1) != f.isprimitive(p**k) :
+        error('isprimitive failed for %r.minpoly(%d)'%(g,k));
 
 def testir(F) :    # test irreducibles
   dotprint('\n%s '%(F) );
@@ -169,8 +171,9 @@ if __name__ == '__main__' :
   print('factor test');
   factests();
   GF729 = ffield(3,6);
-  print('\nminpoly and isirreducible test')
-  testmp(GF729);
+  print('\nminpoly, isirreducible, isprimitive test')
+  for q in (2,3,5,7,11,2**6,5**4,3**6) :
+    testmp(ffield(q));
   dotprint('\nirreducibles test')
   for q in range(32) :
     if primepower(q) : testir(ffield(q));
