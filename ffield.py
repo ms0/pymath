@@ -332,7 +332,7 @@ def factors(n,maxfactor=None) :
 
 def factor(n,maxfactor=None) :
   """Return prime factorization of n as generator of (prime,exponent) pairs"""
-  n = abs(n);
+  n = abs(n)
   if n <= 1 :
     return;
   if not n & 1:
@@ -383,11 +383,17 @@ def factor(n,maxfactor=None) :
   if n > 1 : yield (n,1);
 
 def unfactor(q) :
-  """Given sequence of (prime,exponent) pairs, return product"""
+  """Given sequence of (base,exponent) pairs, return product"""
   p = 1;
   for (n,c) in q : p *= n**c;
   return p;
 
+def nufactor(n,maxfactor=None) :
+  """Return factorization of n so unfactor returns n"""
+  if n <= 0 :
+    yield (n and -1,1);
+  for x in factor(n,maxfactor) : yield x;    # yield from factor(n,maxfactor)
+  
 def fmerge(*args) :
   """Merge factor generators into a single one"""
   d = dict();
@@ -1667,6 +1673,7 @@ def irreducibleg(q,n) :
 
 def phi(n) :
   """Return the Euler totient function of n"""
+  if not n : return 0;
   p = 1;
   for n,c in factor(n) :
     p *= (n-1)*n**(c-1);
@@ -1674,6 +1681,7 @@ def phi(n) :
 
 def sigma(n) :
   """Return the sum of the positive divisors of n"""
+  if not n : return 0;
   p = 1;
   for n,c in factor(n) :
     p *= (n**(c+1)-1)//(n-1);
@@ -1681,6 +1689,7 @@ def sigma(n) :
 
 def lam(n) :
   """Return the reduced totient function of n"""
+  if not n : return 0;
   p = 1;
   for n,c in factor(n) :
     x = (n-1)*n**(c-1) if n&1 or c < 3 else 1<<(c-2);
@@ -1689,6 +1698,7 @@ def lam(n) :
 
 def numdivisors(n) :
   """Return the number of positive divisors of n"""
+  if not n: return 0;
   p = 1;
   for n,c in factor(n) :
     p *= c+1;
@@ -1696,6 +1706,7 @@ def numdivisors(n) :
 
 def divisors(n) :
   """Return the positive divisors of n as a generator"""
+  if not n : return;
   yield 1;
   f = [];
   t = [];
