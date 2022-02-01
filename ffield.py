@@ -287,9 +287,10 @@ without the leading coefficient, which is taken to be 1"""
   p,k = p;
   n = len(poly);
   if n <= 1 : return n==1;
-  x = (1,0);
+  if not poly[-1] : return False;
   f = (1,)+poly;
   if p == 2 : return isirreducible2(pack(2,f),k);
+  x = (1,0);
   for r in factors(n) :
     if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
   return not mpmod(p,mpsub(p,mppow(p,x,q**n,f),x),f);
@@ -323,7 +324,7 @@ def isprimitive(g,p) :
     for i in xrange(n) :
       if d[i] : break;    # new leading coefficient
     else :
-      return False;    # remainder was 0
+      return False;    # remainder was 0, so g divides x**m-1 for m < p**n-1
   return True;    
 
 def factors(n,maxfactor=None) :
@@ -332,7 +333,7 @@ def factors(n,maxfactor=None) :
 
 def factor(n,maxfactor=None) :
   """Return prime factorization of n as generator of (prime,exponent) pairs"""
-  n = abs(n)
+  n = abs(n);
   if n <= 1 :
     return;
   if not n & 1:
@@ -1555,9 +1556,23 @@ def isprimitive2(g) :
   if not g&1 : return False;
   n = bit_length(g)-1;
   o = (1<<n)-1;
-  for f in factors(o) :
-    d = (1<<(o//f))|1;
-    if not m2mod(d,g) : return False;
+  # simple algorithm:
+  # for f in factors(o) :
+  #   d = (1<<(o//f))|1;
+  #   if not m2mod(d,g) : return False;
+  #  return True;
+  # this instead tests all factors at once and with fewer bits:
+  for f in factors(o) :    # if o == 1, there are no factors; x+1 is primitive
+    if f==o : break;    # o is prime; g is primitive
+    d = 0;
+    k = n+1;
+    c = o//f-n;
+    while c > 0:
+      d = ((d<<k)|((1<<k)-1))^g;
+      if not d : return False;    # g divides x**m-1 for m < 2**n-1
+      k = n+1-bit_length(d);
+      c -= k;
+    break;    # we've tried the smallest factor, so all of them in passing
   return True;
 
 """The Conway polynomial for q = p^n is the "least" degree n primitive GF(p) polynomial
