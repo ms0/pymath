@@ -216,7 +216,7 @@ Instance variables (read only):
   b or denominator: the denominator, a positive integer (except -1 for -0)
   Note that gcd(a,b) == 1.
 Methods:
-  __new__, __init__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
+  __new__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
   __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm, abs2,
   __int__, __float__, __round__, __ceil__, __floor__, __trunc__,
@@ -333,10 +333,6 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
     self = super(rational,cls).__new__(cls);
     self._a,self._b = a,b;
     return self;
-
-  def __init__(self,a=0,b=1,_gcd_=True) :
-    """Do nothing--all the work has been done by __new__"""
-    return;
 
   def __reduce__(self) :
     # return tuple for pickling rational"""
@@ -899,7 +895,7 @@ Instance variables (read only):
   real: the real part, a rational
   imag: the imaginary part, a rational
 Methods:
-  __new__, __init__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
+  __new__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
    __pos__, __neg__, __abs__, __invert__, conjugate, maxnorm, abs2,
   __int__, __float__, __complex__, __trunc__, __round__,
@@ -933,10 +929,6 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     self = super(xrational,cls).__new__(cls);
     self._a,self._b = real,imag;
     return self;
-
-  def __init__(self,real=0,imag=0) :
-    """Do nothing--all the work has been done by __new__"""
-    return;
 
   def __reduce__(self) :
     """Return tuple for pickling xrational"""
@@ -1268,7 +1260,7 @@ Instance variables (read only):
    imag: the imaginary part, but only if j and k components are zero
    sv or rv: (s,i,j,k), a tuple of rationals
 Methods:
-  __new__, __init__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
+  __new__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
   __pos__, __neg__, __abs__, __invert__, conjugate, versor, maxnorm, abs2,
   __int__, __float__, __complex__, __trunc__, __round__,
@@ -1310,10 +1302,6 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     else :
       raise TypeError('too many arguments');
     return self;
-
-  def __init__(self,*args) :
-    """Do nothing--all the work has been done by __new__"""
-    return;
 
   def __reduce__(self) :
     """Return tuple for pickling qrational"""

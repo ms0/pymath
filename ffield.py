@@ -1224,10 +1224,11 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
             'GF%d_%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p <= 36 else
             'GF%d_%d_%s'%(p,n,'_'.join(['%d'%(c) for c in tupoly])));
     _ffield[x] = f = type.__new__(cls,name,(),d);
+    f._basefield = f if f._n == 1 else ffield(f._p);
     return f;
 
-  def __init__(self,*args,**kwargs) :
-    self._basefield = self if self._n == 1 else ffield(self._p);
+  def __init__(self,q,*args,**kwargs) :
+    return;
 
   def __reduce__(self) :
     """Return a tuple for pickling"""
@@ -1418,9 +1419,8 @@ def mpdivrem(p,f,g) :
 def mppow(p,b,e,m=None) :
   """Raise b, a polynomial over GF(p), to the nonnegative integer power e, modulo polynomial m"""
   if not e : return (1,);
-  n = 1 << (bit_length(e)-1);
+  n = 1 << (bit_length(e)-1) >> 1;
   x = b;
-  n >>= 1;
   while n :
     x = mpmul(p,x,x,m);
     if e&n :
