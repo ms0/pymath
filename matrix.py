@@ -867,32 +867,31 @@ when setting a slice, value must have length matching size of slice"""
     if len(self.__dims) != 2 or n != self.__dims[1] :
       raise AttributeError('requires square matrix') ;
     n2 = n*n;
-    v = [0]*n2;
-    v[0::(n+1)] = (1,)*n;
-    v += self.__v;
+    v = self.__v[:]+[0]*n2;
+    v[n2::n+1] = (1,)*n;
     for c in xrange(n) :
       x = 0;
       for r in xrange(c,n) :
-        a = altabs(v[n2+r+n*c]);
+        a = altabs(v[r+n*c]);
         if a > x :
           x = a;
           pr = r;
       if not x : raise ZeroDivisionError('matrix not invertible');
       if pr != c : v[c::n],v[pr::n] = v[pr::n],v[c::n];
-      x = v[n2+c*(n+1)];
+      x = v[c*(n+1)];
       if x != 1 :
         y = 1/x;
-        for cc in xrange(2*n) : v[c+n*cc] = y*v[c+n*cc];
+        for cc in xrange(c+1,2*n) : v[c+n*cc] = y*v[c+n*cc];
       for r in xrange(c+1,n) :
-        x = v[n2+r+n*c];
-        for cc in xrange(2*n) :
+        x = v[r+n*c];
+        for cc in xrange(c+1,2*n) :
           v[r+n*cc] -= x*v[c+n*cc];
     for c in reversed(xrange(1,n)) :
       for r in xrange(0,c) :
-        x = v[n2+r+n*c];
+        x = v[r+n*c];
         for cc in xrange(n) :
-          v[r+n*cc] -= x*v[c+n*cc];
-    return type(self)(n,n,v[0:n2]);
+          v[n2+r+n*cc] -= x*v[n2+c+n*cc];
+    return type(self)(n,n,v[n2:2*n2]);
 
   def reshape(self,*dims) :
     """Return a new array with the same elements but different dimensions,
