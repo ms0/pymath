@@ -288,6 +288,35 @@ def mixtest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
                             rational(randint(*nrange),randint(*drange)),
                             rational(randint(*nrange),randint(*drange))) for j in xrange(3)));
 
+def rtest(r) :
+  """Given (,x,q)rational r, check eval(repr(r)) == r"""
+  if r != eval(repr(r)) :
+    print("""eval(%r) fails to produce original value"""%(r));
+
+def btest(r,b,d) :
+  """Given (,x,q)rational r, check eval("rational('%s')"%(r.bstr(d,b))) ~ r"""
+  if not isclose(r,eval("rational('%s')"%(r.bstr(d,b))),b**(1-d)/2) :
+    print("""rational('%s') fails to produce value sufficiently close to original"""%(r));
+
+def itest(repeats=1000,nrange=(-100,100),drange=(1,100)) :
+  """Test string input and output"""
+  if rational('') : print("rational('') failed");
+  dmax = max(abs(x) for x in nrange+drange);
+  ilog={};
+  for b in xrange(2,37) : ilog[b] = int(log(dmax,b));
+  for i in xrange(repeats) :
+    for t in xrange(3) :
+      r = rational(randint(*nrange),randint(*drange)) if t == 0 else \
+          xrational(rational(randint(*nrange),randint(*drange)), \
+                    rational(randint(*nrange),randint(*drange))) if t == 1 else \
+          qrational(rational(randint(*nrange),randint(*drange)), \
+                    rational(randint(*nrange),randint(*drange)), \
+                    rational(randint(*nrange),randint(*drange)), \
+                    rational(randint(*nrange),randint(*drange)));
+      rtest(r);
+      b = randint(2,36);
+      btest(r,b,randint(1,1+ilog[b]));
+
 def sigbits(computed,actual=1) :
   """Return number of significant bits of computed relative to actual"""
   if not actual :
@@ -830,6 +859,8 @@ if __name__ == '__main__' :
   testattr();
   print('root test (for sha2) ...');
   roottest();
+  print('string IO test ...')
+  itest();
   print('rational test ...');
   rattest();
   print('xrational test ...');

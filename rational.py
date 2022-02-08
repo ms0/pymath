@@ -104,9 +104,9 @@ def root(a,n) :
 
 _zits = '0123456789abcdefghijklmnopqrstuvwxyz';
 
-def _parsenum(s,b=10) :
+def _parsenum(s,b=10,r=False) :
   s = s.lstrip();
-  if not s : raise ValueError('empty string');
+  if not s : raise SyntaxError('improper termination');
   p = None;
   n = 0;
   for i,c in enumerate(s) :
@@ -115,15 +115,15 @@ def _parsenum(s,b=10) :
       n = b*n + d;
     except Exception :
       if c == '.' :
-        if p != None : raise ValueError('only one point is allowed');
+        if p != None : raise SyntaxError('only one point is allowed');
         p = i;
         continue;
       break;
   else :
     i+=1;
   if not i-(p!=None) :
-    if p == None and s[0] in 'ijk' : return 1,s;
-    raise ValueError('number must have at least one zit');
+    if not r and p == None and s[0] in 'ijk' : return 1,s;
+    raise SyntaxError('number must have at least one zit');
   return rational(n)/b**(i-1-p) if p != None else n,s[i:];
 
 def _parsebasenum(s) :
@@ -137,9 +137,9 @@ def _parsebasenum(s) :
   s = s.lstrip();
   if s and s[0] == '#' :
     b = n;
-    if not (isint(n) and 2<=b<=36) : raise ValueError('base must be between 2 and 36 inclusive');
+    if not (isint(n) and 2<=b<=36) : raise SyntaxError('base must be between 2 and 36 inclusive');
 
-    n,s = _parsenum(s[1:],b);
+    n,s = _parsenum(s[1:],b,True);
   else :
     b = 10;
   q,s = _parseshift(s);
@@ -162,16 +162,19 @@ def _parseshift(s) :
     q = 0;
   if q :
     p,s = _parseint(s[2:]);
-    if not isint(p) : raise ValueError('shift amount must be an integer');
+    if not isint(p) : raise SyntaxError('shift amount must be an integer');
   return q and rational(p*q),s;
 
-def _parsesign(s) :
-  s = s.lstrip();
+def _parsesign(s,r=False) :
+  q = 1;
   try :
-    q = 1-2*('+-').index(s[:1]);
-    s = s[1:]
+    while s :
+      s = s.lstrip();
+      q *= 1-2*('+-').index(s[:1]);
+      s = s[1:]
+      r = False;
   except Exception :
-    q = 1;
+    if r : raise SyntaxError('sign required');
   return q,s;
 
 def _parseint(s) :
@@ -179,35 +182,34 @@ def _parseint(s) :
   n,s = _parsenum(s);
   return q*n,s;
 
-def _parsesignednum(s) :
-  q,s = _parsesign(s);
+def _parsesignednum(s,r=False) :
+  q,s = _parsesign(s,r);
   n,s = _parsebasenum(s);
   return q*rational(n),s;
 
 def _parserat(s) :
   rijk = [_0,_0,_0,_0];
-  t = -1;
+  t = 0;
   s = s.strip().lower();
-  while True :
-    a,s = _parsesignednum(s);
+  r = False;
+  while s :
+    a,s = _parsesignednum(s,r);
+    r = True;    # sign now required
     s = s.lstrip();
     if s and s[0] in '*ijk' :
       if s[0] == '*' :
         s = s[1:].lstrip();
       try :
-        x = 'ijk'.index(s[0]);
+        x = 'ijk'.index(s[0])+1;
         s = s[1:].lstrip();
       except Exception :
-        raise ValueError('improper termination');
+        raise SyntaxError('improper termination');
     else :
-      x = -1;
-    if t > x :
-      raise ValueError('out of order or duplicate component');
-    t = x+1;
-    rijk[t] = a;
-    if s :
-      continue;
-    return qrational(*rijk) if t>1 else xrational(*rijk[:2]) if t else rijk[0];
+      x = 0;
+    if t & (1<<x) : raise SyntaxError('duplicate component');
+    t |= 1<<x;
+    rijk[x] = a;
+  return rijk[0] if t<2 else xrational(*rijk[:2]) if t<4 else qrational(*rijk);
 
 class rational(object) :
   """Rational number class
