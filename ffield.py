@@ -47,6 +47,7 @@ else :
 
 def isffield(t) :
   """Return True iff t is a finite field"""
+  if not isinstance(t,type) : return False
   try :
     t._basefield;
     return isint(t._q);
@@ -547,10 +548,10 @@ Instance variables:
       if x > q :
         raise ValueError('value must be < %d'%(q));
     self._x = x;
-  elif isinstance(type(x),ffield) :
+  elif isffield(type(x)) :
     if x._p != p :
       raise TypeError('ffield element must have same field characteristic');
-    if x._x < p or x._n == n :
+    if x._x < p or isinstance(type(x),ffield) and x._n == n :
       self._x = x._x;
     else :
       raise TypeError('ffield element must be in field');
@@ -702,7 +703,7 @@ def __add__(self,other) :
   n = self._n;
   x = self._x;
   if type(other) != type(self) :
-    if type(type(other)) == ffield and other._p == p :
+    if isffield(type(other)) and other._p == p :
       if n == 1 :
         return other+x;
       if other._n == 1 :
@@ -758,7 +759,7 @@ def __sub__(self,other) :
   n = self._n;
   x = self._x;
   if type(other) != type(self) :
-    if type(type(other)) == ffield and other._p == p :
+    if isffield(type(other)) and other._p == p :
       if n == 1 :
         return x-other;
       if other._n == 1 :
@@ -803,7 +804,7 @@ def __div__(self,y) :
   x = self._x;
   n = self._n;
   if type(y) != type(self) :
-    if type(type(y)) == ffield and y._p == p :
+    if isffield(type(y)) and y._p == p :
       if n == 1 :
         return x/y;
       if y._n == 1 :
@@ -856,7 +857,7 @@ def __mul__(self,y) :
   x = self._x;
   n = self._n;
   if type(y) != type(self) :
-    if type(type(y)) == ffield and y._p == p :
+    if isffield(type(y)) and y._p == p :
       if n == 1 :
         return y*x;
       if y._n == 1 :
