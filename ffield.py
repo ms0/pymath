@@ -47,7 +47,7 @@ else :
 
 def isffield(t) :
   """Return True iff t is a finite field"""
-  if not isinstance(t,type) : return False
+  if not isinstance(t,type) : return False;
   try :
     t._basefield;
     return isint(t._q);

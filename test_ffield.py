@@ -57,11 +57,24 @@ def randfield(p,n) :
 def test(p,n) :
   global z,o
   g = randfield(p,n);
-  dotprint('%r'%(g));
-  z,o = g[:2];
   q = g.q;
   if g.p != p or g.n != n or g.order != q-1 or len(g) != q:
     print('.p or .n or .q or .order or len failed');
+  atest(g);
+
+def atest(g) :
+  otest(g);
+  mtest(g);
+  ptest(g);
+  ltest(g);  
+
+def otest(g) :
+  global z,o
+  dotprint('%r'%(g));
+  z,o = g[:2];
+  p = g.p;
+  n = g.n;
+  q = g.q;
   if q <= LIMIT2 :
     if tuple(g) != g[:] :
       print('__iter__ or slice indexing failed');
@@ -103,9 +116,6 @@ def test(p,n) :
           test3(g,randrange(q),randrange(q),randrange(q));
       if not i%(LIMIT3//32 or 1) : dotprint();
     print();
-  mtest(g);
-  ptest(g);
-  ltest(g);  
 
 def ltest(g) :    # log test
   print('  log tests');
@@ -196,9 +206,15 @@ def test1(g,i) :
     print('+-%d in g failed'%(i));
   ceq('type(v[0])(v[0])==v[0]',gi);
   ceq('type(v[0])(-v[0].x)==-v[0]',gi);
-  ceq('type(v[0])(unpack(v[0].p,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
-  ceq('type(v[0])(map(lambda x:-x,unpack(v[0].p,v[0].x)))==-v[0]',gi);
-  ceq('type(v[0])(polynomial(*(unpack(v[0].p,v[0].x))))==v[0]',gi);
+  try :
+    f = g.subfield;
+    ceq('type(v[0])(unpack(type(v[0]).subfield.q,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
+    ceq('type(v[0])(map(lambda x:-x,unpack(type(v[0]).subfield.q,v[0].x)))==-v[0]',gi);
+    ceq('type(v[0])(polynomial(*(unpack(type(v[0]).subfield.q,v[0].x))))==v[0]',gi);
+  except Exception :
+    ceq('type(v[0])(unpack(v[0].p,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
+    ceq('type(v[0])(map(lambda x:-x,unpack(v[0].p,v[0].x)))==-v[0]',gi);
+    ceq('type(v[0])(polynomial(*(unpack(v[0].p,v[0].x))))==v[0]',gi);
   if p < 36 : ceq('type(v[0])(cvs(v[0]))==v[0]',gi);
   ceq('not v[0]+-v[0]',gi);
   ceq('v[0]*z==z==z*v[0]',gi);
@@ -397,10 +413,11 @@ Usage: python test_ffield.py [options]
    Options:  -h        print this message
              -x        exclude integer tests
              -z q      max field size to test [default 81 (i.e., 3**4)]
+             -r        test ffieldx
              -t        print timing info""");
 
   import sys,getopt
-  opts,args = getopt.gnu_getopt(sys.argv[1:],"hxtz:");
+  opts,args = getopt.gnu_getopt(sys.argv[1:],"hxrtz:");
   optdict = {};
   for pair in opts : optdict[pair[0][1:]]=pair[1];
   if 'h' in optdict :
@@ -415,6 +432,13 @@ Usage: python test_ffield.py [options]
     if isprime(p) :
       for i in range(1,7) :
         if p**i <= q : test(p,i);
+  if 'r' in optdict :
+    from rffield import *
+    F4 = ffield(4);
+    F9 = ffield(9);
+    for g in (ffieldx(polynomial(F4(1),F4(2),F4(1))),
+              ffieldx(polynomial(F9(1),F9(4),F9(1)))) :
+      atest(g);
   if 't' in optdict :
     for g in (ffield(2,8),ffield(3,5),    # pairs with similar sizes
               ffield(2,9),ffield(23,2),
