@@ -22,8 +22,8 @@ The polynomial can be represented as
     the string is stripped and converted to lower case before evaluation;
     zit values are their positions in '0123456789abcdefghijklmnopqrstuvwxyz'
     The result is converted as a base p number, resulting in x.
-  an iterable of subfield elements and/or integers, with abs value of integers < subfield.q
-    each integer must have abs value < subfield.q and if negative represents the
+  an iterable of subfield elements and/or integers, with abs value of integers < basefield.q
+    each integer must have absvalue < basefield.q and if negative represents the
     negative of the subfield element that is represented by its absolute value
     
 Instance variables:
@@ -33,7 +33,7 @@ Instance variables:
   p = self._p;
   n = self._n;
   q = self._q;
-  s = self._subfield;
+  s = self._basefield;
   r = s._q;
   try :
     x = x(r);
@@ -60,7 +60,7 @@ Instance variables:
       raise ValueError('absolute value must be < %d'%(q));
   elif isstr(x) :
     if p > 36 :    # string not acceptable if p > 36
-      raise TypeError('string not acceptable for subfield.q > 36');
+      raise TypeError('string not acceptable for basefield.q > 36');
     s = x.strip().lower();
     x = 0;
     for c in s :
@@ -92,7 +92,7 @@ Instance variables:
         else :
           raise TypeError('iterable elements must be elements of subfield');
       if isffield(type(i)) :
-        if not i in self._subfield :
+        if not i in self._basefield :
           raise TypeError('iterable elements must be elements of subfield');
         i = i._x;
       x = x*r+i;
@@ -108,12 +108,12 @@ def element(self) :
 @property
 def elementtuple(self) :
   """the field element's polynomial representation as a tuple"""
-  return unpack(self._q,self._x);
+  return unpack(self._basefield._q,self._x);
 
 @property
 def elementpolynomial(self) :
   """the field element's polynomial representation"""
-  return polynomial(*unpack(self._q,self._x)).mapcoeffs(self._subfield);
+  return polynomial(*unpack(self._basefield._q,self._x)).mapcoeffs(self._basefield);
 
 @property
 def field_p(self) :
@@ -148,11 +148,6 @@ def field_basefield(self) :
   return self._basefield;
 
 @property
-def field_subfield(self) :
-  """the field's subfield"""
-  return self._subfield;
-
-@property
 def generates(self) :
   o = self._q-1;
   if self._x <= 1 :
@@ -162,14 +157,21 @@ def generates(self) :
   return True;
 
 def __hash__(self) :
-  return hash(self._x) if 0 <= self._x < self._p else \
-    hash(type(self)) ^ hash(self._x);
+  return hash(self._basefield(self._x)) if 0 <= self._x < self._basefield._q \
+    else hash(type(self)) ^ hash(self._x);
 
 def __eq__(self,other) :
   """Test if two elements are equal"""
-  return type(self) == type(other) and self._x == other._x or \
-         0 <= self._x < self._p and self._x == other or \
-         isffield(type(other)) and other in self._subfield and self._x == other._x;
+  x = rint(other);
+  if isint(x) :
+    return 0 <= x < self._p and self._x == x;
+  t = type(x);
+  if isffield(t) :
+    if t._p != self._p or self._x != x._x: return False;
+    while x._x < t._basefield._q < t._q :
+      t = t._basefield;
+    return t <= type(self);
+  return NotImplemented;
 
 def __ne__(self,other) :
   """Test if two elements are unequal"""
@@ -204,7 +206,7 @@ def __repr__(self) :
   """Return a string representing the polynomial representation of the finite field element
 The string begins with the characterisitic of the field as a decimal integer and is followed
 by an underscore and the __str__ representation"""
-  return str(self._p)+'^'+str(self._subfield._n)+'_'+str(self);
+  return str(self._p)+'^'+str(self._basefield._n)+'_'+str(self);
 
 def __add__(self,other) :
   """Return the sum of the two finite field elements; integers are treated mod p"""
@@ -221,7 +223,7 @@ def __add__(self,other) :
         return type(self)(x^1) if other&1 else self;
       other %= p;
       return type(self)(x-x%p+(x+other)%p) if other else self;
-    elif other not in self._subfield :
+    elif other not in self._basefield :
       return NotImplemented;
   y = other._x;
   if not y : return self;
@@ -276,7 +278,7 @@ def __sub__(self,other) :
         return type(self)(x^1) if other&1 else self;
       other %= p;
       return type(self)(x-x%p+(x-other)%p) if other else self;
-    elif other not in self._subfield :
+    elif other not in self._basefield :
       return NotImplemented;
   y = other._x;
   if not y : return self;
@@ -297,7 +299,7 @@ def __rsub__(self,y) :
   p = self._p;
   y = rint(y);
   if not isint(y) :
-    if y in self._subfield :
+    if y in self._basefield :
       if p == 2 :
         return type(self)(self._x^y._x) if y._x else self;
       return type(self)(y)-self if y else -self;
@@ -314,7 +316,7 @@ def __mul__(self,y) :
   n = self._n;
   if type(y) != type(self) :
     if isffield(type(y)) and y._p == p :
-      s = self._subfield;
+      s = self._basefield;
       if y in s :
         if y._n == 1 :
           y = y._x;
@@ -338,7 +340,7 @@ def __mul__(self,y) :
         s += c;
       return type(self)(s);
     else : return NotImplemented;
-  s = self._subfield;
+  s = self._basefield;
   q = s._q;
   xt = polynomial(*map(s,unpack(q,x)));
   yt = polynomial(*map(s,unpack(q,y._x)));
@@ -355,7 +357,7 @@ def __div__(self,y) :
     if isffield(type(y)) and y._p == p :
       if y._n == 1 :
         y = y._x;
-      elif y in self._subfield :
+      elif y in self._basefield :
         return self*(1/y);
     y = rint(y);
     if isint(y) :
@@ -374,7 +376,7 @@ def __div__(self,y) :
     else : return NotImplemented;
   yx = y._x;
   if yx < p : return self/yx;
-  s = self._subfield;
+  s = self._basefield;
   q = s._q;
   yt = polynomial(*map(s,unpack(q,yx)));
   return self*type(self)(pack(q,map(_x,self._polynomial.xgcd(yt)[2][::-1])));
@@ -385,7 +387,7 @@ def __rdiv__(self,y) :    # y/self
   p = self._p;
   y = rint(y);
   if not isint(y) :
-    if y in self._subfield :
+    if y in self._basefield :
       return 1/self*y;
     else :
       return NotImplemented;
@@ -396,7 +398,7 @@ def __rdiv__(self,y) :    # y/self
   elif x < p :
     z = y*pow(x,p-2,p)%p;
   else :
-    s = self._subfield;
+    s = self._basefield;
     q = s._q;
     xt = polynomial(*map(s,unpack(q,x)));
     z = 0;
@@ -427,7 +429,7 @@ def __pow__(self,e) :
   elif o-e <= o//8 :
     return 1/self**(o-e);
   else :
-    s = self._subfield;
+    s = self._basefield;
     q = s._q;
     xt = polynomial(*map(s,unpack(q,x)));
     x = pack(q,map(_x,xt.__pow__(e,self._polynomial)[::-1]));
@@ -464,13 +466,12 @@ Elements of G are polynomials over GF(p**j) mod poly.
   _p: characteristic (a prime)
   _n: dimension (giving the field p**n elements) (j*k)
   _q: size of the field (p**n)
-  _polynomial: the polynomial modulus, coefficients in _subfield
-  _subfield: the subfield of which this field is an extension
-  _basefield: ffield(_p)
+  _polynomial: the polynomial modulus, coefficients in _basefield
+  _basefield: the subfield of which this field is an extension
 Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
          __len__, __iter__, __getitem__,  __contains__, iterpow, __reduce__
 
-Descriptors: p, n, polynomial [modulus of field extension], subfield, basefield,
+Descriptors: p, n, polynomial [modulus of field extension], basefield,
              order [of field-{0}], generator [of field-{0}]
 
 Signatures:
@@ -508,7 +509,7 @@ Descriptors: p, n, q, [field parameters]
       return _ffieldx[x];
     except Exception :
       pass;
-    d = dict(_p=p, _n=n, _q=q, _subfield = subfield, _polynomial = poly,
+    d = dict(_p=p, _n=n, _q=q, _basefield = subfield, _polynomial = poly,
              p=field_p, n=field_n, q=field_q,
              x=element, tupoly=elementtuple, polynomial=elementpolynomial,
              minpoly=minpoly, minpolynomial=minpolynomial,
@@ -548,9 +549,6 @@ Descriptors: p, n, q, [field parameters]
     _ffieldx[x] = f = type.__new__(cls,name,(),d);
     return f;
 
-  def __init__(self,*args,**kwargs) :
-    self._basefield = self if self._n == 1 else ffield(self._p);
-
   def __hash__(self) :
     return hash(type(self))^hash('%s:%s'%(self._p**self._n,self._polynomial));
 
@@ -560,10 +558,25 @@ Descriptors: p, n, q, [field parameters]
   def __ne__(self,other) :
     return not self is other;
 
-  __le__ = __eq__;
-  __ge__ = __eq__;
-  __lt__ = __lt__;
-  __gt__ = __gt__;
+  def __le__(self,other) :
+    if isffield(other) :
+      return self is other or other is not other._basefield >= self;
+    return NotImplemented;
+
+  def __ge__(self,other) :
+    if isffield(other) :
+      return self is other or self._basefield >= other;
+    return NotImplemented;
+
+  def __lt__(self,other) :
+    if isffield(other) :
+      return not other is other.basefield and self <= other._basefield;
+    return NotImplemented;
+
+  def __gt__(self,other) :
+    if isffield(other) :
+      return not self is other and self._basefield >= other;
+    return NotImplemented;
 
   def __len__(self) :
     """Return p**n, the size of the field"""
@@ -586,9 +599,15 @@ Descriptors: p, n, q, [field parameters]
 
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""
-    return (isinstance(x,self) or isinstance(x,self._subfield) or
-            isint(rint(x)) and abs(x) < self._p or
-            isffield(type(x)) and x._p == self._p and x._x < x._p);
+    x = rint(x);
+    t = type(x);
+    if isffield(t) :
+      if t._p != self._p : return False;
+      while x._x < t._basefield._q < t._q:
+        t = t._basefield;
+      return t <= self;
+    return isint(x) and abs(x) < self._p;
+
 
   def iterpow(self,x=0,alt=False) :
     """Return an iterator of the powers of x, or powers of smallest generator
@@ -618,12 +637,20 @@ Descriptors: p, n, q, [field parameters]
   n = field_n;
   q = field_q;
   basefield = field_basefield;
-  subfield = field_subfield;
 
   @property
   def polynomial(self) :
     """the polynomial modulus"""
     return self._polynomial;
+
+  @property
+  def tupoly(self) :
+    """the elided polynomial modulus"""
+    s = self._polynomial;
+    n = -len(s);
+    for i,c in enumerate(s,n+1) :
+      if i and c : n = i;
+    return s.mapcoeffs(lambda x: x._x)[n-1::-1];
 
   @property
   def order(self) :
@@ -646,4 +673,3 @@ Descriptors: p, n, q, [field parameters]
 
   x = property(foo,foo,foo);
   del foo;
-    

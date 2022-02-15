@@ -64,6 +64,7 @@ def test(p,n) :
 
 def atest(g) :
   otest(g);
+  ctest(g);
   mtest(g);
   ptest(g);
   ltest(g);  
@@ -146,6 +147,20 @@ def ltest(g) :    # log test
         v = v[-1::-1];
         vo = vo[-1::-1];
 
+def ctest(g) :    # comparison and contains tests
+  print('  field comparison and contains tests')
+  ceq('v[0].basefield<=v[0]',g);
+  ceq('v[0]>=v[0].basefield',g);
+  ceq('not v[0].basefield>v[0]',g);
+  ceq('not v[0]<v[0].basefield',g);
+  for i in xrange(g.basefield.q) :
+    gi = g(i);
+    ceq('v[0] in type(v[0]).basefield',gi);
+    ceq('-v[0] in type(v[0]).basefield',gi);
+    ceq('type(v[0]).basefield(v[0])==v[0]',gi);
+  if g.q > g.basefield.q :
+    ceq('not v[0](v[0].basefield.q) in v[0].basefield',g);
+
 def mtest(g) :    # matrix tests
   global z,o
   z,o = g[:2];
@@ -207,10 +222,10 @@ def test1(g,i) :
   ceq('type(v[0])(v[0])==v[0]',gi);
   ceq('type(v[0])(-v[0].x)==-v[0]',gi);
   try :
-    f = g.subfield;
-    ceq('type(v[0])(unpack(type(v[0]).subfield.q,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
-    ceq('type(v[0])(map(lambda x:-x,unpack(type(v[0]).subfield.q,v[0].x)))==-v[0]',gi);
-    ceq('type(v[0])(polynomial(*(unpack(type(v[0]).subfield.q,v[0].x))))==v[0]',gi);
+    f = g.basefield;
+    ceq('type(v[0])(unpack(type(v[0]).basefield.q,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
+    ceq('type(v[0])(map(lambda x:-x,unpack(type(v[0]).basefield.q,v[0].x)))==-v[0]',gi);
+    ceq('type(v[0])(polynomial(*(unpack(type(v[0]).basefield.q,v[0].x))))==v[0]',gi);
   except Exception :
     ceq('type(v[0])(unpack(v[0].p,v[0].x))==v[0]==type(v[0])(v[0].x)',gi);
     ceq('type(v[0])(map(lambda x:-x,unpack(v[0].p,v[0].x)))==-v[0]',gi);

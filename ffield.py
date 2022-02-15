@@ -549,9 +549,7 @@ Instance variables:
         raise ValueError('value must be < %d'%(q));
     self._x = x;
   elif isffield(type(x)) :
-    if x._p != p :
-      raise TypeError('ffield element must have same field characteristic');
-    if x._x < p or isinstance(type(x),ffield) and x._n == n :
+    if x in type(self) :
       self._x = x._x;
     else :
       raise TypeError('ffield element must be in field');
@@ -659,8 +657,16 @@ def __hash__(self) :
 
 def __eq__(self,other) :
   """Test if two elements are equal"""
-  return type(self) == type(other) and self._x == other._x or \
-         0 <= self._x < self._p and self._x == other;
+  x = rint(other);
+  if isint(x) :
+    return 0 <= x < self._p and self._x == x;
+  t = type(x);
+  if isffield(t) :
+    if t._p != self._p or self._x != x._x : return False;
+    while x._x < t._basefield._q < t._q :
+      t = t._basefield;
+    return t <= type(self);
+  return NotImplemented;
 
 def __ne__(self,other) :
   """Test if two elements are unequal"""
@@ -1244,10 +1250,21 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
   def __ne__(self,other) :
     return not self is other;
 
-  __le__ = __eq__;
-  __ge__ = __eq__;
-  __lt__ = __lt__;
-  __gt__ = __gt__;
+  def __le__(self,other) :
+    if isinstance(other,ffield) :
+      return self is other or self is other._basefield;
+    return NotImplemented;
+
+  def __ge__(self,other) :
+    return other <= self;
+
+  def __lt__(self,other) :
+    if isinstance(other,ffield) :
+      return not self is other and self is other._basefield;
+    return NotImplemented;
+
+  def __gt__(self,other) :
+    return other < self;
 
   def __len__(self) :
     """Return p**n, the size of the field"""
@@ -1271,7 +1288,7 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""
     return (isinstance(x,self) or isint(rint(x)) and abs(x) < self._p or
-            isffield(type(x)) and x._p == self._p and x._x < x._p);
+            isffield(type(x)) and type(x)>self and x._x < self._q);
 
   def iterpow(self,x=0,alt=False) :
     """Return an iterator of the powers of x, or powers of smallest generator
