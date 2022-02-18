@@ -1054,7 +1054,7 @@ def _create(p,n,poly,x=None) :
 
 def __reduce__(self) :
   """Return a tuple for pickling"""
-  return (_create,(self._p,self._n,self._poly,self._x));
+  return (_create,type(self).id+(self._x,));
 
 _ffield = {}; # (p,n,poly) -> ffield
 
@@ -1078,7 +1078,7 @@ Instance variables (treat as read-only!):
   _basefield: ffield(_p)
 Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
          __len__, __iter__, __getitem__,  __contains__, iterpow, __reduce__
-Descriptors: p, n, q, poly, fpoly, tupoly, ftupoly,
+Descriptors: p, n, q, poly, fpoly, tupoly, ftupoly, id,
              polynomial [modulus of field], basefield,
              order [of field-{0}], generator [of field-{0}]
 
@@ -1184,9 +1184,9 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
     _tupoly = (1,)+(n+_nzi)*(0,)+tupoly;
     if not isirreducible(_tupoly[1:],p) :
       raise ValueError('Composite poly');
-    x = (p,n,poly);
+    id = (p,n,poly);
     try :
-      return _ffield[x];
+      return _ffield[id];
     except Exception :
       pass;
     d = dict(_p=p, _n=n, _q=q, _poly=poly, _tupoly=_tupoly, _nzi=_nzi,
@@ -1230,7 +1230,7 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
             'GF%d_%s'%(p,zits[poly] if p <= 36 else str(poly)) if n == 1 else
             'GF%d_%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p <= 36 else
             'GF%d_%d_%s'%(p,n,'_'.join(['%d'%(c) for c in tupoly])));
-    _ffield[x] = f = type.__new__(cls,name,(),d);
+    _ffield[id] = f = type.__new__(cls,name,(),d);
     f._basefield = f if f._n == 1 else ffield(f._p);
     return f;
 
@@ -1239,10 +1239,10 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
 
   def __reduce__(self) :
     """Return a tuple for pickling"""
-    return (_create,(self._p,self._n,self._poly));
+    return (_create,self.id);
 
   def __hash__(self) :
-    return hash(type(self))^hash('%s:%s'%(self._p**self._n,self._poly));
+    return hash(type(self))^hash(self.id);
 
   def __eq__(self,other) :
     return self is other;
@@ -1344,6 +1344,11 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
           self.__generator = g;
           return g;
 
+  @property
+  def id(self) :
+    """the ID of the field: (_p,_n,_poly)"""
+    return (self._p,self._n,self._poly);
+
   def foo(self,foo=None) :
     raise AttributeError("type object '%s' has no Attribute 'x'"%(self.__name__));
 
@@ -1390,9 +1395,9 @@ def mpneg(p,f) :
 
 def mpmod(p,f,g) :
   """Return f mod g, polynomials over GF(p)"""
-  r = list(lstrip(f));
   g = lstrip(g);
   if not g : raise ZeroDivisionError;
+  r = list(lstrip(f));
   dr = len(r)-1;
   dg = len(g)-1;
   if dr < dg :
@@ -1411,9 +1416,9 @@ def mpmod(p,f,g) :
 
 def mpdivrem(p,f,g) :
   """Return the quotient and remainder from dividing f by g, polynomials over GF(p)"""
-  r = list(lstrip(f));
   g = lstrip(g);
   if not g : raise ZeroDivisionError;
+  r = list(lstrip(f));
   dr = len(r)-1;
   dg = len(g)-1;
   if dr < dg :

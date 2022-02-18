@@ -2,9 +2,7 @@ from __future__ import division
 
 __all__ = ['ffieldx']
 
-_ffieldx = {};    # indexed by (p,n,m,packedelidedpoly)
-
-from ffield import xrange, ffield, primepower, pack, unpack, rint, isffield, isint, isstr, stradix, zits, factors, minpoly, minpolynomial
+from ffield import xrange, ffield, _ffield, primepower, pack, unpack, rint, isffield, isint, isstr, stradix, zits, factors, minpoly, minpolynomial
 from poly import *
 
 def _x(x) :
@@ -468,11 +466,12 @@ Elements of G are polynomials over GF(p**j) mod poly.
   _q: size of the field (p**n)
   _polynomial: the polynomial modulus, coefficients in _basefield
   _basefield: the subfield of which this field is an extension
+  _poly: the packed polynomial modulus, with leading term elided
 Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
          __len__, __iter__, __getitem__,  __contains__, iterpow, __reduce__
 
 Descriptors: p, n, polynomial [modulus of field extension], basefield,
-             order [of field-{0}], generator [of field-{0}]
+             order [of field-{0}], generator [of field-{0}], id
 
 Signatures:
   ffieldx(poly) : poly an irreducible monic poly with coefficients in some finite field
@@ -501,16 +500,17 @@ Descriptors: p, n, q, [field parameters]
     if d == 1 : return subfield;
     p = subfield.p;
     m = subfield.n;
-    if m == 1 : return ffield(p,d,pack(p,map(_x,poly[d-1::-1])));
+    _poly = pack(subfield._q,map(_x,poly[d-1::-1]));
+    if m == 1 : return ffield(p,d,_poly);
     n = d*m;
     q = p**n;
-    x = (p,n,m,pack(subfield._q,map(_x,poly[d-1::-1])));
+    id = (n,_poly,subfield.id);
     try :
-      return _ffieldx[x];
+      return _ffield[id];
     except Exception :
       pass;
     d = dict(_p=p, _n=n, _q=q, _basefield = subfield, _polynomial = poly,
-             p=field_p, n=field_n, q=field_q,
+             p=field_p, n=field_n, q=field_q, _poly = _poly,
              x=element, tupoly=elementtuple, polynomial=elementpolynomial,
              minpoly=minpoly, minpolynomial=minpolynomial,
              order=element_order,
@@ -546,11 +546,11 @@ Descriptors: p, n, q, [field parameters]
             );
 
     name = ('GF%d_%d_%s:%s'%(p,n,subfield,'_'.join(['%s'%(c) for c in poly.mapcoeffs(_x)])));
-    _ffieldx[x] = f = type.__new__(cls,name,(),d);
+    _ffield[id] = f = type.__new__(cls,name,(),d);
     return f;
 
   def __hash__(self) :
-    return hash(type(self))^hash('%s:%s'%(self._p**self._n,self._polynomial));
+    return hash(type(self))^hash(self.id);
 
   def __eq__(self,other) :
     return self is other;
@@ -667,6 +667,11 @@ Descriptors: p, n, q, [field parameters]
         if g.generator :
           self.__generator = g;
           return g;
+
+  @property
+  def id(self) :
+    """the ID of the field"""
+    return (self._n,self._poly,self._basefield.id);
 
   def foo(self,foo=None) :
     raise AttributeError("type object '%s' has no Attribute 'x'"%(self.__name__));
