@@ -1362,10 +1362,15 @@ def mpmul(p,f,g,m=None) :
   while fg and not fg[0] : fg = fg[1:];
   return tuple(fg) if not m else mpmod(p,fg,m);
 
+def lstrip(f) :
+  for i,x in enumerate(f) :
+    if x : return f[i:] if i else f;
+  return ();
+
 def mpadd(p,f,g) :
   """Return the sum of f and g, polynomials over GF(p)"""
-  while f and not f[0] : f = f[1:];
-  while g and not g[0] : g = g[1:];
+  f = lstrip(f);
+  g = lstrip(g);
   lf = len(f);
   lg = len(g);
   if lf < lg : lf,lg,f,g = lg,lf,g,f;
@@ -1373,27 +1378,20 @@ def mpadd(p,f,g) :
   s = list(f);
   for i in xrange(lg) :
     s[ld+i] = (s[ld+i]+g[i])%p;
-  while s and not s[0] : s = s[1:];
-  return tuple(s);
+  return tuple(lstrip(s));
 
 def mpsub(p,f,g) :
   """Return the difference of f and g, polynomials over GF(p)"""
-  n = mpneg(p,g);
-  return mpadd(p,f,n)
+  return mpadd(p,f,mpneg(p,g));
 
 def mpneg(p,f) :
   """Return the additive inverse of f, a polynomial over GF(p)"""
-  while f and not f[0] : f = f[1:];
-  n = [];
-  for x in f :
-    n.append(-x%p);
-  return tuple(n);
+  return tuple(-x%p for x in lstrip(f));
 
 def mpmod(p,f,g) :
   """Return f mod g, polynomials over GF(p)"""
-  r = list(f);
-  while r and not r[0] : r = r[1:];
-  while g and not g[0] : g = g[1:];
+  r = list(lstrip(f));
+  g = lstrip(g);
   if not g : raise ZeroDivisionError;
   dr = len(r)-1;
   dg = len(g)-1;
@@ -1413,9 +1411,8 @@ def mpmod(p,f,g) :
 
 def mpdivrem(p,f,g) :
   """Return the quotient and remainder from dividing f by g, polynomials over GF(p)"""
-  r = list(f);
-  while r and not r[0] : r = r[1:];
-  while g and not g[0] : g = g[1:];
+  r = list(lstrip(f));
+  g = lstrip(g);
   if not g : raise ZeroDivisionError;
   dr = len(r)-1;
   dg = len(g)-1;
@@ -1448,8 +1445,8 @@ def mppow(p,b,e,m=None) :
 
 def mpgcd(p,f,g) :
   """Return the monic gcd of f and g, all polynomials over GF(p)"""
-  while f and not f[0] : f = f[1:];
-  while g and not g[0] : g = g[1:];
+  f = lstrip(f);
+  g = lstrip(g);
   while g :
     f,g = g, mpmod(p,f,g);
   return mpmul(p,f,(pow(f[0],p-2,p),)) if f and f[0] != 1 else f;
@@ -1458,8 +1455,8 @@ def xmpgcd(p,f,g) :
   """Return the monic gcd d of f and g, together with u,v such that d=uf+vg,
 all polynomials over GF(p); note that g**-1 mod f = xmpgcd(p,f,g)[2]"""
   u0,v0,u1,v1 = (1,),(),(),(1,);
-  while f and not f[0] : f = f[1:];
-  while g and not g[0] : g = g[1:];
+  f = lstrip(f);
+  g = lstrip(g);
   while g :
     q,r = mpdivrem(p,f,g);
     f,g = g,r;
@@ -1613,36 +1610,40 @@ def conwaypoly(q) :
     raise ValueError('Not prime power');
   if p == 2 :
     for g in xrange(1,q,2) :
-      if isirreducible2(g|q) and isprimitive2(g|q) :
+      gq = g|q;
+      if isirreducible2(gq) and isprimitive2(gq) :
         for f in factors(n) :
           m = n//f;
           r = 1<<m;
           d = (q-1)//(r-1);
           c = conwaypoly(r);
+          xd = m2pow(2,d,gq);
           b = 1<<bit_length(c)>>2;
           a = 1;
           while b :
-            a <<= d;
-            if b&c : a |= 1;
+            a = m2mod(m2mul(a,xd),gq);
+            if b&c : a ^= 1;
             b >>= 1;
-          if m2mod(a|(1<<(d*m)),g|q) : break;
+          if m2pow(2,d*m,gq)^a : break;
         else :
           _cpdict[q] = g;
           return g;
   else :
     for g in irreducibleg(p,n) :
       # modify g by negating alternate terms
-      g = tuple(-g[i]%p if i&1 else g[i] for i in range(n+1));
+      g = tuple(-g[i]%p if i&1 else g[i] for i in xrange(n+1));
       if not isprimitive(g[1:],p) : continue;
+      x = (1,0);
       for f in factors(n) :
         m = n//f;
         r = p**m;
         d = (q-1)//(r-1);
         c = unpack(p,conwaypoly(r));
-        gd = [1]+[0]*(d*(m-len(c)))
+        xd = mppow(p,x,d,g);
+        s = [];
         for a in c :
-          gd += [0]*(d-1)+[a];
-        if mpmod(p,gd,g) : break;
+          s = mpadd(p,mpmod(p,mpmul(p,s,xd),g),(a,));
+        if mpadd(p,mppow(p,x,d*m,g),s) : break;
       else :
         _cpdict[q] = c = pack(p,g[1:]);
         return c;

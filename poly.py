@@ -150,7 +150,7 @@ Methods:
     """Create a polynomial from a sequence of coefficients, constant term last"""
     for i,c in enumerate(p) :
       if c :
-        self._p = tuple(c for c in p[i:]);
+        self._p = p[i:];
         return;
     self._p = ();
 
