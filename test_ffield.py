@@ -7,7 +7,7 @@ if sys.version_info>(3,) :
   xrange = range;
 
 from random import Random, randrange, sample
-from itertools import chain
+from itertools import chain, count
 
 from timeit import timeit, default_timer
 
@@ -16,7 +16,7 @@ try :
 except Exception :
   process_time = default_timer;
 
-from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder
+from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder, primes, conwaypoly
 from matrix import *
 from poly import *
 
@@ -429,10 +429,11 @@ Usage: python test_ffield.py [options]
              -x        exclude integer tests
              -z q      max field size to test [default 81 (i.e., 3**4)]
              -r        test ffieldx
+             -c q      print Conway polys up to max field size q with p^4 <= q
              -t        print timing info""");
 
   import sys,getopt
-  opts,args = getopt.gnu_getopt(sys.argv[1:],"hxrtz:");
+  opts,args = getopt.gnu_getopt(sys.argv[1:],"hxrtz:c:");
   optdict = {};
   for pair in opts : optdict[pair[0][1:]]=pair[1];
   if 'h' in optdict :
@@ -454,6 +455,14 @@ Usage: python test_ffield.py [options]
     for g in (ffieldx(polynomial(F4(1),F4(2),F4(1))),
               ffieldx(polynomial(F9(1),F9(4),F9(1)))) :
       atest(g);
+  if 'c' in optdict :
+    print('Conway polynomials')
+    q = int(optdict['c']);
+    for p in primes() :
+      if p**4 >= q : break;
+      for i in count(1) :
+        if p**i > q : break;
+        print(p,i,unpack(p,conwaypoly(p**i)));
   if 't' in optdict :
     for g in (ffield(2,8),ffield(3,5),    # pairs with similar sizes
               ffield(2,9),ffield(23,2),

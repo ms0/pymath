@@ -294,7 +294,7 @@ without the leading coefficient, which is taken to be 1"""
   x = (1,0);
   for r in factors(n) :
     if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
-  return not mpmod(p,mpsub(p,mppow(p,x,q**n,f),x),f);
+  return not mpsub(p,mppow(p,x,q**n,f),x);
 
 # An irreducible polynomial f(x) of degree m over GF(p), where p is prime,
 # is a primitive polynomial iff the smallest positive integer n such that
@@ -424,7 +424,7 @@ def fmerge(*args) :
   return;
 
 def pack(p,a) :
-  """Return the evaluation at x=p of a, a tuple of coefficients ending with the constant term"""
+  """Return the evaluation at x=p of a, an iterable of coefficients, constant last"""
   x = 0;
   for z in a :
     x *= p;
@@ -1355,17 +1355,23 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
   x = property(foo,foo,foo);
   del foo;
 
-def mpmul(p,f,g,m=None) :
-  """Return the product of f and g, polynomials over GF(p), modulo polynomial m"""
-  while f and not f[0] : f = f[1:];
-  while g and not g[0] : g = g[1:];
-  if not f or not g : return ();
+def mpmul(p,f,g,m=None,c=None) :
+  """Return the product of f and g, polynomials over GF(p), modulo polynomial m;
+     if c, add c to the constant term of the product."""
+  f = lstrip(f);
+  g = lstrip(g);
+  if m is not None :
+    m = lstrip(m);
+    if len(m) < 2 :    # constant modulus
+      if m : return ();
+      raise ZeroDivisionError;
+  if not f or not g : return (c,) if c else ();
   fg = (len(f)+len(g)-1)*[0];
   for i in xrange(len(f)) :
     for j in xrange(len(g)) :
       fg[i+j] = (fg[i+j]+f[i]*g[j])%p;
-  while fg and not fg[0] : fg = fg[1:];
-  return tuple(fg) if not m else mpmod(p,fg,m);
+  if c : fg[-1] += c;
+  return mpmod(p,fg,m) if m else tuple(lstrip(fg));
 
 def lstrip(f) :
   for i,x in enumerate(f) :
@@ -1438,6 +1444,11 @@ def mpdivrem(p,f,g) :
 
 def mppow(p,b,e,m=None) :
   """Raise b, a polynomial over GF(p), to the nonnegative integer power e, modulo polynomial m"""
+  if m is not None :
+    m = lstrip(m);
+    if len(m) < 2 :
+      if m : return ();
+      raise ZeroDivisionError;
   if not e : return (1,);
   n = 1 << (bit_length(e)-1) >> 1;
   x = b;
@@ -1647,7 +1658,7 @@ def conwaypoly(q) :
         xd = mppow(p,x,d,g);
         s = [];
         for a in c :
-          s = mpadd(p,mpmod(p,mpmul(p,s,xd),g),(a,));
+          s = mpmul(p,s,xd,g,a);
         if mpadd(p,mppow(p,x,d*m,g),s) : break;
       else :
         _cpdict[q] = c = pack(p,g[1:]);
