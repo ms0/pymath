@@ -496,36 +496,30 @@ Descriptors: p, n, q, [field parameters]
 
   def __new__(cls,poly) :
     i = 0;
-    T = 0;
+    subfield = None;
     for c in poly :
       c = rint(c);
       t = type(c);
       if isint(c) :
         i = max(i,abs(c));
       elif isffield(t) :
-        if not T or t > T : T = t;
-        elif not t <= T :
-          raise TypeError('coeffs must all be in same field');
+        if not subfield or t > subfield : subfield = t;
+        elif not t <= subfield :
+          raise TypeError('all coeffs must be in same field');
       else :
-        T = 0;
-        break;
-    if not T :
-      raise TypeError('coeffs must all be field elements');
-    if i >= T._p :
+        raise TypeError('all coeffs must be field elements');
+    if not subfield :
+      raise TypeError('at least one coeff must be a field element');
+    p = subfield._p;
+    if i >= p :
       raise TypeError('integer coeffs must be in GF(p)')
-    poly = poly.mapcoeffs(T);
-    try :
-      t = poly[-1] == 1 and poly.isirreducible();
-    except Exception :
-      t = False;
-    if not t :
-      raise ValueError('bad poly');
+    poly = poly.mapcoeffs(subfield);
+    if poly[-1] != 1 or not poly.isirreducible() :
+      raise ValueError('poly not monic irreducible');
     d = poly.degree;
-    subfield = type(poly[0]);
     if d == 1 : return subfield;
-    p = subfield.p;
-    m = subfield.n;
     _poly = pack(subfield._q,map(_x,poly[d-1::-1]));
+    m = subfield._n;
     if m == 1 : return ffield(p,d,_poly);
     n = d*m;
     q = p**n;
