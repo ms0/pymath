@@ -9,12 +9,6 @@ def _x(x) :
   """Return _x attribute"""
   return x._x;
 
-def leastfield(x) :
-  """Return the smallest subfield containing field element x"""
-  t = type(x);
-  while t._n > 1 and x in t._basefield : t = t._basefield;
-  return t;
-
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x
 The polynomial can be represented as
@@ -76,9 +70,7 @@ Instance variables:
         raise ValueError('value must be < %d'%(q));
     self._x = x;
   elif isffield(type(x)) :
-    if x._p != p :
-      raise TypeError('ffield element must have same field characteristic');
-    if x in type(self) :
+    if x.leastfield <= type(self) :
       self._x = x._x;
     else :
       raise TypeError('ffield element must be in field');
@@ -152,6 +144,13 @@ def field_basefield(self) :
   return self._basefield;
 
 @property
+def leastfield(x) :
+  """the smallest subfield containing field element x"""
+  t = type(x);
+  while t._n > 1 and x._x < t._basefield._q : t = t._basefield;
+  return t;
+
+@property
 def generates(self) :
   o = self._q-1;
   if self._x <= 1 :
@@ -161,8 +160,8 @@ def generates(self) :
   return True;
 
 def __hash__(self) :
-  return hash(self._basefield(self._x)) if 0 <= self._x < self._basefield._q \
-    else hash(type(self)) ^ hash(self._x);
+  return hash(self._x) if self._x < self._p else \
+    hash(self.leastfield) ^ hash(self._x);
 
 def __eq__(self,other) :
   """Test if two elements are equal"""
@@ -171,10 +170,7 @@ def __eq__(self,other) :
     return 0 <= x < self._p and self._x == x;
   t = type(x);
   if isffield(t) :
-    if t._p != self._p or self._x != x._x: return False;
-    while x._x < t._basefield._q < t._q :
-      t = t._basefield;
-    return t <= type(self);
+    return self._x == x._x and x.leastfield is self.leastfield;
   return NotImplemented;
 
 def __ne__(self,other) :
@@ -489,8 +485,8 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
          __pow__
 
-Descriptors: p, n, q, [field parameters]
-             x, tupoly, polynomial, [element representations]
+Descriptors: [field parameters:] p, n, q;
+             [element representations:] x, tupoly, polynomial; leastfield,
              order [of element], generator [True if element generates]
 """
 
@@ -532,8 +528,7 @@ Descriptors: p, n, q, [field parameters]
              p=field_p, n=field_n, q=field_q, _poly = _poly,
              x=element, tupoly=elementtuple, polynomial=elementpolynomial,
              minpoly=minpoly, minpolynomial=minpolynomial,
-             order=element_order,
-             generator=generates,
+             order=element_order,generator=generates, leastfield=leastfield,
              __init__=__init__,
              __repr__=__repr__,
              __str__=__str__,
@@ -618,15 +613,8 @@ Descriptors: p, n, q, [field parameters]
 
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""
-    x = rint(x);
-    t = type(x);
-    if isffield(t) :
-      if t._p != self._p : return False;
-      while x._x < t._basefield._q < t._q:
-        t = t._basefield;
-      return t <= self;
-    return isint(x) and abs(x) < self._p;
-
+    return isint(rint(x)) and abs(x) < self._p or \
+           isffield(type(x)) and x.leastfield <= self;
 
   def iterpow(self,x=0,alt=False) :
     """Return an iterator of the powers of x, or powers of smallest generator

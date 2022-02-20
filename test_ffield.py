@@ -63,15 +63,15 @@ def test(p,n) :
   atest(g);
 
 def atest(g) :
-  otest(g);
+  print('%r  generator %r'%(g,g.generator));
   ctest(g);
+  otest(g);
   mtest(g);
   ptest(g);
   ltest(g);  
 
 def otest(g) :
   global z,o
-  dotprint('%r'%(g));
   z,o = g[:2];
   p = g.p;
   n = g.n;
@@ -83,7 +83,6 @@ def otest(g) :
       if not g[i] == g[i-q] == g(i) :
         print('indexing failed');
   x = g.generator;
-  print('  generator %r'%(x));
   ceq('isgenerator(v[0])',x);
   if q <= LIMITQ :
     if irreducible_count(p,n) != len(irreducibles(p,n)) :
@@ -155,9 +154,10 @@ def ctest(g) :    # comparison and contains tests
   ceq('not v[0]<v[0].basefield',g);
   for i in xrange(g.basefield.q) :
     gi = g(i);
-    ceq('v[0] in type(v[0]).basefield',gi);
-    ceq('-v[0] in type(v[0]).basefield',gi);
-    ceq('type(v[0]).basefield(v[0])==v[0]',gi);
+    bi = g.basefield(i);
+    ceq('v[0] in type(v[1])',bi,gi);
+    ceq('v[1] in type(v[0])',bi,gi);
+    ceq('type(v[0])(v[1])==type(v[1])(v[0])',bi,gi);
   if g.q > g.basefield.q :
     ceq('not v[0](v[0].basefield.q) in v[0].basefield',g);
 
@@ -452,8 +452,10 @@ Usage: python test_ffield.py [options]
     from rffield import *
     F4 = ffield(4);
     F9 = ffield(9);
-    for g in (ffieldx(polynomial(F4(1),F4(2),F4(1))),
-              ffieldx(polynomial(F9(1),F9(4),F9(1)))) :
+    F16 = ffieldx(polynomial(1,F4(2),1));
+    F81 = ffieldx(polynomial(1,F9(4),1));
+    F256 = ffieldx(polynomial(1,F16(4),1));
+    for g in (F81,F256) :
       atest(g);
   if 'c' in optdict :
     print('Conway polynomials')

@@ -549,7 +549,7 @@ Instance variables:
         raise ValueError('value must be < %d'%(q));
     self._x = x;
   elif isffield(type(x)) :
-    if x in type(self) :
+    if x.leastfield <= type(self) :
       self._x = x._x;
     else :
       raise TypeError('ffield element must be in field');
@@ -644,6 +644,7 @@ def field_basefield(self) :
 
 @property
 def generates(self) :
+  """True iff self is a generator"""
   o = self._q-1;
   if self._x <= 1 :
     return self._x==o;
@@ -651,9 +652,16 @@ def generates(self) :
     if (self**(o//p))._x == 1 : return False;
   return True;
 
+@property
+def leastfield(x) :
+  """the smallest subfield containing field element x"""
+  t = type(x);
+  b = t._basefield;
+  return b if x._x < b._q else t;
+
 def __hash__(self) :
-  return hash(self._x) if 0 <= self._x < self._p else \
-    hash(type(self)) ^ hash(self._x);
+  return hash(self._x) if self._x < self._p else \
+    hash(self.leastfield) ^ hash(self._x);
 
 def __eq__(self,other) :
   """Test if two elements are equal"""
@@ -662,10 +670,7 @@ def __eq__(self,other) :
     return 0 <= x < self._p and self._x == x;
   t = type(x);
   if isffield(t) :
-    if t._p != self._p or self._x != x._x : return False;
-    while x._x < t._basefield._q < t._q :
-      t = t._basefield;
-    return t <= type(self);
+    return self._x == x._x and x.leastfield is self.leastfield;
   return NotImplemented;
 
 def __ne__(self,other) :
@@ -1101,8 +1106,8 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
          __pow__, log, minpoly, minpolynomial
          __reduce__
-Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
-             x, tupoly, polynomial, [element representations]
+Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
+             [element representations:] x, tupoly, polynomial; leastfield
              order [of element], generator [True if element generates]
 """
 
@@ -1194,8 +1199,7 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
              poly=field_poly, fpoly=field_fpoly, ftupoly=field_ftupoly,
              x=element, tupoly=elementtuple, polynomial=elementpolynomial,
              minpoly=minpoly, minpolynomial=minpolynomial,
-             order=element_order,
-             generator=generates,
+             order=element_order, generator=generates, leastfield=leastfield,
              __init__=__init__,
              __repr__=__repr__,
              __str__=__str__,
@@ -1287,8 +1291,8 @@ Descriptors: p, n, q, poly, fpoly, ftupoly, [field parameters]
 
   def __contains__(self,x) :
     """Return True iff x is an element of the field"""
-    return (isinstance(x,self) or isint(rint(x)) and abs(x) < self._p or
-            isffield(type(x)) and type(x)>self and x._x < self._q);
+    return isint(rint(x)) and abs(x) < self._p or \
+           isffield(type(x)) and x.leastfield <= self;
 
   def iterpow(self,x=0,alt=False) :
     """Return an iterator of the powers of x, or powers of smallest generator
