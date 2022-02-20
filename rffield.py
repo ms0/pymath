@@ -9,6 +9,12 @@ def _x(x) :
   """Return _x attribute"""
   return x._x;
 
+def leastfield(x) :
+  """Return the smallest subfield containing field element x"""
+  t = type(x);
+  while t._n > 1 and x in t._basefield : t = t._basefield;
+  return t;
+
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x
 The polynomial can be represented as
@@ -489,6 +495,25 @@ Descriptors: p, n, q, [field parameters]
 """
 
   def __new__(cls,poly) :
+    i = 0;
+    T = 0;
+    for c in poly :
+      c = rint(c);
+      t = type(c);
+      if isint(c) :
+        i = max(i,abs(c));
+      elif isffield(t) :
+        if not T or t > T : T = t;
+        elif not t <= T :
+          raise TypeError('coeffs must all be in same field');
+      else :
+        T = 0;
+        break;
+    if not T :
+      raise TypeError('coeffs must all be field elements');
+    if i >= T._p :
+      raise TypeError('integer coeffs must be in GF(p)')
+    poly = poly.mapcoeffs(T);
     try :
       t = poly[-1] == 1 and poly.isirreducible();
     except Exception :
