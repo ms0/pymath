@@ -89,7 +89,7 @@ def testpgcd(p,q) :   # test gcd and xgcd
     error('p.xgcd(q) disagrees with q.gcd(p): %s, %s'%(xg,xh));
 
 def testmp(F) :    # test minimal polys and isirreducible in ffield F
-  print('%s'%(F));
+  print('%s'%(F.__name__));
   p = F.p;
   n = F.n;
   for k in divisors(n) :
@@ -110,7 +110,7 @@ def testmp(F) :    # test minimal polys and isirreducible in ffield F
         error('isprimitive failed for %r.minpoly(%d)'%(g,k));
 
 def testir(F) :    # test irreducibles
-  dotprint('\n%s '%(F) );
+  dotprint('\n%s '%(F.__name__) );
   for i in range(2,10) :
     if F.q**i > 1000 : break;
     dotprint(zits[i]);
@@ -118,7 +118,7 @@ def testir(F) :    # test irreducibles
       error('len(irreducibles(%d,%d)) incorrect'%(F.q,i));
 
 def factest(F) :
-  dotprint('\n%s '%(F));
+  dotprint('\n%s '%(F.__name__));
   for i in range(FREPEATS) :
     testf(polynomial(*(F(randrange(F.order+1))
                        for j in range(randint(1+MINDEGREE,1+MAXDEGREE)))));
@@ -127,14 +127,14 @@ def factests() :
   GF2 = ffield(2);
   GF3 = ffield(3);
   p = polynomial(1,0,2,2,0,1,1,0,2,2,0,1).mapcoeffs(GF3);
-  dotprint('%s '%(GF3));
+  dotprint('%s '%(GF3.__name__));
   testf(p);
   p = polynomial(GF2(1));  # try product of all irreducible polys mod 2 thru degree 4
   for d in range(1,5) :
     for i in range(2**d) :
       t = tuple(map(int,format(i,'0%db'%(d))));
       if isirreducible(t,2) : p *= polynomial(*(1,)+t).mapcoeffs(GF2);
-  dotprint('  %s '%(GF2));
+  dotprint('  %s '%(GF2.__name__));
   testf(p);
   GF729 = ffield(729);
   GF64 = ffield(64);

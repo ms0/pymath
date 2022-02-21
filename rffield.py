@@ -168,8 +168,7 @@ def __eq__(self,other) :
   x = rint(other);
   if isint(x) :
     return 0 <= x < self._p and self._x == x;
-  t = type(x);
-  if isffield(t) :
+  if isffield(type(x)) :
     return self._x == x._x and x.leastfield is self.leastfield;
   return NotImplemented;
 
@@ -559,7 +558,7 @@ Descriptors: [field parameters:] p, n, q;
 #             __reduce__=__reduce__,
             );
 
-    name = ('GF%d_%d_%s:%s'%(p,n,subfield,'_'.join(['%s'%(c) for c in poly.mapcoeffs(_x)])));
+    name = ('GF%d^%d>%s:%s'%(p,n,subfield.__name__,'_'.join(['%s'%(c) for c in poly.mapcoeffs(_x)])));
     _ffield[id] = f = type.__new__(cls,name,(),d);
     return f;
 

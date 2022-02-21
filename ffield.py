@@ -668,8 +668,7 @@ def __eq__(self,other) :
   x = rint(other);
   if isint(x) :
     return 0 <= x < self._p and self._x == x;
-  t = type(x);
-  if isffield(t) :
+  if isffield(type(x)) :
     return self._x == x._x and x.leastfield is self.leastfield;
   return NotImplemented;
 
@@ -1232,8 +1231,8 @@ Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
 
     name = ('GF%d'%(p) if n == 1 and not tupoly else
             'GF%d_%s'%(p,zits[poly] if p <= 36 else str(poly)) if n == 1 else
-            'GF%d_%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p <= 36 else
-            'GF%d_%d_%s'%(p,n,'_'.join(['%d'%(c) for c in tupoly])));
+            'GF%d^%d_%s'%(p,n,''.join([zits[c] for c in tupoly])) if p <= 36 else
+            'GF%d^%d_%s'%(p,n,'_'.join(['%d'%(c) for c in tupoly])));
     _ffield[id] = f = type.__new__(cls,name,(),d);
     f._basefield = f if f._n == 1 else ffield(f._p);
     return f;

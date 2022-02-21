@@ -21,8 +21,8 @@ from matrix import *
 from poly import *
 
 MAXCHAR = 10;    # limit on characteristics to test
-LIMIT2 = 128;    # limit on ff size for full pair testing
-LIMIT3 = 64;     # limit on ff size for full triple testing
+LIMIT2 = 64;     # limit on ff size for full pair testing
+LIMIT3 = 16;     # limit on ff size for full triple testing
 LIMITM = 16;     # limit on size of vandermonde matrix
 LIMITP = 32;     # limit on number of minpoly test elements
 LIMITQ = 1024;   # limit on size of field for irreducibles testing
@@ -63,7 +63,7 @@ def test(p,n) :
   atest(g);
 
 def atest(g) :
-  print('%r  generator %r'%(g,g.generator));
+  print('%s  generator %s'%(g.__name__,g.generator));
   ctest(g);
   otest(g);
   mtest(g);
@@ -402,8 +402,8 @@ def timing(name,G,stmt,repeats=16,nargs=1) :
   t = timeit(
     stmt=stmt if not '[i]' in stmt else
     'for i in %s(0,%d,%d):%s'%(xrange.__name__,repeats*nargs,nargs,stmt),
-    setup='from ffield import ffield\nfrom test_ffield import R\nG=ffield(%d,%d)\nr=tuple(G(R.randrange(G.q)) for _ in %s(%d))'%(
-      G.q,G.poly,xrange.__name__,repeats*nargs),
+    setup='from ffield import _ffield\nfrom test_ffield import R\nG=_ffield[%s]\nr=tuple(G(R.randrange(G.q)) for _ in %s(%d))'%(
+      G.id,xrange.__name__,repeats*nargs),
     timer=process_time,number=1);
   print('%s\t%s\t%.6f'%(G.__name__,name,t/repeats));
 
@@ -455,8 +455,7 @@ Usage: python test_ffield.py [options]
     F16 = ffieldx(polynomial(1,F4(2),1));
     F81 = ffieldx(polynomial(1,F9(4),1));
     F256 = ffieldx(polynomial(1,F16(4),1));
-    for g in (F81,F256) :
-      atest(g);
+    for g in (F81,F256) : atest(g);
   if 'c' in optdict :
     print('Conway polynomials')
     q = int(optdict['c']);
@@ -473,6 +472,8 @@ Usage: python test_ffield.py [options]
               ffield(2**61-1),
               ffield(2**61)) :
       timetest(g);
+    if 'r' in optdict :
+      for g in (F81,F256) : timetest(g);
 
 # NOTE: we should test whether gcd is faster than exp for computing inverse
 #   We did, and gcd is faster
