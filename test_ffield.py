@@ -26,7 +26,7 @@ LIMIT3 = 16;     # limit on ff size for full triple testing
 LIMITM = 16;     # limit on size of vandermonde matrix
 LIMITP = 32;     # limit on number of minpoly test elements
 LIMITQ = 1024;   # limit on size of field for irreducibles testing
-LIMITL = 512;    # limit on number of log tests
+LIMITL = 256;    # limit on number of log tests (and size of field to be tested)
 
 z,o = 0,1;    # replaced by field elements
 
@@ -66,6 +66,7 @@ def atest(g) :
   print('%s  generator %s'%(g.__name__,g.generator));
   ctest(g);
   otest(g);
+  rtest(g);
   mtest(g);
   ptest(g);
   ltest(g);  
@@ -113,7 +114,7 @@ def otest(g) :
     for i in xrange(LIMIT3) :
       for j in xrange(LIMIT3) :
         for k in xrange(LIMIT3) :
-          test3(g,randrange(q),randrange(q),randrange(q));
+          test3(g(randrange(q)),g(randrange(q)),g(randrange(q)));
       if not i%(LIMIT3//32 or 1) : dotprint();
     print();
 
@@ -208,6 +209,37 @@ def ptest(g) :    # polynomial tests
       if P(x) :
         print('%r not a root of its minpoly(%d)'%(x,m));
 
+def rtest(g) :    # mixed ffields test
+  f = g.basefield;
+  e = f.basefield;
+  if f != g :
+    dotprint('  mixed fields test');
+    if g.q <= LIMIT2 :
+      for i in g :
+        for j in f :
+          test2(i,j);
+        dotprint();
+    else :
+      for n in xrange(LIMIT2) :
+        i = g(randrange(g.q));
+        if f.q <= LIMIT2 :
+          for j in f :
+            test2(i,j);
+        else :
+          for m in xrange(LIMIT2) :
+            j = f(randrange(f.q));
+            test2(i,j);
+        if e != f :
+          if e.q <= LIMIT2 :
+            for j in e :
+              test2(i,j);
+          else :
+            for m in xrange(LIMIT2) :
+              j = e(randrange(e.q));
+              test2(i,j);
+        dotprint();
+    print();
+
 def test1(g,i) :
   global z,o
   z,o = g[:2];
@@ -267,34 +299,27 @@ def test1(g,i) :
       ceq('v[0]**(v[1]*v[2])==(v[0]**v[1])**v[2]',gi,j,k)
   if q <= LIMIT2 :
     for j in xrange(q) :
-      test2(g,i,j);
+      test2(g(i),g(j));
       if q <= LIMIT3 :
         for k in xrange(q) :
-          test3(g,i,j,k);
+          test3(g(i),g(j),g(k));
   else :
     for j in xrange(LIMIT2) :
-      test2(g,i,randrange(q));
+      test2(g(i),g(randrange(q)));
 
-def test2(g,i,j) :    # pair testing
-  gi = g(i);
-  gj = g(j);
-  ceq('v[0]+v[1]==v[1]+v[0]',gi,gj);
-  ceq('v[0]*v[1]==v[1]*v[0]',gi,gj);
-  ceq('v[0]+v[1]-v[0]==v[1]',gi,gj);
-  ceq('v[0]-v[1]+v[1]==v[0]',gi,gj);
-  if gj :
-    ceq('v[0]/v[1]*v[1]==v[0]',gi,gj);
-    ceq('v[0]*v[1]/v[1]==v[0]',gi,gj);
+def test2(i,j) :    # pair testing
+  ceq('v[0]+v[1]==v[1]+v[0]',i,j);
+  ceq('v[0]-v[1]==-(v[1]-v[0])',i,j);
+  ceq('v[0]*v[1]==v[1]*v[0]',i,j);
+  if i and j :
+    ceq('v[0]/v[1]==1/(v[1]/v[0])',i,j);
   for k in xrange(7) :
-    ceq('(v[0]*v[1])**v[2]==v[0]**v[2]*v[1]**v[2]',gi,gj,k);
+    ceq('(v[0]*v[1])**v[2]==v[1]**v[2]*v[0]**v[2]',i,j,k);
 
-def test3(g,i,j,k) :    # triple testing
-  gi = g(i);
-  gj = g(j);
-  gk = g(k);
-  ceq('(v[0]+v[1])+v[2]==v[0]+(v[1]+v[2])',gi,gj,gk);
-  ceq('(v[0]*v[1])*v[2]==v[0]*(v[1]*v[2])',gi,gj,gk);
-  ceq('v[0]*(v[1]+v[2])==v[0]*v[1]+v[0]*v[2]',gi,gj,gk);
+def test3(i,j,k) :    # triple testing
+  ceq('(v[0]+v[1])+v[2]==v[0]+(v[1]+v[2])',i,j,k);
+  ceq('(v[0]*v[1])*v[2]==v[0]*(v[1]*v[2])',i,j,k);
+  ceq('v[0]*(v[1]+v[2])==v[0]*v[1]+v[0]*v[2]',i,j,k);
 
 def isgenerator(x) :
   # order of the group is p**n-1, and it's cyclic

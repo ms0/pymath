@@ -152,9 +152,9 @@ def leastfield(x) :
 
 @property
 def generates(self) :
+  if self._x < self._basefield._q :
+    return False;
   o = self._q-1;
-  if self._x <= 1 :
-    return self._x==o;
   for p in factors(o) :
     if (self**(o//p))._x == 1 : return False;
   return True;
@@ -191,26 +191,18 @@ def __int__(self) :
   raise TypeError("can't convert %s element to integer"%(type(self)));
 
 def __str__(self) :
-  """Return a string representing the polynomial representation of the finite field element
-If n = 1, return the value as a decimal integer, the polynomial evaluated at x=p
-Otherwise, return the coefficients in sequence ending with the constant term;
-if p <= 36, each coefficient is a zit; else each is a decimal integer, period separated"""
-  x = self._x;
-  n = self._n;
-  p = self._p;
-  if n == 1 : return '%d'%(x);
-  return stradix(x,p,n);
+  """Return a string representing the polynomial representation of the finite field element:
+the coefficients' basefield representations in sequence ending with the constant term"""
+  return stradix(self._x,self._p,self._n);
 
 def __repr__(self) :
   """Return a string representing the polynomial representation of the finite field element
-The string begins with the characterisitic of the field as a decimal integer and is followed
-by an underscore and the __str__ representation"""
+in the form p^n_s, where p^n is the order of the basefield and s = str(self)""" 
   return str(self._p)+'^'+str(self._basefield._n)+'_'+str(self);
 
 def __add__(self,other) :
   """Return the sum of the two finite field elements; integers are treated mod p"""
   p = self._p;
-  n = self._n;
   x = self._x;
   if type(other) != type(self) :
     if isffield(type(other)) and other._p == p :
@@ -228,17 +220,14 @@ def __add__(self,other) :
   if not y : return self;
   if p == 2 :
     return type(self)(x^y);
-  if n == 1 :
-    return type(self)((x+y)%p);
-  a = [];
-  for i in xrange(n) :
-    a.append((x+y)%p);
-    x //= p;
-    y //= p;
   s = 0;
-  for c in reversed(a) :
-    s *= p;
-    s += c;
+  P = 1;
+  while True :
+    x,u = divmod(x,p);
+    y,v = divmod(y,p);
+    s += (u+v)%p*P;
+    if not (x or y) : break;
+    P *= p;
   return type(self)(s);
 
 def __pos__(self) :
@@ -250,22 +239,18 @@ def __neg__(self) :
   x = self._x;
   if not x : return self;
   p = self._p;
-  n = self._n;
   if p == 2 : return self;
-  if n == 1 : return type(self)(-x%p);
-  a = [];
+  P = 1;
+  y = -x;
   while x :
-    a.append(-x%p);
-    x //= p;
-  for c in reversed(a) :
-    x *= p;
-    x += c;
-  return type(self)(x);
+    P *= p;
+    x,r = divmod(x,p);
+    if r : y += P;
+  return type(self)(y);
 
 def __sub__(self,other) :
   """Return the difference of the two finite field elements; integers are treated mod p"""
   p = self._p;
-  n = self._n;
   x = self._x;
   if type(other) != type(self) :
     if isffield(type(other)) and other._p == p :
@@ -282,15 +267,14 @@ def __sub__(self,other) :
   y = other._x;
   if not y : return self;
   if p == 2 : return type(self)(x^y);
-  a = [];
-  for i in xrange(n) :
-    a.append((x-y)%p);
-    x //= p;
-    y //= p;
   s = 0;
-  for c in reversed(a) :
-    s *= p;
-    s += c;
+  P = 1;
+  while True :
+    x,u = divmod(x,p);
+    y,v = divmod(y,p);
+    s += (u-v)%p*P;
+    if not (x or y) : break;
+    P *= p;
   return type(self)(s);
 
 def __rsub__(self,y) :
@@ -312,7 +296,6 @@ def __mul__(self,y) :
   """Return the product of the two finite field elements; integers are treated mod p"""
   p = self._p;
   x = self._x;
-  n = self._n;
   if type(y) != type(self) :
     if isffield(type(y)) and y._p == p :
       s = self._basefield;
@@ -329,14 +312,13 @@ def __mul__(self,y) :
       y %= p;
       if not y : return type(self)(0);
       if y == 1 : return self;
-      a = [];
-      for i in xrange(n) :
-        a.append(x*y%p);
-        x //= p;
       s = 0;
-      for c in reversed(a) :
-        s *= p;
-        s += c;
+      P = 1;
+      while True :
+        x,r = divmod(x,p);
+        s += r*y%p*P;
+        if not x : break;
+        P *= p;
       return type(self)(s);
     else : return NotImplemented;
   s = self._basefield;
@@ -351,7 +333,6 @@ def __div__(self,y) :
   if not y : raise ZeroDivisionError;
   p = self._p;
   x = self._x;
-  n = self._n;
   if type(y) != type(self) :
     if isffield(type(y)) and y._p == p :
       if y._n == 1 :
@@ -363,14 +344,13 @@ def __div__(self,y) :
       y %= p;
       if y == 1 : return self;
       d = pow(y,p-2,p);
-      a = [];
-      for i in xrange(n) :
-        a.append(x*d%p);
-        x //= p;
       s = 0;
-      for c in reversed(a) :
-        s *= p;
-        s += c;
+      P = 1;
+      while True :
+        x,r = divmod(x,p);
+        s += r*d%p*P;
+        if not x : break;
+        P *= p;
       return type(self)(s);
     else : return NotImplemented;
   yx = y._x;
@@ -416,7 +396,6 @@ def __pow__(self,e) :
     if e : raise ZeroDivisionError;
     return self+1;
   p = self._p;
-  n = self._n;
   o = self._q-1;
   e %= o;
   if e == 0:
@@ -669,7 +648,8 @@ Descriptors: [field parameters:] p, n, q;
     try :
       return self.__generator;
     except AttributeError :
-      for g in self :
+      for x in xrange(self._basefield._q,self._q) :
+        g = self(x);
         if g.generator :
           self.__generator = g;
           return g;

@@ -695,11 +695,8 @@ def __str__(self) :
 If n = 1, return the value as a decimal integer, the polynomial evaluated at x=p
 Otherwise, return the coefficients in sequence ending with the constant term;
 if p <= 36, each coefficient is a zit; else each is a decimal integer, period separated"""
-  x = self._x;
-  n = self._n;
-  p = self._p;
-  if n == 1 : return '%d'%(x);
-  return stradix(x,p,n);
+  if self._n == 1 : return '%d'%(self._x);
+  return stradix(self._x,self._p,self._n);
 
 def __repr__(self) :
   """Return a string representing the polynomial representation of the finite field element
@@ -710,11 +707,10 @@ by an underscore and the __str__ representation"""
 def __add__(self,other) :
   """Return the sum of the two finite field elements; integers are treated mod p"""
   p = self._p;
-  n = self._n;
   x = self._x;
   if type(other) != type(self) :
     if isffield(type(other)) and other._p == p :
-      if n == 1 :
+      if self._n == 1 :
         return other+x;
       if other._n == 1 :
         other = other._x;
@@ -729,17 +725,16 @@ def __add__(self,other) :
   if not y : return self;
   if p == 2 :
     return type(self)(x^y);
-  if n == 1 :
+  if self._n == 1 :
     return type(self)((x+y)%p);
-  a = [];
-  for i in xrange(n) :
-    a.append((x+y)%p);
-    x //= p;
-    y //= p;
   s = 0;
-  for c in reversed(a) :
-    s *= p;
-    s += c;
+  P = 1;
+  while True :
+    x,u = divmod(x,p);
+    y,v = divmod(y,p);
+    s += (u+v)%p*P;
+    if not (x or y) : break;
+    P *= p;
   return type(self)(s);
 
 def __pos__(self) :
@@ -751,26 +746,23 @@ def __neg__(self) :
   x = self._x;
   if not x : return self;
   p = self._p;
-  n = self._n;
   if p == 2 : return self;
-  if n == 1 : return type(self)(-x%p);
-  a = [];
+  if self._n == 1 : return type(self)(p-x);
+  P = 1;
+  y = -x;
   while x :
-    a.append(-x%p);
-    x //= p;
-  for c in reversed(a) :
-    x *= p;
-    x += c;
-  return type(self)(x);
+    P *= p;
+    x,r = divmod(x,p);
+    if r : y += P;
+  return type(self)(y);
 
 def __sub__(self,other) :
   """Return the difference of the two finite field elements; integers are treated mod p"""
   p = self._p;
-  n = self._n;
   x = self._x;
   if type(other) != type(self) :
     if isffield(type(other)) and other._p == p :
-      if n == 1 :
+      if self._n == 1 :
         return x-other;
       if other._n == 1 :
         other = other._x;
@@ -785,16 +777,15 @@ def __sub__(self,other) :
   y = other._x;
   if not y : return self;
   if p == 2 : return type(self)(x^y);
-  if n == 1 : return type(self)((x-y)%p);
-  a = [];
-  for i in xrange(n) :
-    a.append((x-y)%p);
-    x //= p;
-    y //= p;
+  if self._n == 1 : return type(self)((x-y)%p);
   s = 0;
-  for c in reversed(a) :
-    s *= p;
-    s += c;
+  P = 1;
+  while True :
+    x,u = divmod(x,p);
+    y,v = divmod(y,p);
+    s += (u-v)%p*P;
+    if not (x or y) : break;
+    P *= p;
   return type(self)(s);
 
 def __rsub__(self,y) :
@@ -812,10 +803,9 @@ def __div__(self,y) :
   """Return the quotient of the two finite field elements; integers are treated mod p"""
   p = self._p;
   x = self._x;
-  n = self._n;
   if type(y) != type(self) :
     if isffield(type(y)) and y._p == p :
-      if n == 1 :
+      if self._n == 1 :
         return x/y;
       if y._n == 1 :
         y = y._x;
@@ -825,14 +815,13 @@ def __div__(self,y) :
       if not y : raise ZeroDivisionError;
       if y == 1 : return self;
       d = pow(y,p-2,p);
-      a = [];
-      for i in xrange(n) :
-        a.append(x*d%p);
-        x //= p;
       s = 0;
-      for c in reversed(a) :
-        s *= p;
-        s += c;
+      P = 1;
+      while True :
+        x,r = divmod(x,p);
+        s += r*d%p*P;
+        if not x : break;
+        P *= p;
       return type(self)(s);
     else : return NotImplemented;
   yx = y._x;
@@ -865,10 +854,9 @@ def __mul__(self,y) :
   """Return the product of the two finite field elements; integers are treated mod p"""
   p = self._p;
   x = self._x;
-  n = self._n;
   if type(y) != type(self) :
     if isffield(type(y)) and y._p == p :
-      if n == 1 :
+      if self._n == 1 :
         return y*x;
       if y._n == 1 :
         y = y._x;
@@ -877,25 +865,23 @@ def __mul__(self,y) :
       y %= p;
       if not y : return type(self)(0);
       if y == 1 : return self;
-      a = [];
-      for i in xrange(n) :
-        a.append(x*y%p);
-        x //= p;
       s = 0;
-      for c in reversed(a) :
-        s *= p;
-        s += c;
+      P = 1;
+      while True :
+        x,r = divmod(x,p);
+        s += r*y%p*P;
+        if not x : break;
+        P *= p;
       return type(self)(s);
     else : return NotImplemented;
-  if n == 1 :
+  if self._n == 1 :
     return type(self)(x*y._x%p);
   if p == 2 :
     y = y._x;
     g = self._poly;
     xy = 0;
-    M = 1<<(n-1);
+    m = M = 1<<(self._n-1);
     N = M-1
-    m = M;
     while m :
       xy = ((xy&N)<<1)^g if xy&M else xy<<1;
       if y&m : xy ^= x;
@@ -914,7 +900,6 @@ def __pow__(self,e) :
     if e : raise ZeroDivisionError;
     return self+1;
   p = self._p;
-  n = self._n;
   o = self._q-1;
   e %= o;
   if e == 0:
@@ -928,7 +913,7 @@ def __pow__(self,e) :
   elif p == 2 :
     g = self._poly;
     f = self._q | g;
-    M = 1<<(n-1);
+    M = 1<<(self._n-1);
     N = M-1;
     n = 1<<(bit_length(e)-2);
     b = x;
