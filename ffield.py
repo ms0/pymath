@@ -1,7 +1,7 @@
 """ finite field classes """
 from __future__ import division
 
-__all__ = ['ffield']
+__all__ = ['ffield','ffieldx','conwaypoly']
 
 import sys
 
@@ -11,7 +11,7 @@ random.seed();
 from itertools import chain, count
 from matrix import matrix, product
 from rational import root, rational
-import poly as pn
+from poly import polynomial
 
 if sys.version_info>(3,) :
   unicode = str;
@@ -45,451 +45,7 @@ else :
       yield start;
       start += step;
 
-def isffield(t) :
-  """Return True iff t is a finite field"""
-  if not isinstance(t,type) : return False;
-  try :
-    t._basefield;
-    return isint(t._q);
-  except Exception :
-    return False;
-
-try :
-  int.bit_length;
-  bit_length = lambda n : n.bit_length();
-except Exception :
-  import math
-  def bit_length(n) :
-    n = abs(n);
-    b = 0;
-    while n :
-      try :
-        l = int(math.log(n,2));
-        while n >> l : l += 1;
-      except OverflowError :
-        l = sys.float_info.max_exp-1;
-      b += l
-      n >>= l;
-    return b;
-
-def bit_count(n) :
-  """Return number of 1 bits in |n|"""
-  return bin(n).count('1');
-
-def bit_reverse(n) :    # empirically faster in all practical cases
-  """Return bit-reversed non-negative integer"""
-  return int(bin(n)[-1:1:-1],2);
-
-def bump_bits(n) :
-  """Return the next larger int with the same bit_count (for positive n)"""
-  o = n&-n;  # rightmost 1
-  n += o;    # carries to next 0
-  n |= ((n&-n)-o)>>bit_length(o);  # restore remaining bits as LSBs
-  return n;
-
-def rint(x) :
-  """If x is a rational integer, return x.numerator, else, return x"""
-  return x.numerator if isinstance(x,rational) and abs(x.denominator)==1 else x;
-
-def modpow(b,x,p) :    # b**x mod p
-  """Compute b**x%p"""
-  if not x : return 1;
-  n = (1 << (bit_length(x)-1)) >> 1;
-  e = b%p;
-  while n :
-    e *= e;
-    e %= p;
-    if x&n :
-      e *= b;
-      e %= p;
-    n >>= 1;
-  return e;
-
-primalitytestlimit = 1<<24;    # limit for looking for (odd) divisor
-# beyond this limit, use Miller-Rabin or Lucas-Lehmer
-
-try :
-  from math import gcd
-except Exception :
-  def gcd(x,y) :
-    """Return the [nonnegative] greatest common divisor of x and y"""
-    while y :
-      x,y = y, x%y;
-    return abs(x);
-
-pr210 = (2,3,5,7,11,13);    # primes < sqrt(2*3*5*7)
-isp210 = tuple(    # primality of integers in range(2*3*5*7)
-  i in pr210 or i > pr210[-1] and all(i%p for p in pr210) for i in xrange(210));
-op210 = pr210[1:] + tuple(    # odd primes < 2*3*5*7
-  i for i in xrange(pr210[-1]+1,210) if isp210[i]);
-isZ210 = tuple(gcd(i,210)==1 for i in xrange(210));    # relative primality mod 2*3*5*7
-Z210 = tuple(i for i in xrange(210) if isZ210[i]);    # relative primes mod 2*3*5*7
-
-def oplist(m) :    # odd primes < 2*3*5*7 then larger ints relatively prime to 2*3*5*7
-  for i in op210 : yield i;
-  for i in xrange(210,m,210) if m else count(210,210):    # give up after m
-    for p in Z210 : yield i+p;
-
-def oplist11(m) : # oplist, but starting at 11
-  for i in op210[3:] : yield i;
-  for i in xrange(210,m,210) if m else count(210,210):    # give up after m
-    for d in Z210 : yield i+d;
-
-def primes(start=2,stop=None) :
-  """Generator for primes"""
-  if stop is None :
-    if start <= 2 :
-      yield 2;
-      for p in op210: yield p;
-      for i in count(210,210) :
-        for d in Z210 :
-          p = i+d;
-          if isprime(p) : yield p;
-    else :
-      z = start-start%210;
-      if z :
-        for d in Z210 :
-          p = z+d;
-          if start <= p and isprime(p) : yield p;
-      else :
-        for p in op210:
-          if start <= p : yield p;
-      for i in count(z+210,210) :
-        for d in Z210 :
-          p = i+d;
-          if isprime(p) : yield p;
-  elif start < stop :
-    if start <= 2 < stop :
-      yield 2;
-    z = start-start%210;    # initial tranche
-    t = stop-stop%210;      # final tranche
-    if not z :    # start in [0,210)
-      if t :
-        for p in op210 :
-          if start <= p : yield p;
-      else :    # start and end in [0,210)
-        for p in op210 :
-          if p >= stop : return;
-          if start <= p : yield p;
-        return;
-    else :    # start from 210 or greater
-      if z < t :
-        for d in Z210 :
-          p = z+d;
-          if start <= p and isprime(p) : yield p;
-      else :    # start and end in same tranche
-        for d in Z210 :
-          p = z+d;
-          if p >= stop : return;
-          if start <= p and isprime(p) : yield p;
-        return;
-    for i in xrange(z+210,t,210) :    # full tranches
-      for d in Z210 :
-        p = i+d;
-        if isprime(p) : yield p;
-    for d in Z210 :    # final tranche
-      p = t+d;
-      if p >= stop : return;
-      if isprime(p) : yield p;
-  
-def isprime(n) :
-  """Test if n is prime, if no "small" factors,
-use probabilistic Miller-Rabin test or Lucas-Lehmer test when applicable"""
-  n = rint(n);
-  if n < 210 : return isp210[n];
-  if not isZ210[n%210] : return False;
-  if n&(n+1) :    # not Mersenne number
-    if (n-1)&(n-2):    # not Fermat number
-      d = oplist11(primalitytestlimit);    # general primality test
-    else :
-      e = bit_length(n)-1;    # n = 2**e+1 [Fermat?]
-      if e&(e-1) : return False;    # e not power of 2
-      return pow(3,n>>1,n)==n-1;    # Pepin's test
-    for p in d :
-      q,r = divmod(n,p);
-      if not r : return False;
-      if q <= p : return True;
-    # Miller Rabin test :
-    c = n-1;
-    b = bit_length(c&-c)-1;
-    c >>= b;    # n-1 = 2**b * c
-    for i in xrange(100) :
-      a = random.randrange(2,n-1);
-      e = pow(a,c,n);
-      if e == 1 : continue;
-      for i in xrange(b) :
-        if e == n-1 : break;
-        e = pow(e,2,n);
-        if e == 1 : return False;
-      else :
-        return False;    # didn't get to -1
-    return True;
-  e = bit_length(n);    # n = 2**e-1 [Mersenne?]
-  if not isprime(e) : return False;    # e not prime
-  for i in xrange(2*e+1,primalitytestlimit,2*e) :
-    # prime factors must be 2ke+1 and +-1 mod 8
-    if (i+1)&7 > 2 or not isZ210[i%210]: continue;
-    q,r = divmod(n,i);
-    if not r: return False;
-    if q <= i : return True;
-  # Lucas-Lehmer test :
-  c = 4;
-  for i in xrange(e-2) :
-    c = (c*c-2)%n;
-  return not c;
-
-bigp = 53;    # "big" prime
-lps = set(primes(2,bigp));    # "little" primes
-plps = product(lps);   # product of "little" primes
-
-def primepower(q) :
-  """Return (p,n) if q == p**n, else None"""
-  g = gcd(plps,q);
-  if g != 1 :
-    if not g in lps : return None;
-    if g == 2 :
-      c = bit_length(q&-q)-1;
-      q >>= c;
-      return (2,c) if q==1 else None;
-    for c in count(1) :
-      q,r = divmod(q,g);
-      if r : return None;
-      if q == 1 : return (g,c);
-  x = 1;
-  for p in primes() :
-    while True :
-      if bigp**p > q : return (q,x) if isprime(q) else None;
-      r = root(q,p);
-      if r**p != q : break;
-      x *= p;
-      q = r;
-
-# test for irreducibility [Rabin]
-# let p be our prime, and n our exponent
-# let q1, q2,..., qk be all the distinct prime divisors of n, in ascending order
-# let f be a monic polynomial in Fp[x] of degree n
-# for j = 1 thru k
-#   nj = n/qj
-# for i = 1 thru k
-#   h = x**p**ni - x mod f
-#   g = gcd(f,h)
-#   if g != 1, f is reducible
-# g = x**p**n - x mod f
-# if g != 0 f is reducible
-# else f is irreducible
-
-def isirreducible(poly,q) :  # missing leading coefficient assumed to be 1
-  """Run the deterministic Rabin test to see if poly is irreducible over GF(q);
-q must be a positive power of a prime p; poly is represented as a tuple of
-integer coefficients interpreted mod p, ending with the constant term, but
-without the leading coefficient, which is taken to be 1"""
-  p = primepower(q);
-  if not p : raise ValueError('q must be a power of a prime');
-  p,k = p;
-  n = len(poly);
-  if n <= 1 : return n==1;
-  if not poly[-1] : return False;
-  f = (1,)+poly;
-  if p == 2 : return isirreducible2(pack(2,f),k);
-  x = (1,0);
-  for r in factors(n) :
-    if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
-  return not mpsub(p,mppow(p,x,q**n,f),x);
-
-# An irreducible polynomial f(x) of degree m over GF(p), where p is prime,
-# is a primitive polynomial iff the smallest positive integer n such that
-# f(x) | x^n - 1 is n = p^m - 1.
-
-def isprimitive(g,p) :
-  """Return True iff monic irreducible g is a primitive polynomial over GF(p);
-  g is represented as a tuple or list of integers mod p without the leading 1"""
-  n = len(g);
-  if p == 2 : return isprimitive2((1<<n)|pack(2,g));
-  q = primepower(p);
-  if not q : raise ValueError('p must be a prime');    # but allow prime power
-  if q[1] != 1 or not g[-1] : return False;
-  if n == 1 and g[0] == p-1 : return False;    # x-1
-  o = p**n-1;
-  # simple algorithm:
-  #   for f in factors(o) :
-  #     d = (1,)*(o//f);    # (x**(o//f)-1)/(x-1)
-  #     if not mpmod(p,d,g) : return False;
-  #   return True;
-  # this instead tests all factors at once and with little memory:
-  d = [1]*(2*n);    # we concatenate 1s as we divide
-  i = 0;    # index (in d) of first nonzero coefficient
-  for _ in xrange(o//2-n) :    # implicitly check through o//2
-    q = d[i];    # leading coefficient of dividend
-    for j in xrange(n) :    # compute remainder so far
-      d[j] = (d[i+j+1]-q*g[j])%p;
-    for i in xrange(n) :
-      if d[i] : break;    # new leading coefficient
-    else :
-      return False;    # remainder was 0, so g divides x**m-1 for m < p**n-1
-  return True;    
-
-def factors(n,maxfactor=None) :
-  """Return the prime factors of n in increasing order as a generator"""
-  for p in factor(n,maxfactor) : yield p[0];
-
-def factor(n,maxfactor=None) :
-  """Return prime factorization of n as generator of (prime,exponent) pairs"""
-  n = abs(n);
-  if n <= 1 :
-    return;
-  if not n & 1:
-    c = bit_length(n&-n)-1;
-    n >>= c;
-    yield (2,c);
-  if n > primalitytestlimit and isprime(n) :
-    yield (n,1);
-    return;
-  d = oplist(maxfactor);
-  if not n&(n+1) :
-    if n == 1 : return;
-    e = bit_length(n);    # 2**e-1
-    if isprime(e) :
-      d = xrange(2*e+1,maxfactor,2*e) if maxfactor else count(2*e+1,2*e);
-    else :
-      f = tuple(factor(e));
-      g = [];
-      for q,k in f :
-        if len(f) == 1 : k-=1;
-        x = (1<<(q**k))-1;
-        g.append(x);
-        n //= x;
-      g.append(n);
-      for p in fmerge(*map(factor,g)) : yield p;
-      return;
-  elif not (n-1)&(n-2) :
-    e = bit_length(n)-1; # 2**e+1    
-    if not e&(e-1) :  # e = 2**k
-      d = xrange(4*e+1,maxfactor,4*e) if maxfactor else count(4*e+1,4*e);
-    else :
-      x = (1<<(1<<(bit_length(e&-e)-1)))+1;
-      for p in fmerge(factor(x),factor(n//x)) : yield p;
-      return;
-  for p in d :
-    if p*p > n :
-      if n > 1 : yield (n,1);
-      return;
-    c = 0;
-    while not n % p :
-      n //= p;
-      c += 1;
-    if c :
-      yield (p,c);
-      if n > primalitytestlimit and isprime(n) :
-        yield (n,1);
-        return;
-  if n > 1 : yield (n,1);
-
-def unfactor(q) :
-  """Given sequence of (base,exponent) pairs, return product"""
-  p = 1;
-  for (n,c) in q : p *= n**c;
-  return p;
-
-def nufactor(n,maxfactor=None) :
-  """Return factorization of n so unfactor returns n"""
-  if n <= 0 :
-    yield (n and -1,1);
-  for x in factor(n,maxfactor) : yield x;    # yield from factor(n,maxfactor)
-  
-def fmerge(*args) :
-  """Merge factor generators into a single one"""
-  d = dict();
-  for a in args :
-    try :
-      d[a] = next(a);
-    except StopIteration :
-      pass;
-  while d :
-    f = sorted(d.items(),key=lambda x:x[1][0]);
-    p,k = f[0][1];
-    for i,j in enumerate(f[1:],1) :
-      if j[1][0] == p :
-        k += j[1][1];
-      else:
-        break;
-    else :
-      i = len(f);
-    yield (p,k);
-    for j in xrange(i) :
-      x = f[j][0];
-      try :
-        d[x] = next(x);
-      except StopIteration :
-        del d[x];
-  return;
-
-def pack(p,a) :
-  """Return the evaluation at x=p of a, an iterable of coefficients, constant last"""
-  x = 0;
-  for z in a :
-    x *= p;
-    x += z;
-  return x;
-
-def unpack(p,x) :
-  """Return the tuple of coefficients of the polynomial over GF(p) that evaluates to |x| at p"""
-  x = abs(x);
-  a = [];
-  while x :
-    a.append(x%p);
-    x //= p;
-  return tuple(reversed(a));
-
-zits='0123456789abcdefghijklmnopqrstuvwxyz';
-
-def stradix(x,r=16,n=0) :
-  """Return a string representing integer x in radix r
-     use alphanumeric zits if r < 37, else use dot-separated decimal zits
-     if length of string is less than n, pad on left with 0s to length n"""
-  a = [];
-  while True :
-    a.append(x%r);
-    x //= r;
-    n -= 1;
-    if n<=0 and not x: break;
-  a.reverse();
-  if r > 36 :
-    return '.'.join(map(lambda x:'%d'%(x),a));
-  return ''.join(map(lambda x: zits[x],a));
-
-def radstix(s,r=None) :
-  """Return an integer represented by the string
-     If r is not specified, the string must be of the form
-       radix_------- where radix is a 1-or-more-digit base ten number and
-       each - is an alphanumeric zit; but if radix is > 36, then
-       radix_-.-.-.- where each - is a 1-or-more-digit base ten number;
-     If r is specified, it is used as the radix, and
-     'radix_' may be omitted but is ignored if present"""
-  a = s.split('_');
-  if r is None :
-    if len(a) != 2 :
-      raise ValueError('incorrect format');
-    r = int(a[0]);
-    a = a[1];
-  else :
-    if not 1 <= len(a) <= 2 :
-      raise ValueError('incorrect format');
-    a = a[-1];
-  if r < 2 :
-    raise ValueError('radix must be at least 2');
-  x = 0;
-  if r > 36 :
-    for z in map(int,a.split('.')) :
-      if not 0 <= z < r : raise ValueError('non zit encountered');
-      x = r*x+z;
-  else :
-    for c in a :
-      try :
-        z = zits.index(c);
-      except ValueError :
-        raise ValueError('non zit encountered');
-      x = r*x+z;
-  return x;
+from numbers import isffield, bit_length, bit_reverse, bump_bits, rint, factors, primepower, isirreducible, isirreducible2, irreducibleg, isprimitive, isprimitive2, zits, stradix, mpadd, mpmul, mppow, xmpgcd, m2mul, m2sq, m2pow, m2mod, xm2gcd, pack, unpack
 
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x
@@ -572,18 +128,18 @@ Instance variables:
 
 @property
 def element(self) :
-  """the field element's polynomial representation evaluated at p"""
+  """the field element's representation"""
   return self._x;
 
 @property
 def elementtuple(self) :
   """the field element's polynomial representation as a tuple"""
-  return unpack(self._p,self._x);
+  return unpack(self._basefield._q,self._x);
 
 @property
 def elementpolynomial(self) :
   """the field element's polynomial representation"""
-  return pn.polynomial(*unpack(self._p,self._x)).mapcoeffs(self._basefield);
+  return polynomial(*unpack(self._basefield._q,self._x)).mapcoeffs(self._basefield);
 
 @property
 def field_p(self) :
@@ -639,7 +195,7 @@ def field_nzi(self) :
 
 @property
 def field_basefield(self) :
-  """the field's base field GF(p)"""
+  """the field's base field"""
   return self._basefield;
 
 @property
@@ -658,6 +214,21 @@ def leastfield(x) :
   t = type(x);
   b = t._basefield;
   return b if x._x < b._q else t;
+
+@property
+def dfield(self) :
+  """Return a superfield with self as _basefield and _n = 2*self._n"""
+  t = 2*self._n;
+  for i in _ffield.keys() :
+    if i[0] == t and i[2] == self.id : return _ffield[i];
+  q = self._q;
+  o = self(1);
+  while True :
+    poly = polynomial(o,self(random.randrange(q)),self(random.randrange(1,q)));
+    try :
+      return ffieldx(poly);
+    except Exception :
+      continue;
 
 def __hash__(self) :
   return hash(self._x) if self._x < self._p else \
@@ -965,7 +536,7 @@ def minpolynomial(self,m=1) :
   """Return, as a polynomial with coeffs in the subfield GF(self._p**m),
 the minimal polynomial of self over the subfield.
 Raise an exception if m does not divide self._n."""
-  return pn.polynomial(*minpoly(self,m));
+  return polynomial(*minpoly(self,m));
 
 def minpoly(self,m=1) :
   """Return, as a tuple of elements of the subfield GF(self._p**m),
@@ -1254,6 +825,11 @@ Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
   def __gt__(self,other) :
     return other < self;
 
+  def __bool__(self) :
+    return True;
+
+  __nonzero__ = __bool__
+
   def __len__(self) :
     """Return p**n, the size of the field"""
     return self._q;
@@ -1270,7 +846,7 @@ Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
         return self(key%q);
       raise IndexError('index out of range');
     elif isinstance(key,slice) :
-      return tuple(self(i) for i in range(*key.indices(self._q)));
+      return tuple(self(i) for i in xrange(*key.indices(self._q)));
     raise IndexError('index must be integer or slice');
 
   def __contains__(self,x) :
@@ -1314,7 +890,7 @@ Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
   @property
   def polynomial(self) :
     """the polynomial modulus"""
-    return pn.polynomial(*self._tupoly).mapcoeffs(self._basefield);
+    return polynomial(*self._tupoly).mapcoeffs(self._basefield);
 
   @property
   def order(self) :
@@ -1343,256 +919,560 @@ Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
   x = property(foo,foo,foo);
   del foo;
 
-def mpmul(p,f,g,m=None,c=None) :
-  """Return the product of f and g, polynomials over GF(p), modulo polynomial m;
-     if c, add c to the constant term of the product."""
-  f = lstrip(f);
-  g = lstrip(g);
-  if m is not None :
-    m = lstrip(m);
-    if len(m) < 2 :    # constant modulus
-      if m : return ();
-      raise ZeroDivisionError;
-  if not f or not g : return (c,) if c else ();
-  fg = (len(f)+len(g)-1)*[0];
-  for i in xrange(len(f)) :
-    for j in xrange(len(g)) :
-      fg[i+j] = (fg[i+j]+f[i]*g[j])%p;
-  if c : fg[-1] += c;
-  return mpmod(p,fg,m) if m else tuple(lstrip(fg));
+  dfield = dfield;
 
-def lstrip(f) :
-  for i,x in enumerate(f) :
-    if x : return f[i:] if i else f;
-  return ();
+def _x(x) :
+  """Return _x attribute"""
+  return x._x;
 
-def mpadd(p,f,g) :
-  """Return the sum of f and g, polynomials over GF(p)"""
-  f = lstrip(f);
-  g = lstrip(g);
-  lf = len(f);
-  lg = len(g);
-  if lf < lg : lf,lg,f,g = lg,lf,g,f;
-  ld = lf-lg;
-  s = list(f);
-  for i in xrange(lg) :
-    s[ld+i] = (s[ld+i]+g[i])%p;
-  return tuple(lstrip(s));
-
-def mpsub(p,f,g) :
-  """Return the difference of f and g, polynomials over GF(p)"""
-  return mpadd(p,f,mpneg(p,g));
-
-def mpneg(p,f) :
-  """Return the additive inverse of f, a polynomial over GF(p)"""
-  return tuple(-x%p for x in lstrip(f));
-
-def mpmod(p,f,g) :
-  """Return f mod g, polynomials over GF(p)"""
-  g = lstrip(g);
-  if not g : raise ZeroDivisionError;
-  r = list(lstrip(f));
-  dr = len(r)-1;
-  dg = len(g)-1;
-  if dr < dg :
-    return tuple(r);
-  ig = pow(g[0],p-2,p);
-  for i in xrange(dr+1-dg) :
-    if r[i] :
-      q = r[i]*ig%p;
-      for j in xrange(1,dg+1) :
-        r[i+j] = (r[i+j]-q*g[j])%p;
-  for i in xrange(dr+1-dg,dr+1) :
-    if r[i] : break;
+def r__init__(self,x) :
+  """Create a finite field element given its polynomial representation, x
+The polynomial can be represented as
+  a polynomial with coefficients each a representation of a subfield element
+  an integer with absolute value < q = p**n :
+    if nonnegative, x is the packed value
+    if negative, -x is the representation of the negative of the field element
+  if p <= 36, a string of at most n zits, each having a value < p;
+    the string is stripped and converted to lower case before evaluation;
+    zit values are their positions in '0123456789abcdefghijklmnopqrstuvwxyz'
+    The result is converted as a base p number, resulting in x.
+  an iterable of subfield elements and/or integers, with abs value of integers < basefield.q
+    each integer must have absvalue < basefield.q and if negative represents the
+    negative of the subfield element that is represented by its absolute value
+    
+Instance variables:
+  _p: the characterisitic of the field (inherited from the type)
+  _n: the degree of the polynomial modulus (inherited from the type)
+  _x: the packed polynomial representation"""
+  p = self._p;
+  n = self._n;
+  q = self._q;
+  s = self._basefield;
+  r = s._q;
+  try :
+    x = x(r);
+  except Exception :
+    pass;
+  if isint(x) :
+    if -q < x < q :
+      if x < 0 :
+        if p == 2 :
+          x = -x;
+        elif x > -p :
+          x += p;
+        else :
+          x = -x;
+          a = [];
+          while x :
+            a.append(-x%p);
+            x //= p;
+          for c in reversed(a) :
+            x *= p;
+            x += c;
+      self._x = x;
+    else :
+      raise ValueError('absolute value must be < %d'%(q));
+  elif isstr(x) :
+    if p > 36 :    # string not acceptable if p > 36
+      raise TypeError('string not acceptable for basefield.q > 36');
+    s = x.strip().lower();
+    x = 0;
+    for c in s :
+      try :
+        x = x*p + zits[:p].index(c);    # will raise ValueError if illegal
+      except ValueError :
+        raise ValueError('zits in string must be in "%s"'%(zits[:p]));
+      if x > q :
+        raise ValueError('value must be < %d'%(q));
+    self._x = x;
+  elif isffield(type(x)) :
+    if x.leastfield <= type(self) :
+      self._x = x._x;
+    else :
+      raise TypeError('ffield element must be in field');
   else :
-    return ();
-  return tuple(r[i:]);
+    try :
+      c = iter(x);
+    except Exception :
+      raise TypeError('uninterpretable arg');
+    x = 0;
+    for i in c :
+      i = rint(i);
+      if isint(i) :
+        if -r < i < r :
+          i = -s(-i) if i<0 else s(i);
+        else :
+          raise TypeError('iterable elements must be elements of subfield');
+      if isffield(type(i)) :
+        if not i in self._basefield :
+          raise TypeError('iterable elements must be elements of subfield');
+        i = i._x;
+      x = x*r+i;
+      if x >= q :
+        raise ValueError('value must be < %d'%(q));
+    self._x = x;
 
-def mpdivrem(p,f,g) :
-  """Return the quotient and remainder from dividing f by g, polynomials over GF(p)"""
-  g = lstrip(g);
-  if not g : raise ZeroDivisionError;
-  r = list(lstrip(f));
-  dr = len(r)-1;
-  dg = len(g)-1;
-  if dr < dg :
-    return (),tuple(r);
-  ig = pow(g[0],p-2,p);
-  q = [];
-  for i in xrange(dr+1-dg) :
-    q.append(r[i]*ig%p);
-    if q[-1] :
-      for j in xrange(1,dg+1) :
-        r[i+j] = (r[i+j]-q[-1]*g[j])%p;
-  for i in xrange(dr+1-dg,dr+1) :
-    if r[i] : break;
-  else :
-    return tuple(q),();
-  return tuple(q),tuple(r[i:]);
+@property
+def rleastfield(x) :
+  """the smallest subfield containing field element x"""
+  t = type(x);
+  while t._n > 1 and x._x < t._basefield._q : t = t._basefield;
+  return t;
 
-def mppow(p,b,e,m=None) :
-  """Raise b, a polynomial over GF(p), to the nonnegative integer power e, modulo polynomial m"""
-  if m is not None :
-    m = lstrip(m);
-    if len(m) < 2 :
-      if m : return ();
-      raise ZeroDivisionError;
-  if not e : return (1,);
-  n = 1 << (bit_length(e)-1) >> 1;
-  x = b;
-  while n :
-    x = mpmul(p,x,x,m);
-    if e&n :
-      x = mpmul(p,x,b,m);
-    n >>= 1;
-  return x;
-
-def mpgcd(p,f,g) :
-  """Return the monic gcd of f and g, all polynomials over GF(p)"""
-  f = lstrip(f);
-  g = lstrip(g);
-  while g :
-    f,g = g, mpmod(p,f,g);
-  return mpmul(p,f,(pow(f[0],p-2,p),)) if f and f[0] != 1 else f;
-
-def xmpgcd(p,f,g) :
-  """Return the monic gcd d of f and g, together with u,v such that d=uf+vg,
-all polynomials over GF(p); note that g**-1 mod f = xmpgcd(p,f,g)[2]"""
-  u0,v0,u1,v1 = (1,),(),(),(1,);
-  f = lstrip(f);
-  g = lstrip(g);
-  while g :
-    q,r = mpdivrem(p,f,g);
-    f,g = g,r;
-    u0,v0,u1,v1 = u1,v1,mpsub(p,u0,mpmul(p,q,u1)),mpsub(p,v0,mpmul(p,q,v1));
-  if f and f[0] != 1:
-    q = (pow(f[0],p-2,p),);
-    f = mpmul(p,f,q);
-    u0 = mpmul(p,u0,q);
-    v0 = mpmul(p,v0,q);
-  return f,u0,v0;
-
-def m2neg(a) :
-  """Return the additive inverse of a (which is a), a packed GF(2) polynomial"""
-  return a;
-
-def m2add(a,b) :
-  """Return the sum (same as difference) of a and b, packed GF(2) polynomials"""
-  return a^b;
-
-m2sub = m2add;
-
-def m2mul(a,b,m=0) :
-  """Return the product of a and b, packed GF(2) polynomials, mod m"""
-  if not a or not b : return 0;
-  p = 0;
-  if m :
-    M = 1<<(bit_length(m)-1);    # hi order bit of m
-    g = M^m;
-    M >>= 1;
-    N = M-1;
-    m = M;
-    while m :
-      p = ((p&N)<<1)^g if p&M else p<<1;
-      if b&m : p ^= a;
-      m >>= 1;
-    return p;
-  while b :
-    if b&1 : p ^= a;
-    b >>= 1;
-    a <<= 1;
-  return p;
-
-def m2sq(a,m=0) :
-  """Return the square of a, a packed GF(2) polynomial, mod m"""
-  p = int(bin(a)[2:],4);
-  return m2mod(p,m) if m else p;
-
-def m2mod(a,b) :
-  """Return a mod b, packed GF(2) polynomials"""
-  if not b : raise ZeroDivisionError;
-  lb = bit_length(b);
-  while True :
-    la = bit_length(a);
-    if la < lb : break;
-    d = la-lb;
-    a ^= b<<d;
-  return a;
-
-def m2divrem(a,b) :
-  """Return the quotient and remainder from dividing a by b, packed GF(2) polynomials"""
-  if not b : raise ZeroDivisionError;
-  c = 0;
-  lb = bit_length(b);
-  while True :
-    la = bit_length(a);
-    if la < lb : break;
-    d = la-lb;
-    a ^= b<<d;
-    c |= 1<<d;
-  return c,a;
-
-def m2gcd(a,b) :
-  """Return the gcd of a and b, packed GF(2) polynomials"""
-  while b :
-    a,b = b,m2mod(a,b);
-  return a;
-
-def xm2gcd(a,b) :
-  """Return the gcd of a and b, together with u,v such that d=uf+vg,
-all packed GF(2) polynomials; not that b**-1 mod a = xm2gcd(a,b)[2]"""
-  u0,v0,u1,v1 = 1,0,0,1;
-  while b :
-    q,r = m2divrem(a,b);
-    a,b = b,r;
-    u0,v0,u1,v1 = u1,v1,u0^m2mul(q,u1),v0^m2mul(q,v1);
-  return a,u0,v0;
-
-def m2pow(b,e,m=0) :
-  """Raise b, a packed GF(2) polynomial, to the nonnegative integer power e, mod m"""
-  if not e : return 1;
-  n = 1 << (bit_length(e)-1);
-  x = b;
-  n >>= 1;
-  while n :
-    x = m2sq(x,m);
-    if e&n :
-      x = m2mul(x,b,m);
-    n >>= 1;
-  return x;
-
-def isirreducible2(p,k=1) :
-  """Return True iff p, a packed GF(2) polynomial, is irreducible over GF(2**k)"""
-  n = bit_length(p)-1;
-  if n <= 1 : return n==1;
-  if not (p&1 and bit_count(p)&1) : return False;
-  for r in factors(n) :
-    if m2gcd(p,m2pow(2,1<<(n//r*k),p)^2) != 1 : return False;
-  return not m2mod(m2pow(2,1<<(n*k),p)^2,p);
-
-def isprimitive2(g) :
-  """Return True iff packed GF(2) irreducible polynomial g is primitive"""
-  if not g&1 : return False;
-  n = bit_length(g)-1;
-  o = (1<<n)-1;
-  # simple algorithm:
-  # for f in factors(o) :
-  #   d = (1<<(o//f))|1;
-  #   if not m2mod(d,g) : return False;
-  #  return True;
-  # this instead tests all factors at once and with fewer bits:
-  for f in factors(o) :    # if o == 1, there are no factors; x+1 is primitive
-    if f==o : break;    # o is prime; g is primitive
-    d = 0;
-    k = n+1;
-    c = o//f-n;
-    while c > 0:
-      d = ((d<<k)|((1<<k)-1))^g;
-      if not d : return False;    # g divides x**m-1 for m < 2**n-1
-      k = n+1-bit_length(d);
-      c -= k;
-    break;    # we've tried the smallest factor, so all of them in passing
+@property
+def rgenerates(self) :
+  if self._x < self._basefield._q :
+    return False;
+  o = self._q-1;
+  for p in factors(o) :
+    if (self**(o//p))._x == 1 : return False;
   return True;
+
+def r__str__(self) :
+  """Return a string representing the polynomial representation of the finite field element:
+the coefficients' basefield representations in sequence ending with the constant term"""
+  return stradix(self._x,self._p,self._n);
+
+def r__repr__(self) :
+  """Return a string representing the polynomial representation of the finite field element
+in the form p^n_s, where p^n is the order of the basefield and s = str(self)""" 
+  return str(self._p)+'^'+str(self._basefield._n)+'_'+str(self);
+
+def r__add__(self,other) :
+  """Return the sum of the two finite field elements; integers are treated mod p"""
+  p = self._p;
+  x = self._x;
+  if type(other) != type(self) :
+    if isffield(type(other)) and other._p == p :
+      if other._n == 1 :
+        other = other._x;
+    other = rint(other);
+    if isint(other) :
+      if p == 2 :
+        return type(self)(x^1) if other&1 else self;
+      other %= p;
+      return type(self)(x-x%p+(x+other)%p) if other else self;
+    elif other not in self._basefield :
+      return NotImplemented;
+  y = other._x;
+  if not y : return self;
+  if p == 2 :
+    return type(self)(x^y);
+  s = 0;
+  P = 1;
+  while True :
+    x,u = divmod(x,p);
+    y,v = divmod(y,p);
+    s += (u+v)%p*P;
+    if not (x or y) : break;
+    P *= p;
+  return type(self)(s);
+
+def r__sub__(self,other) :
+  """Return the difference of the two finite field elements; integers are treated mod p"""
+  p = self._p;
+  x = self._x;
+  if type(other) != type(self) :
+    if isffield(type(other)) and other._p == p :
+      if other._n == 1 :
+        other = other._x;
+    other = rint(other);
+    if isint(other) :
+      if p == 2 :
+        return type(self)(x^1) if other&1 else self;
+      other %= p;
+      return type(self)(x-x%p+(x-other)%p) if other else self;
+    elif other not in self._basefield :
+      return NotImplemented;
+  y = other._x;
+  if not y : return self;
+  if p == 2 : return type(self)(x^y);
+  s = 0;
+  P = 1;
+  while True :
+    x,u = divmod(x,p);
+    y,v = divmod(y,p);
+    s += (u-v)%p*P;
+    if not (x or y) : break;
+    P *= p;
+  return type(self)(s);
+
+def r__rsub__(self,y) :
+  """Return the difference of the swapped finite field elements; integers are treated mod p"""
+  p = self._p;
+  y = rint(y);
+  if not isint(y) :
+    if y in self._basefield :
+      if p == 2 :
+        return type(self)(self._x^y._x) if y._x else self;
+      return type(self)(y)-self if y else -self;
+    return NotImplemented;
+  if p == 2 :
+    return type(self)(self._x^1) if y&1 else self;
+  y %= p;
+  return type(self)(y)-self if y else -self;
+
+def r__mul__(self,y) :
+  """Return the product of the two finite field elements; integers are treated mod p"""
+  p = self._p;
+  x = self._x;
+  if type(y) != type(self) :
+    if isffield(type(y)) and y._p == p :
+      s = self._basefield;
+      if y in s :
+        if y._n == 1 :
+          y = y._x;
+        else :
+          y = s(y._x);
+          f = lambda x: (s(x)*y)._x;
+          q = s._q;
+          return type(self)(pack(q,map(f,unpack(q,x))));
+    y = rint(y);
+    if isint(y) :
+      y %= p;
+      if not y : return type(self)(0);
+      if y == 1 : return self;
+      s = 0;
+      P = 1;
+      while True :
+        x,r = divmod(x,p);
+        s += r*y%p*P;
+        if not x : break;
+        P *= p;
+      return type(self)(s);
+    else : return NotImplemented;
+  s = self._basefield;
+  q = s._q;
+  xt = polynomial(*map(s,unpack(q,x)));
+  yt = polynomial(*map(s,unpack(q,y._x)));
+  zt = (xt*yt)%self._polynomial;
+  return type(self)(pack(q,map(_x,zt[::-1])));
+
+def r__div__(self,y) :
+  """Return the quotient of the two finite field elements; integers are treated mod p"""
+  if not y : raise ZeroDivisionError;
+  p = self._p;
+  x = self._x;
+  if type(y) != type(self) :
+    if isffield(type(y)) and y._p == p :
+      if y._n == 1 :
+        y = y._x;
+      elif y in self._basefield :
+        return self*(1/y);
+    y = rint(y);
+    if isint(y) :
+      y %= p;
+      if y == 1 : return self;
+      d = pow(y,p-2,p);
+      s = 0;
+      P = 1;
+      while True :
+        x,r = divmod(x,p);
+        s += r*d%p*P;
+        if not x : break;
+        P *= p;
+      return type(self)(s);
+    else : return NotImplemented;
+  yx = y._x;
+  if yx < p : return self/yx;
+  s = self._basefield;
+  q = s._q;
+  yt = polynomial(*map(s,unpack(q,yx)));
+  return self*type(self)(pack(q,map(_x,self._polynomial.xgcd(yt)[2][::-1])));
+
+def r__rdiv__(self,y) :    # y/self
+  """Return y/self; y must be in subfield, or an integer interpreted mod p"""
+  if not self : raise ZeroDivisionError;
+  p = self._p;
+  y = rint(y);
+  if not isint(y) :
+    if y in self._basefield :
+      return 1/self*y;
+    else :
+      return NotImplemented;
+  x = self._x;
+  y %= p;
+  if not y :
+    z = 0;
+  elif x < p :
+    z = y*pow(x,p-2,p)%p;
+  else :
+    s = self._basefield;
+    q = s._q;
+    xt = polynomial(*map(s,unpack(q,x)));
+    z = 0;
+    for i in unpack(p,pack(q,map(_x,self._polynomial.xgcd(xt)[2][::-1]))) :
+      z = p*z+i*y%p;
+  return type(self)(z);
+
+def r__pow__(self,e) :
+  """Raise the finite field element to the specified power mod p**n-1, 0**0=0"""
+  e = rint(e);
+  if not isint(e) :
+    raise TypeError('power must be integer');
+  x = self._x;
+  if x <= 1 :
+    if x or e > 0 : return self;
+    if e : raise ZeroDivisionError;
+    return self+1;
+  p = self._p;
+  o = self._q-1;
+  e %= o;
+  if e == 0:
+    x = 1;
+  elif e == 1 :
+    return self;
+  elif x < p :
+    x = pow(x,e,p);
+  elif o-e <= o//8 :
+    return 1/self**(o-e);
+  else :
+    s = self._basefield;
+    q = s._q;
+    xt = polynomial(*map(s,unpack(q,x)));
+    x = pack(q,map(_x,xt.__pow__(e,self._polynomial)[::-1]));
+  return type(self)(x);
+
+class ffieldx(type) :
+  """Class to create finite field extension class.
+The finite field G is defined by a degree k>1 irreducible polynomial (poly) with
+coefficients in a finite field F. Elements of G are represented by tuples of
+k elements of F. If len(F) = p**j, then each element of F can be represented as
+a nonegative integer < p**j, and each element of G can be represented as a
+nonnegative integer < p**(j*k), the evaluation of the polynomial at p**k when
+treating each coefficient as its integer representation.
+Elements of G are polynomials over GF(p**j) mod poly.
+  _p: characteristic (a prime)
+  _n: dimension (giving the field p**n elements) (j*k)
+  _q: size of the field (p**n)
+  _polynomial: the polynomial modulus, coefficients in _basefield
+  _basefield: the subfield of which this field is an extension
+  _poly: the packed polynomial modulus, with leading term elided
+Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
+         __len__, __iter__, __getitem__,  __contains__, iterpow, __reduce__
+
+Descriptors: p, n, polynomial [modulus of field extension], basefield,
+             order [of field-{0}], generator [of field-{0}], id
+
+Signatures:
+  ffieldx(poly) : poly an irreducible monic poly with coefficients in some finite field
+
+Methods: __init__, __hash__, __repr__, __str__, __int__,
+         __pos__, __neg__,
+         __bool__, __nonzero__, __eq__, __ne__, __lt__, __gt__, __le__, __ge__
+         __add__, __radd__, __sub__, __rsub__,
+         __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
+         __pow__
+
+Descriptors: [field parameters:] p, n, q;
+             [element representations:] x, tupoly, polynomial; leastfield,
+             order [of element], generator [True if element generates]
+"""
+
+  def __new__(cls,poly) :
+    i = 0;
+    subfield = None;
+    for c in poly :
+      c = rint(c);
+      t = type(c);
+      if isint(c) :
+        i = max(i,abs(c));
+      elif isffield(t) :
+        if not subfield or t > subfield : subfield = t;
+        elif not t <= subfield :
+          raise TypeError('all coeffs must be in same field');
+      else :
+        raise TypeError('all coeffs must be field elements');
+    if not subfield :
+      raise TypeError('at least one coeff must be a field element');
+    p = subfield._p;
+    if i >= p :
+      raise TypeError('integer coeffs must be in GF(p)')
+    poly = poly.mapcoeffs(subfield);
+    if poly[-1] != 1 or not poly.isirreducible() :
+      raise ValueError('poly not monic irreducible');
+    d = poly.degree;
+    if d == 1 : return subfield;
+    _poly = pack(subfield._q,map(_x,poly[d-1::-1]));
+    m = subfield._n;
+    if m == 1 : return ffield(p,d,_poly);
+    n = d*m;
+    q = p**n;
+    id = (n,_poly,subfield.id);
+    try :
+      return _ffield[id];
+    except Exception :
+      pass;
+    d = dict(_p=p, _n=n, _q=q, _basefield = subfield, _polynomial = poly,
+             p=field_p, n=field_n, q=field_q, _poly = _poly,
+             x=element, tupoly=elementtuple, polynomial=elementpolynomial,
+             minpoly=minpoly, minpolynomial=minpolynomial,
+             order=element_order,generator=rgenerates, leastfield=rleastfield,
+             __init__=r__init__,
+             __repr__=r__repr__,
+             __str__=r__str__,
+             __int__=__int__,
+             __hash__=__hash__,
+             __eq__=__eq__,
+             __ne__=__ne__,
+             __lt__=__lt__,
+             __le__=__le__,
+             __gt__=__gt__,
+             __ge__=__ge__,
+             __bool__ = __bool__,
+             __nonzero__=__nonzero__,
+             __neg__=__neg__,
+             __pos__=__pos__,
+             __add__=r__add__,
+             __radd__=r__add__,
+             __sub__=r__sub__,
+             __rsub__=r__rsub__,
+             __mul__=r__mul__,
+             __rmul__=r__mul__,
+             __div__=r__div__,
+             __truediv__=r__div__,
+             __rdiv__=r__rdiv__,
+             __rtruediv__=r__rdiv__,
+             __pow__=r__pow__,
+             log = _log,
+#             __reduce__=__reduce__,
+            );
+
+    name = ('GF%d^%d>%s:%s'%(p,n,subfield.__name__,'_'.join(['%s'%(c) for c in poly.mapcoeffs(_x)])));
+    _ffield[id] = f = type.__new__(cls,name,(),d);
+    return f;
+
+  def __hash__(self) :
+    return hash(type(self))^hash(self.id);
+
+  def __eq__(self,other) :
+    return self is other;
+  
+  def __ne__(self,other) :
+    return not self is other;
+
+  def __le__(self,other) :
+    if isffield(other) :
+      return self is other or other is not other._basefield >= self;
+    return NotImplemented;
+
+  def __ge__(self,other) :
+    if isffield(other) :
+      return self is other or self._basefield >= other;
+    return NotImplemented;
+
+  def __lt__(self,other) :
+    if isffield(other) :
+      return not other is other.basefield and self <= other._basefield;
+    return NotImplemented;
+
+  def __gt__(self,other) :
+    if isffield(other) :
+      return not self is other and self._basefield >= other;
+    return NotImplemented;
+
+  def __bool__(self) :
+    return True;
+
+  __nonzero__ = __bool__
+
+  def __len__(self) :
+    """Return p**n, the size of the field"""
+    return self._q;
+
+  def __iter__(self) :
+    """Return an iterator for the elements of the field"""
+    return (self(x) for x in xrange(self._q));
+
+  def __getitem__(self,key) :
+    """Return tuple(self)[key]"""
+    if isint(key) :
+      q = self._q;
+      if -q <= key < q :
+        return self(key%q);
+      raise IndexError('index out of range');
+    elif isinstance(key,slice) :
+      return tuple(self(i) for i in xrange(*key.indices(self._q)));
+    raise IndexError('index must be integer or slice');
+
+  def __contains__(self,x) :
+    """Return True iff x is an element of the field"""
+    return isint(rint(x)) and abs(x) < self._p or \
+           isffield(type(x)) and x.leastfield <= self;
+
+  def iterpow(self,x=0,alt=False) :
+    """Return an iterator of the powers of x, or powers of smallest generator
+       power sequence: 0,1,2,..., or, if alt, 0,1,-1,2,-2,..."""
+    if not x :
+      x = self.generator;
+    if alt :
+      def g(f) :
+        e = x;
+        y = 1/x;
+        while True :
+          yield f;
+          if e._x == f._x : break;
+          yield e;
+          e *= x;
+          if e._x == f._x : break;
+          f *= y;
+    else :
+      def g(e) :
+        while True :
+          yield e;
+          e *= x;
+          if e._x <= 1 : break;
+    return g(self(1));
+
+  p = field_p;
+  n = field_n;
+  q = field_q;
+  basefield = field_basefield;
+
+  @property
+  def polynomial(self) :
+    """the polynomial modulus"""
+    return self._polynomial;
+
+  @property
+  def tupoly(self) :
+    """the elided polynomial modulus"""
+    s = self._polynomial;
+    n = -len(s);
+    for i,c in enumerate(s,n+1) :
+      if i and c : n = i;
+    return s.mapcoeffs(lambda x: x._x)[n-1::-1];
+
+  @property
+  def order(self) :
+    """p**n-1, the multiplicative order of the field"""
+    return self._q-1;
+
+  @property
+  def generator(self) :
+    """the "smallest" generator of the field"""
+    try :
+      return self.__generator;
+    except AttributeError :
+      for x in xrange(self._basefield._q,self._q) :
+        g = self(x);
+        if g.generator :
+          self.__generator = g;
+          return g;
+
+  @property
+  def id(self) :
+    """the ID of the field"""
+    return (self._n,self._poly,self._basefield.id);
+
+  def foo(self,foo=None) :
+    raise AttributeError("type object '%s' has no Attribute 'x'"%(self.__name__));
+
+  x = property(foo,foo,foo);
+  del foo;
+
+  dfield = dfield;
+
 
 """The Conway polynomial for q = p^n is the "least" degree n primitive GF(p) polynomial
 g_{q} such that if n/m is a prime, g_{q}(x) | g_{p^m}(x^((p^n-1)/(p^m-1))}.
@@ -1652,159 +1532,3 @@ def conwaypoly(q) :
         _cpdict[q] = c = pack(p,g[1:]);
         return c;
   raise SystemError('Did not find Conway polynomial');
-
-def mu(n) :
-  """Return the Mobius function of n"""
-  if not isint(n) or n < 1 :
-    raise ValueError('n must be a positive integer');
-  if n <= 1 :
-    return 1;
-  m = 1;
-  if not n&1 :
-    if not n&2 : return 0;
-    n >>= 1;
-    m = -1;
-  if n > primalitytestlimit and isprime(n) : return -m;
-  p = 3;
-  while n > 1 :
-    if p*p > n :
-      return -m;
-    if not n % p :
-      n //= p;
-      if not n % p : return 0;
-      m = -m;
-      if n > primalitytestlimit and isprime(n) : return -m;
-    p += 2;
-  return m;
-
-def irreducible_count(q,n) :
-  """Return the number of monic irreducible degree n polynomials over GF(q)"""
-  if not primepower(q) : raise ValueError('q must be a power of a prime');
-  s = 0;
-  for d in xrange(1,n+1) :
-    if not n%d :
-      s += q**d * mu(n//d);
-  return s//n;
-
-def irreducibles(q,n) :
-  """Return a tuple of all monic irreducible degree n polynomials over GF(q)
-  whose coefficients lie in GF(p), where q = p**k, as tuples of integers.
-  All monic irreducible degree n polynomials over GF(q): poly.irreducibles"""
-  return tuple(irreducibleg(q,n));
-
-def irreducibleg(q,n) :
-  """Generate lexicographically as tuples of nonnegative integers < p,
-  all monic irreducible degree n polynomials over GF(q)
-  whose coefficients lie in GF(p), where q = p**k.
-  All monic irreducible degree n polynomials over GF(q): poly.irreducibleg"""
-  p = primepower(q);
-  if not p : raise ValueError('q must be a power of a prime');
-  p = p[0];
-  for i in xrange(p**n) :
-    poly = [];
-    j = i;
-    for k in xrange(n) :
-      poly.append(j%p);
-      j //= p;
-    poly = tuple(reversed(poly));
-    if isirreducible(poly,q) : yield (1,)+poly;
-
-def phi(n) :
-  """Return the Euler totient function of n"""
-  if not n : return 0;
-  p = 1;
-  for n,c in factor(n) :
-    p *= (n-1)*n**(c-1);
-  return p;
-
-def sigma(n) :
-  """Return the sum of the positive divisors of n"""
-  if not n : return 0;
-  p = 1;
-  for n,c in factor(n) :
-    p *= (n**(c+1)-1)//(n-1);
-  return p;
-
-def lam(n) :
-  """Return the reduced totient function of n"""
-  if not n : return 0;
-  p = 1;
-  for n,c in factor(n) :
-    x = (n-1)*n**(c-1) if n&1 or c < 3 else 1<<(c-2);
-    p *= x//gcd(x,p);
-  return p;
-
-def numdivisors(n) :
-  """Return the number of positive divisors of n"""
-  if not n: return 0;
-  p = 1;
-  for n,c in factor(n) :
-    p *= c+1;
-  return p;
-
-def divisors(n) :
-  """Return the positive divisors of n as a generator"""
-  if not n : return;
-  yield 1;
-  f = [];
-  t = [];
-  for a in factor(n) :
-    f.append(a);
-    t.append(1);
-    z = 0;
-    while z < len(f) :
-      p = 1;
-      for i,x in enumerate(f) :
-        p *= x[0]**t[i];
-      yield p;
-      while z < len(f) :
-        t[z] += 1;
-        if t[z] <= f[z][1] :
-          z = 0;
-          break;
-        t[z] = 0;
-        z += 1;
-
-def lcm(x,y) :
-  """Return the [positive] least common multiple of x and y"""
-  return abs(x//(gcd(x,y) or 1)*y);
-
-def lcma(*args) :
-  """Return the [positive] least common multiple of all the arguments"""
-  m = 1;
-  for a in args :
-    try :
-      m *= a//(gcd(m,a) or 1);
-    except Exception :
-      for i in a :
-        m *= i//(gcd(m,i) or 1);
-  return abs(m);
-
-def gcda(*args) :
-  """Return the [nonnegative] greatest common divisor of all the arguments"""
-  d = 0;
-  for a in args :
-    try :
-      d = gcd(d,a);
-    except Exception :
-      for i in a :
-        d = gcd(d,i);
-  return d;
-
-def getorder(n) :
-  """Return a method that returns the multiplicative order of an element mod n
-method attributes: modulus = n, maxorder = lam(n)"""
-  l = lam(n);
-  f = tuple(factors(l));
-  def order(x) :
-    x = x%n;
-    if gcd(x,n) != 1 : return 0;
-    o = l;
-    for p in f :
-      while not o%p :
-        if pow(x,o//p,n) != 1 : break;
-        o //= p;
-    return o;
-  order.modulus = n;
-  order.maxorder = l;
-  return order;

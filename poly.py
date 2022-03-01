@@ -8,7 +8,7 @@ from itertools import chain, count
 from collections import defaultdict
 from matrix import product, bmatrix
 from rational import rational,xrational,inf
-import ffield as ff
+from numbers import bit_length, factors, leastfactor, primepower, modpow, isirreducible, isprimitive, isffield, lcma, divisors
 from random import randrange,randint
 
 if sys.version_info>(3,) :
@@ -27,33 +27,10 @@ RATIONAL = set((rational,));
 COMPLEX = REAL | set((complex,xrational));
 XRATIONAL = set((rational,xrational));
 
-try :
-  int.bit_length;
-  bit_length = lambda n : n.bit_length();
-except Exception :
-  import math
-  def bit_length(n) :
-    n = abs(n);
-    b = 0;
-    while n :
-      try :
-        l = int(math.log(n,2));
-        while n >> l : l += 1;
-      except OverflowError :
-        l = sys.float_info.max_exp-1;
-      b += l
-      n >>= l;
-    return b;
-
 int_float = lambda x: x if isint(x) else x.a if abs(x.b)==1 else float(x);
 floatall = lambda x: x.mapcoeffs(int_float);
 complexall = lambda x: x.mapcoeffs(complex);
 identity = lambda x: x;
-
-def leastfactor(n,maxfactor=None) :
-  for p in ff.factors(n,maxfactor) :
-    return p;
-  return 1;
 
 # danger: division converts to floating point (unless we use rational coeffs)
 
@@ -482,7 +459,7 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
 if q is specified, it is the size of the field;
 if q is not specified, the field is inferred from self's coefficients"""
     if q :
-      r = ff.primepower(q);
+      r = primepower(q);
       if not r :
         raise ValueError('q must be a prime power')
     d = self.degree;
@@ -495,13 +472,13 @@ if q is not specified, the field is inferred from self's coefficients"""
     if types <= INT and q > 0:
       r = r[0];
       if p0 != 1 :
-        i = ff.modpow(p0,r-2,r);    # make monic
+        i = modpow(p0,r-2,r);    # make monic
         self = self.mapcoeffs(lambda x: x*i%r);
         if d != self.degree :
           raise ValueError('leading coefficient is 0 mod %d'%(r));
-      return ff.isirreducible(self._p[1:],q);
+      return isirreducible(self._p[1:],q);
     F = type(p0);
-    if len(types) == 1 and ff.isffield(F) :
+    if len(types) == 1 and isffield(F) :
       if p0 != 1 :
         self = self.mapcoeffs(lambda x: x/p0);    # make monic
       if q :
@@ -511,7 +488,7 @@ if q is not specified, the field is inferred from self's coefficients"""
       else :
         q = p0.q;
       x = type(self)(F(1),F(0));    # Rabin test...
-      for s in chain(ff.factors(d),(1,)) :
+      for s in chain(factors(d),(1,)) :
         e = q**(d//s);
         n = 1 << (bit_length(e)-1);
         y = x;
@@ -532,7 +509,7 @@ if q is not specified, the field is inferred from self's coefficients"""
 if q is specified, it is the size of the field;
 if q is not specified, the field is inferred from self's coefficients"""
     if q :
-      r = ff.primepower(q);
+      r = primepower(q);
       if not r :
         raise ValueError('q must be a prime power')
       p = r[0];
@@ -544,13 +521,13 @@ if q is not specified, the field is inferred from self's coefficients"""
       types.add(type(x));
     if types <= INT and q > 0:
       if p0 != 1 :
-        i = ff.modpow(p0,p-2,p);    # make monic
+        i = modpow(p0,p-2,p);    # make monic
         self = self.mapcoeffs(lambda x: x*i%p);
         if n != self.degree :
           raise ValueError('leading coefficient is 0 mod %d'%(r));
-      return p==q and ff.isprimitive(self._p[1:],p);
+      return p==q and isprimitive(self._p[1:],p);
     F = type(p0);
-    if len(types) == 1 and ff.isffield(tuple(types)[0]) :
+    if len(types) == 1 and isffield(tuple(types)[0]) :
       if int(p0) != 1 :
         self = self.mapcoeffs(lambda x: x/p0);    # make monic
       if q :
@@ -560,10 +537,10 @@ if q is not specified, the field is inferred from self's coefficients"""
       else :
         q = F.q;
       if q == F.p :
-        return ff.isprimitive(self.mapcoeffs(int)._p[1:],q);
+        return isprimitive(self.mapcoeffs(int)._p[1:],q);
       if not self._p[-1] or n == 1 and not (p0+self._p[1]) : return False; # wx or x-1
       o = q**n-1;
-      for f in ff.factors(o) :
+      for f in factors(o) :
         break;
       d = [1]*(2*n);
       i = 0;
@@ -641,7 +618,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
   def _factor(self,facdict,e) :    # self is square-free and monic
     try :
       c = type(self._p[0]);
-      q = c.p**c.n;
+      q = c.q;
       i = 1;
       s = ();
       while 2*i <= self.degree :
@@ -666,11 +643,10 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
             if leastfactor(q**i-1,7) > 7 :
               saved = (c,q,z,o)
               q **= 2
-              c = ff.ffield(q);
+              c = c.dfield;
               z = c(0);
               o = c(1);
-              maps = fieldmaps(saved[0],c);
-              g = g.mapcoeffs(maps[0]);
+              g = g.mapcoeffs(c);
               f = set((g,));
             else :
               saved = ();
@@ -697,7 +673,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
                       break;
             if saved :
               c,q,z,o = saved;
-              f = map(lambda x:x.mapcoeffs(maps[1]),f);
+              f = map(lambda x:x.mapcoeffs(c),f);
           for u in f :
             facdict[u] += e;
         i += 1;
@@ -708,7 +684,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
         facdict[type(self)(self._p[0],self._p[-1])] += e;    # add x as factor
         self = type(self)(*self._p[:-1]);    # divide by x
       if isinstance(self._p[0],rational) :
-        m = ff.lcma(map(lambda x:x.denominator,self._p));
+        m = lcma(map(lambda x:x.denominator,self._p));
         if m != 1 : facdict[type(self)(rational(1,m))] += e;
         self = self.mapcoeffs(lambda x:m*x);
         m = 1;    # combine constant factors
@@ -721,8 +697,8 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
         if m != 1 : facdict[type(self)(m)] += 1;
         t = set();        # look for linear factors
         while self.degree > 1 :
-          for a in ff.divisors(int(self._p[0])) :
-            for b in ff.divisors(int(self._p[-1])) :
+          for a in divisors(int(self._p[0])) :
+            for b in divisors(int(self._p[-1])) :
               r = rational(b,a);
               if r not in t :
                 t.add(r);
@@ -756,36 +732,6 @@ multiplied by p if specified"""
     for f,e in iteritems(facdict) :
       p *= f**e;
     return p;
-
-def fieldmaps(F,G) :    # F and G are fields, F.p == G.p == 2, 2*F.n == G.n
-  if F.n == 1 :
-    return (G,F);
-  fp = F.polynomial;    #F(2).minpoly();
-  m = F.n;
-  n = G.n;
-  g = G.generator;
-  h = g**(G.order//F.order);    # generator of F in G
-  for x in xrange(1,F.order-1) :
-    j = h**x;
-    if not fp(j) : break; # find an x such that h**x has minpoly F.ftupoly
-  F2G = lambda f: f.polynomial(j);
-  v = [G(1),j];
-  p = j;
-  for i in xrange(2,m) :
-    p *= j;
-    v.append(p);
-  p = g;
-  for k in xrange(1,2) :
-    for i in xrange(m) :
-      v.append(v[(k-1)*2+i]*g);
-      p *= g;
-  # v has n entries, but each needs to be turned into a column
-  s = 0;
-  for x in v[::-1] :
-    s = (s<<n) | x.x;
-  M = bmatrix((n,n),s).T.inverse[:,:m];
-  G2F = lambda g: F((bmatrix((n,),g.x)*M)._bits);
-  return (F2G,G2F);
 
 class rationalfunction(object) :
   def __new__(cls,a,b=1) :
@@ -981,25 +927,3 @@ _one = polynomial(1);
 _x = polynomial(1,0);
 
 RATFUN = (polynomial,rationalfunction);
-
-def irreducibles(q,n) :
-  """Return a tuple of all monic irreducible degree n polynomials over F;
-  F is q if q is a finite field; else q must be a prime power, and F=ffield(q)."""
-  return tuple(irreducibleg(q,n));
-
-def irreducibleg(q,n) :
-  """Generate lexicographically all monic irreducible degree n polynomials over F
-  F is q if q is a finite field; else q must be a prime power, and F=ffield(q)."""
-  if ff.isffield(q) :
-    F = q;
-    q = F.q;
-  else :
-    F = ff.ffield(q);
-  for i in range(q**n) :
-    poly = [];
-    j = i;
-    for k in range(n) :
-      poly.append(j%q);
-      j //= q;
-    poly = polynomial(F(1),*map(F,reversed(poly)));
-    if poly.isirreducible() : yield poly;

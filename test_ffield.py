@@ -16,7 +16,8 @@ try :
 except Exception :
   process_time = default_timer;
 
-from ffield import ffield, unpack, isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder, primes, conwaypoly
+from ffield import *
+from numbers import unpack, isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder, primes
 from matrix import *
 from poly import *
 
@@ -474,7 +475,6 @@ Usage: python test_ffield.py [options]
       for i in range(1,7) :
         if p**i <= q : test(p,i);
   if 'r' in optdict :
-    from rffield import *
     F4 = ffield(4);
     F9 = ffield(9);
     F16 = ffieldx(polynomial(1,F4(2),1));

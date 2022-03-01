@@ -2,8 +2,8 @@
 
 import sys
 
-from ffield import *
-from matrix import *
+from ffield import ffield
+from matrix import matrix
 from random import randrange
 
 if sys.version_info[0] < 3 :

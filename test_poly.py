@@ -3,10 +3,12 @@ from __future__ import division
 
 import sys
 
-from poly import polynomial,rationalfunction,irreducibles
-from ffield import ffield,primepower,divisors,isirreducible,irreducible_count,zits
-from rational import rational
 from random import Random
+from rational import rational
+from numbers import primepower,divisors,isirreducible,irreducible_count,zits
+from poly import polynomial,rationalfunction
+from ffield import ffield
+from ffpoly import irreducibles
 
 R=Random();
 randint=R.randint;
