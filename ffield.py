@@ -10,42 +10,12 @@ random.seed();
 
 from itertools import chain, count
 from matrix import matrix, product
-from rational import root, rational
+from rational import root, rational, rint
 from poly import polynomial
 
-if sys.version_info>(3,) :
-  unicode = str;
-  xrange = range;
-  range = lambda *x: list(xrange(*x));
-  isint = lambda x: isinstance(x,int);
-  isstr = lambda x: isinstance(x,str);
-  xmap = map;
-  map = lambda *x: list(xmap(*x));
-else :
-  isint = lambda x: isinstance(x,(int,long));
-  isstr = lambda x: isinstance(x,(str,unicode));
-  _xrange = xrange
-  def xrange(*a) :    # because builtin xrange has limited range
-    try :
-      return _xrange(*a);
-    except OverflowError :
-      return exrange(*a);
-  def exrange(*a) :
-    try :
-      step = a[2];
-    except IndexError :
-      step = 1;
-    try :
-      stop = a[1];
-      start = a[0];
-    except IndexError :
-      stop = a[0];
-      start = 0;
-    while start < stop :
-      yield start;
-      start += step;
+from conversions import isint, isstr, isffield, xrange, lmap, bit_length, bit_reverse, bump_bits, zits, stradix, pack, unpack
 
-from numbers import isffield, bit_length, bit_reverse, bump_bits, rint, factors, primepower, isirreducible, isirreducible2, irreducibleg, isprimitive, isprimitive2, zits, stradix, mpadd, mpmul, mppow, xmpgcd, m2mul, m2sq, m2pow, m2mod, xm2gcd, pack, unpack
+from numbers import factors, primepower, isirreducible, isirreducible2, irreducibleg, isprimitive, isprimitive2, mpadd, mpmul, mppow, xmpgcd, m2mul, m2sq, m2pow, m2mod, xm2gcd
 
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x
@@ -604,8 +574,7 @@ over the subfield. Raise an exception if m does not divide self._n."""
         M = N;
         del v[c];
         if len(v) == d : break;
-  v = map(G,v);
-  return (G(1),)+tuple(-(v*M.inverse))[::-1];
+  return (G(1),)+tuple(-(lmap(G,v)*M.inverse))[::-1];
 
 def _create(p,n,poly,x=None) :
   """Return an ffield instance or, if x present, an instance of an ffield instance"""

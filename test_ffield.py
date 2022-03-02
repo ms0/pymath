@@ -3,9 +3,6 @@ from __future__ import division
 
 import sys
 
-if sys.version_info>(3,) :
-  xrange = range;
-
 from random import Random, randrange, sample
 from itertools import chain, count
 
@@ -17,7 +14,8 @@ except Exception :
   process_time = default_timer;
 
 from ffield import *
-from numbers import unpack, isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, zits, gcd, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder, primes
+from conversions import unpack, zits, gcd, xrange
+from numbers import isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder, primes
 from matrix import *
 from poly import *
 

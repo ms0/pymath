@@ -3,13 +3,7 @@
 import sys
 from collections import defaultdict
 from itertools import permutations,product
-
-if sys.version_info>(3,) :
-  xrange = range;
-  range = lambda *x: list(xrange(*x));
-  long = int;  
-  xmap = map;
-  map = lambda *x: list(xmap(*x));
+from conversions import range, xrange, lmap, long
 
 class graph(object) :
   """Undirected graph
@@ -123,7 +117,7 @@ class graph(object) :
   @property
   def components(self) :
     """list of connected components of vertices"""
-    d = map(lambda x:set([x]),xrange(n));
+    d = lmap(lambda x:set([x]),xrange(n));
     for j in xrange(1,n) :
       for i in xrange(j) :
         if 1 & (e >> (i+j*(j-1)//2)) :

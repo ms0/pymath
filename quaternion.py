@@ -6,13 +6,7 @@ from __future__ import division
 
 __all__ = ['quaternion']
 
-import sys
-
-VERSION2 = int(sys.version.split('.')[0]) < 3;
-INTTYPE = (int,long,) if VERSION2 else int;
-REALTYPE = (int,long,float,) if VERSION2 else (int,float,);
-COMPLEXTYPE = (int,long,float,complex) if VERSION2 else (int,float,complex);
-STRINGTYPE = (str,unicode) if VERSION2 else str
+from conversions import isstr, isint, isreal, iscomplex, xrange
 
 import math    # exp, log, cos, sin, acos
 
@@ -26,15 +20,6 @@ warnings.filterwarnings('ignore','',FutureWarning,__name__);
 
 class ParameterError(Exception):
   pass
-
-def isreal(a) :
-  return isinstance(a,REALTYPE);
-
-def iscomplex(a) :
-  return isinstance(a,COMPLEXTYPE);
-
-def isstring(a) :
-  return isinstance(a,STRINGTYPE);
 
 class quaternion(object) :
   """quaternion class
@@ -59,7 +44,7 @@ quaternion(string) is the quaternion represented by that string"""
     if len(args) == 1 :
       if isinstance(args[0],quaternion) :
         return args[0];
-      if isstring(args[0]) :        # parse string
+      if isstr(args[0]) :        # parse string
         try :
           n = QRE.split(args[0].strip().lower());
           t = -1;
@@ -71,7 +56,7 @@ quaternion(string) is the quaternion represented by that string"""
               raise ValueError;    # crud before number
           else :
             n = n[1:]
-          for i in range(0,len(n),2) :
+          for i in xrange(0,len(n),2) :
             x = ('','i','j','k').index(n[i+1]);
             if x <= t :
               raise ValueError;    # duplicate component
@@ -250,8 +235,8 @@ quaternion(string) is the quaternion represented by that string"""
 
   def __pow__(self,other) :
     """Return self**other"""
-    if not isinstance(other,NUMTYPE) :
-      raise TypeError('exponent must be a number');
+    if not iscomplex(other) and not isinstance(other,quaternion):
+      return NotImplemented;
     r = other.real;
     if not any(self.__v) :      # special case zero
       if r > 0 : return self;
@@ -281,8 +266,8 @@ quaternion(string) is the quaternion represented by that string"""
 
   def __rpow__(self,other) :
     """Return other**self"""
-    if not isinstance(other,COMPLEXTYPE) :
-      raise TypError('base must be a number');
+    if not iscomplex(other) :
+      return NotImplemented;
     return quaternion(other).__pow__(self);
 
   # NOTE: might want to try to do a better pow computation by leaving
@@ -387,4 +372,3 @@ quaternion(string) is the quaternion represented by that string"""
       raise TypeError('not complex')
     return complex(*self.__v[:2]);
 
-NUMTYPE = (int,long,float,complex,quaternion,) if VERSION2 else (int,float,complex,quaternion,);

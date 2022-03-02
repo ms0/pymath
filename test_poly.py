@@ -5,8 +5,9 @@ import sys
 
 from random import Random
 from rational import rational
-from numbers import primepower,divisors,isirreducible,irreducible_count,zits
-from poly import polynomial,rationalfunction
+from conversions import zits
+from numbers import primepower, divisors, isirreducible, irreducible_count
+from poly import polynomial, rationalfunction
 from ffield import ffield
 from ffpoly import irreducibles
 

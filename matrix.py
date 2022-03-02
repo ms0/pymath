@@ -6,41 +6,11 @@ from __future__ import division
 
 __all__ = ['matrix','bmatrix']
 
-import sys
 import types
 
-try :
-  from math import gcd
-except Exception :
-  def gcd(x,y) :
-    """Return the [nonnegative] greatest common divisor of x and y"""
-    while y :
-      x,y = y, x%y;
-    return abs(x);
+from conversions import isint, isreal, xrange, gcd
 
 from math import log
-
-if sys.version_info[0] < 3 :
-
-  def isint(x) :
-    """Return True iff an integer"""
-    return isinstance(x,(int,long));
-
-  def isreal(x) :
-    """Return True iff a real number"""
-    return isinstance(x,(int,long,float));
-
-else :
-
-  def isint(x) :
-    """Return True iff an integer"""
-    return isinstance(x,int);
-
-  def isreal(x) :
-    """Return True iff a real number"""
-    return isinstance(x,(int,float));
-
-  xrange = range
 
 def altabs(x) :
   try :

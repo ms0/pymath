@@ -1,91 +1,12 @@
 from __future__ import division
 
-import sys
-
 import random
 random.seed();
 
 from itertools import chain, count
 from matrix import matrix, product
-from rational import root, rational
-
-if sys.version_info>(3,) :
-  unicode = str;
-  xrange = range;
-  range = lambda *x: list(xrange(*x));
-  isint = lambda x: isinstance(x,int);
-  isstr = lambda x: isinstance(x,str);
-  xmap = map;
-  map = lambda *x: list(xmap(*x));
-else :
-  isint = lambda x: isinstance(x,(int,long));
-  isstr = lambda x: isinstance(x,(str,unicode));
-  _xrange = xrange
-  def xrange(*a) :    # because builtin xrange has limited range
-    try :
-      return _xrange(*a);
-    except OverflowError :
-      return exrange(*a);
-  def exrange(*a) :
-    try :
-      step = a[2];
-    except IndexError :
-      step = 1;
-    try :
-      stop = a[1];
-      start = a[0];
-    except IndexError :
-      stop = a[0];
-      start = 0;
-    while start < stop :
-      yield start;
-      start += step;
-
-def isffield(t) :
-  """Return True iff t is a finite field"""
-  if not isinstance(t,type) : return False;
-  try :
-    t._basefield;
-    return isint(t._q);
-  except Exception :
-    return False;
-
-try :
-  int.bit_length;
-  bit_length = lambda n : n.bit_length();
-except Exception :
-  import math
-  def bit_length(n) :
-    n = abs(n);
-    b = 0;
-    while n :
-      try :
-        l = int(math.log(n,2));
-        while n >> l : l += 1;
-      except OverflowError :
-        l = sys.float_info.max_exp-1;
-      b += l
-      n >>= l;
-    return b;
-
-def bit_count(n) :
-  """Return number of 1 bits in |n|"""
-  return bin(n).count('1');
-
-def bit_reverse(n) :    # empirically faster in all practical cases
-  """Return bit-reversed non-negative integer"""
-  return int(bin(n)[-1:1:-1],2);
-
-def bump_bits(n) :
-  """Return the next larger int with the same bit_count (for positive n)"""
-  o = n&-n;  # rightmost 1
-  n += o;    # carries to next 0
-  n |= ((n&-n)-o)>>bit_length(o);  # restore remaining bits as LSBs
-  return n;
-
-def rint(x) :
-  """If x is a rational integer, return x.numerator, else, return x"""
-  return x.numerator if isinstance(x,rational) and abs(x.denominator)==1 else x;
+from conversions import isint, gcd, xrange, bit_length, bit_count, pack
+from rational import root, rint
 
 def modpow(b,x,p) :    # b**x mod p
   """Compute b**x%p"""
@@ -103,15 +24,6 @@ def modpow(b,x,p) :    # b**x mod p
 
 primalitytestlimit = 1<<24;    # limit for looking for (odd) divisor
 # beyond this limit, use Miller-Rabin or Lucas-Lehmer
-
-try :
-  from math import gcd
-except Exception :
-  def gcd(x,y) :
-    """Return the [nonnegative] greatest common divisor of x and y"""
-    while y :
-      x,y = y, x%y;
-    return abs(x);
 
 pr210 = (2,3,5,7,11,13);    # primes < sqrt(2*3*5*7)
 isp210 = tuple(    # primality of integers in range(2*3*5*7)
@@ -423,74 +335,6 @@ def fmerge(*args) :
       except StopIteration :
         del d[x];
   return;
-
-def pack(p,a) :
-  """Return the evaluation at x=p of a, an iterable of coefficients, constant last"""
-  x = 0;
-  for z in a :
-    x *= p;
-    x += z;
-  return x;
-
-def unpack(p,x) :
-  """Return the tuple of coefficients of the polynomial over GF(p) that evaluates to |x| at p"""
-  x = abs(x);
-  a = [];
-  while x :
-    a.append(x%p);
-    x //= p;
-  return tuple(reversed(a));
-
-zits='0123456789abcdefghijklmnopqrstuvwxyz';
-
-def stradix(x,r=16,n=0) :
-  """Return a string representing integer x in radix r
-     use alphanumeric zits if r < 37, else use dot-separated decimal zits
-     if length of string is less than n, pad on left with 0s to length n"""
-  a = [];
-  while True :
-    a.append(x%r);
-    x //= r;
-    n -= 1;
-    if n<=0 and not x: break;
-  a.reverse();
-  if r > 36 :
-    return '.'.join(map(lambda x:'%d'%(x),a));
-  return ''.join(map(lambda x: zits[x],a));
-
-def radstix(s,r=None) :
-  """Return an integer represented by the string
-     If r is not specified, the string must be of the form
-       radix_------- where radix is a 1-or-more-digit base ten number and
-       each - is an alphanumeric zit; but if radix is > 36, then
-       radix_-.-.-.- where each - is a 1-or-more-digit base ten number;
-     If r is specified, it is used as the radix, and
-     'radix_' may be omitted but is ignored if present"""
-  a = s.split('_');
-  if r is None :
-    if len(a) != 2 :
-      raise ValueError('incorrect format');
-    r = int(a[0]);
-    a = a[1];
-  else :
-    if not 1 <= len(a) <= 2 :
-      raise ValueError('incorrect format');
-    a = a[-1];
-  if r < 2 :
-    raise ValueError('radix must be at least 2');
-  x = 0;
-  if r > 36 :
-    for z in map(int,a.split('.')) :
-      if not 0 <= z < r : raise ValueError('non zit encountered');
-      x = r*x+z;
-  else :
-    for c in a :
-      try :
-        z = zits.index(c);
-      except ValueError :
-        raise ValueError('non zit encountered');
-      x = r*x+z;
-  return x;
 
 def mpmul(p,f,g,m=None,c=None) :
   """Return the product of f and g, polynomials over GF(p), modulo polynomial m;

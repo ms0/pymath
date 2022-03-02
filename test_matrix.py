@@ -1,6 +1,7 @@
 from __future__ import print_function
 from __future__ import division
 
+from conversions import xrange
 from matrix import *
 from poly import *
 from rational import *
@@ -15,7 +16,7 @@ x = polynomial(1,0);    # the polynomial x
 def testcp(dim,verbose=False) :    # characteristic polynomial test
   X = matrix.Identity(dim,x);
   M = matrix(dim,dim,
-             tuple(xrational(random(),random()) for i in range(dim*dim)))
+             tuple(xrational(random(),random()) for i in xrange(dim*dim)))
   cp = (M-X).det;
   try :
     if cp.denominator != 1 :
@@ -41,12 +42,12 @@ def testcp(dim,verbose=False) :    # characteristic polynomial test
 
 def testinv(dim,verbose=False) :    # matrix inverse test
   I = matrix.Identity(dim);
-  M = matrix(dim,dim,tuple(xrational(random(),random()) for i in range(dim*dim)));
+  M = matrix(dim,dim,tuple(xrational(random(),random()) for i in xrange(dim*dim)));
   if M.det :
     if M.inverse*M != I or M*M.inverse != I :
       print('matrix inverse failed for');
       print(M);
-  M = matrix(dim,dim,tuple(qrational(random(),random(),random(),random()) for i in range(dim*dim)));
+  M = matrix(dim,dim,tuple(qrational(random(),random(),random(),random()) for i in xrange(dim*dim)));
   if M.rank == dim :
     if M.inverse*M != I or M*M.inverse != I :
       print('matrix inverse failed for');
@@ -113,7 +114,7 @@ def ceq(c,*v) :
 
 def testb(dim) :
   # bmatrix tests
-  M0,M1,M2 = (bmatrix((dim,dim),randrange(1<<(dim*dim))) for _ in range(3));
+  M0,M1,M2 = (bmatrix((dim,dim),randrange(1<<(dim*dim))) for _ in xrange(3));
   ceq('v[0] == -v[0]',M0);
   ceq('v[0]*v[0].Identity(v[0].dims[1]) == v[0]',M0);
   ceq('v[0].Identity(v[0].dims[0])*v[0] == v[0]',M0);
@@ -130,8 +131,8 @@ def testb(dim) :
 def testm(dim) :
   # simple matrix tests
   M0,M1,M2 = (matrix(dim,dim,
-                    tuple(xrational(random(),random()) for i in range(dim*dim)))
-              for _ in range(3));
+                    tuple(xrational(random(),random()) for i in xrange(dim*dim)))
+              for _ in xrange(3));
   ceq('(v[0]+v[1]).tr == v[0].tr+v[1].tr',M0,M1);
   testtr(M0,M1,M2);
 
@@ -149,7 +150,7 @@ def testtr(M0,M1,M2) :
   ceq('v[0]**3 == v[0]*v[0]*v[0]',M0);
 
 if __name__=='__main__' :
-  for i in range(REPEATS) :
+  for i in xrange(REPEATS) :
     dim = randint(MINDIM,MAXDIM);
     print(dim);
     testattr(dim);
@@ -160,9 +161,9 @@ if __name__=='__main__' :
     djm = randint(MINDIM,MAXDIM);
     dkm = randint(MINDIM,MAXDIM);
     dlm = randint(MINDIM,MAXDIM);
-    M0 = matrix(dim,djm,tuple(xrational(random(),random()) for i in range(dim*djm)));
-    M1 = matrix(djm,dkm,tuple(xrational(random(),random()) for i in range(djm*dkm)));
-    M2 = matrix(dkm,dlm,tuple(xrational(random(),random()) for i in range(dkm*dlm)));
+    M0 = matrix(dim,djm,tuple(xrational(random(),random()) for i in xrange(dim*djm)));
+    M1 = matrix(djm,dkm,tuple(xrational(random(),random()) for i in xrange(djm*dkm)));
+    M2 = matrix(dkm,dlm,tuple(xrational(random(),random()) for i in xrange(dkm*dlm)));
     ceq('(v[0]*v[1]).T == v[1].T*v[0].T',M0,M1);
     ceq('(v[0]*v[1])*v[2] == v[0]*(v[1]*v[2])',M0,M1,M2);
     M0 = bmatrix((dim,djm),randrange(1<<(dim*djm)));

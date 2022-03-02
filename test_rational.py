@@ -5,22 +5,7 @@ from __future__ import division
 # NOTE: test_matrix.py also tests rational.py functionality
 # NOTE: test_poly.py also tests rational.py functionality
 
-import sys
-
-if sys.version_info[0] < 3 :
-
-  def isint(x) :
-    """Return True iff an integer"""
-    return isinstance(x,(int,long));
-
-else :
-
-  def isint(x) :
-    """Return True iff an integer"""
-    return isinstance(x,int);
-
-  xrange = range;
-
+from conversions import xrange, isint
 from random import Random
 from rational import *
 from timeit import timeit, default_timer
@@ -342,7 +327,7 @@ def atest() :    # test approximate
   """Test approximate()"""
   # verify that relative difference is within requested accuracy
   print('bits requested    e       pi     rootpi    log2e    root2  goldenratio');
-  for a in range(0,321,32) :
+  for a in xrange(0,321,32) :
     print('%7d     %s%s%s%s%s%s'%(a,
                                 approximatebits(e,a,_e),
                                 approximatebits(pi,a,_pi),
@@ -595,7 +580,7 @@ def dgtest() :
     y = digamma(x);
     if not isclose(y,z,rel_tol=rel_tol) :
       print('digamma(%s) ~ %s != %s'%(x.bstr(30),y.bstr(30),z.bstr(30)));
-  for i in range(1,13) :
+  for i in xrange(1,13) :
     b = rational(i,3);
     x = xrational(0,b);
     y = digamma(x).imag;

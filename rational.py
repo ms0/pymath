@@ -16,73 +16,34 @@ import sys
 
 from math import log as _mlog, modf as _mmodf, ldexp as _mldexp, copysign as _mcopysign
 from itertools import chain, count
+from conversions import xrange, isint, isstr, gcd, bit_length
 
 if sys.version_info[0] < 3 :
-
-  def isint(x) :
-    """Return True iff an integer"""
-    return isinstance(x,(int,long));
 
   def isrational(x) :
     """Return True iff rational"""
     return isinstance(x,(int,long,rational,xrational));
-
-  def isstring(x) :
-    """Return True iff a string"""
-    return isinstance(x,(str,unicode));
 
   _fround = round;
   _round = lambda x : x if isint(x) else int(_fround(x));
 
 else :
 
-  xrange = range;
-
-  def isint(x) :
-    """Return True iff an integer"""
-    return isinstance(x,int);
-
   def isrational(x) :
     """Return True iff rational"""
     return isinstance(x,(int,rational,xrational));
 
-  def isstring(x) :
-    """Return True iff a string"""
-    return isinstance(x,str);                      
-
   _round = round;
 
-try :
-  int.bit_length;
-  bit_length = lambda n : n.bit_length();
-except Exception :
-  def bit_length(n) :
-    n = abs(n);
-    b = 0;
-    while n :
-      try :
-        l = int(_mlog(n,2));
-        while n >> l : l += 1;
-      except OverflowError :
-        l = sys.float_info.max_exp-1;
-      b += l
-      n >>= l;
-    return b;
+def rint(x) :
+  """If x is a rational integer, return x.numerator, else, return x"""
+  return x.numerator if isinstance(x,rational) and abs(x.denominator)==1 else x;
 
 _finf = float('inf');
 
 def sgn(x) :
   """Return the sign of x as an integer: -1, 0, or +1"""
   return -1 if x < 0 else 1 if x > 0 else _nan if x else 0;
-
-try :
-  from math import gcd
-except Exception :
-  def gcd(x,y) :
-    """Return the [nonnegative] greatest common divisor of x and y"""
-    while y :
-      x,y = y, x%y;
-    return abs(x);
 
 def root(a,n) :
   """Return the nth root of a, where a and n are positive integers"""
@@ -244,7 +205,7 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
           return a if a.imag else a.real;
         if isinstance(a,qrational) :
           return a if a.i or a.j or a.k else a.real;
-        if isstring(a) :
+        if isstr(a) :
           return _parserat(a);
         try :
           c = iter(a);
@@ -920,7 +881,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
         real,imag = real.real, real.i;
       if isinstance(real,complex) :
         real,imag = real.real, real.imag;
-      if isstring(real) :
+      if isstr(real) :
         return xrational(rational(real));
     try :
       real = rational(real);
@@ -972,7 +933,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   def __eq__(self,other) :
     """Return True iff self == other"""
-    if isstring(other) :
+    if isstr(other) :
       return False;
     try :
       other = type(self)(other);
@@ -982,7 +943,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   def __ne__(self,other) :
     """Return True iff self != other"""
-    if isstring(other) :
+    if isstr(other) :
       return True;
     try :
       other = type(self)(other);
@@ -1289,7 +1250,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     if len(args) == 1 :
       if isinstance(args[0],qrational) :
         return args[0];
-      if isstring(args[0]) :
+      if isstr(args[0]) :
         return qrational(rational(args[0]));
       args = (args[0].real,args[0].imag);
     for a in args :
@@ -1412,7 +1373,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   __nonzero__ = __bool__
 
   def __eq__(self,other) :
-    if isstring(other) :
+    if isstr(other) :
       return False;
     try :
       return self.__v == type(self)(other).__v;
@@ -1420,7 +1381,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
       return NotImplemented;
 
   def __ne__(self,other) :
-    if isstring(other) :
+    if isstr(other) :
       return True;
     try :
       return self.__v != type(self)(other).__v;

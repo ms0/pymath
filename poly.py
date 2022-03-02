@@ -8,18 +8,14 @@ from itertools import chain, count
 from collections import defaultdict
 from matrix import product, bmatrix
 from rational import rational,xrational,inf
-from numbers import bit_length, factors, leastfactor, primepower, modpow, isirreducible, isprimitive, isffield, lcma, divisors
+from conversions import bit_length, xrange, isint, iteritems, isffield
+from numbers import factors, leastfactor, primepower, modpow, isirreducible, isprimitive, lcma, divisors
 from random import randrange,randint
 
 if sys.version_info>(3,) :
-  xrange = range;
-  iteritems = lambda x: x.items();
-  isint = lambda x: isinstance(x,int);
   INT = set((int,));
   REAL = set((int,float,rational));
 else :
-  iteritems = lambda x: x.iteritems();
-  isint = lambda x: isinstance(x,(int,long));
   INT = set((int,long));
   REAL = set((int,long,float,rational));
 

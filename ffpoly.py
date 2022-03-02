@@ -1,6 +1,6 @@
 __all__ = ['irreducibles','irreducibleg']
 
-from numbers import isffield
+from conversions import isffield, xrange
 from ffield import ffield
 from poly import polynomial
 
@@ -17,11 +17,10 @@ def irreducibleg(q,n) :
     q = F.q;
   else :
     F = ffield(q);
-  for i in range(q**n) :
+  for i in xrange(q**n) :
     poly = [];
-    j = i;
     for k in range(n) :
-      poly.append(j%q);
-      j //= q;
+      poly.append(i%q);
+      i //= q;
     poly = polynomial(F(1),*map(F,reversed(poly)));
     if poly.isirreducible() : yield poly;

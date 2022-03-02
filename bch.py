@@ -2,10 +2,10 @@ from __future__ import division
 
 """ BCH error correcting code generation """
 
+from conversions import gcd
 from numbers import primepower
 from ffield import ffield
 from poly import polynomial
-from rational import gcd
 from random import randrange
 from matrix import bmatrix
 
