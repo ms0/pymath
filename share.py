@@ -18,7 +18,7 @@ else :
     """Python 2 version of map"""
     return list(map(*x));
 
-from ffield import stradix
+from conversions import stradix
 from rational import ceil,log,log2
 
 def hexify(r,radix=16) :
