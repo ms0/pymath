@@ -2139,10 +2139,13 @@ def ceil(x) :
   """Return the smallest integer not less than x, or x if not finite"""
   return -(rational(-x)//1);
 
-def hypot(x,y) :
-  """Return sqrt(|x|**2 + |y|**2)"""
-  x,y = rational(x), rational(y);
-  return sqrt(x*~x + y*~y);
+def hypot(*x) :
+  """Return sqrt of sum of squares of absolute values"""
+  return sqrt(sum(map(lambda x: rational(x).abs2(),x)));
+
+def dist(p,q) :
+  """Return Euclidean distance between points p and q"""
+  return hypot(*(rational(x)-rational(y) for x,y in zip(p,q)));
 
 def isnan(x) :
   """Return True if x is nan, False otherwise"""
