@@ -15,7 +15,7 @@ except Exception :
 
 from ffield import *
 from conversions import unpack, zits, gcd, xrange
-from numbers import isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder, primes
+from numfuns import isprime, isirreducible, irreducibles, irreducible_count, isprimitive, factor, unfactor, factors, lcm, gcda, lcma, phi, lam, sigma, numdivisors, divisors, getorder, primes
 from matrix import *
 from poly import *
 

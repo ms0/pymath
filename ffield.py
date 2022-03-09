@@ -15,7 +15,7 @@ from poly import polynomial
 
 from conversions import isint, isstr, isffield, xrange, lmap, bit_length, bit_reverse, bump_bits, zits, stradix, pack, unpack
 
-from numbers import factors, primepower, isirreducible, isirreducible2, irreducibleg, isprimitive, isprimitive2, mpadd, mpmul, mppow, xmpgcd, m2mul, m2sq, m2pow, m2mod, xm2gcd
+from numfuns import factors, primepower, isirreducible, isirreducible2, irreducibleg, isprimitive, isprimitive2, mpadd, mpmul, mppow, xmpgcd, m2mul, m2sq, m2pow, m2mod, xm2gcd
 
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x

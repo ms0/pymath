@@ -9,7 +9,7 @@ from collections import defaultdict
 from matrix import product, bmatrix
 from rational import rational,xrational,inf
 from conversions import bit_length, xrange, isint, iteritems, isffield
-from numbers import factors, leastfactor, primepower, modpow, isirreducible, isprimitive, lcma, divisors
+from numfuns import factors, leastfactor, primepower, modpow, isirreducible, isprimitive, lcma, divisors
 from random import randrange,randint
 
 if sys.version_info>(3,) :
