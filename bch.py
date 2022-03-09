@@ -3,7 +3,7 @@ from __future__ import division
 """ BCH error correcting code generation """
 
 from conversions import gcd
-from numbers import primepower
+from numfuns import primepower
 from ffield import ffield
 from poly import polynomial
 from random import randrange
