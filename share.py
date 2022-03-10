@@ -24,7 +24,7 @@ from rational import ceil,log,log2
 def hexify(r,radix=16) :
   """Given a finite field, make its __str__ output in radix radix """
   n = ceil(log(r.__len__(),radix));
-  r.__str__ = lambda self: stradix(self.x,radix,n).lstrip('0');
+  r.__str__ = lambda self: stradix(self.x,radix,n).lstrip('0') or '0';
 
 def Vandermonde(xs,k=0) :
   """Given a list of "numbers"
