@@ -5,7 +5,7 @@ from __future__ import division
 # NOTE: test_matrix.py also tests rational.py functionality
 # NOTE: test_poly.py also tests rational.py functionality
 
-from conversions import xrange, isint
+from conversions import xrange, isint, isreal, iscomplex
 from random import Random
 from rational import *
 from timeit import timeit, default_timer
@@ -838,6 +838,26 @@ def testattr() :
   if qrational(one2i).imag != 2 :
     print('one2i0j0k.imag failed');
   
+def ctest() :
+  for x in (1,1.,1+2j,quaternion(1,2,3,4)) :
+    ceq('v[0]==rational(v[0])==xrational(v[0])==qrational(v[0])==quaternion(v[0])==v[0]',(x,));
+    ceq('rational(v[0])==v[0]',(x,));
+    ceq('rational(v[0]).realize()==v[0]',(x,));
+    ceq('rational(v[0])!=v[0]+1',(x,));
+    ceq('xrational(v[0])==v[0]',(x,));
+    ceq('xrational(v[0]).realize()==v[0]',(x,));
+    ceq('xrational(v[0])!=v[0]+1',(x,));
+    ceq('qrational(v[0])==v[0]',(x,));
+    ceq('qrational(v[0]).realize()==v[0]',(x,));
+    ceq('qrational(v[0])!=v[0]+1',(x,));
+    if isint(x) :
+      ceq('v[0]==int(rational(v[0]))==int(quaternion(v[0]))',(x,));
+    if isreal(x) :
+      ceq('v[0]==float(rational(v[0]))==float(quaternion(v[0]))',(x,));
+    if iscomplex(x) :
+      ceq('v[0]==complex(rational(v[0]))==complex(quaternion(v[0]))',(x,));
+      
+
 
 if __name__ == '__main__' :
   print('attribute test')
@@ -846,6 +866,8 @@ if __name__ == '__main__' :
   roottest();
   print('string IO test ...')
   itest();
+  print('conversion test ...');
+  ctest();
   print('rational test ...');
   rattest();
   print('xrational test ...');

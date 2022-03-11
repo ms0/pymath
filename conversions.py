@@ -44,6 +44,11 @@ else :
       yield start;
       start += step;
 
+def intfloat(x) :
+  """Return int(x) if same as x, else float(x)"""
+  y = int(x);
+  return y if y==x else float(x);
+
 try :
   from math import gcd
 except Exception :

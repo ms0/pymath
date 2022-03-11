@@ -904,6 +904,8 @@ class rationalfunction(object) :
     return self.__lshift__(-k);
   
 def rationalize(p) :
+  """If p is a python number, convert it to a rational or xrational;
+     if p is a polynomial with numerical coefficients, convert them all"""
   if isinstance(p,polynomial) :
     types = set();
     for x in p :

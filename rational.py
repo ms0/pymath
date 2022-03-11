@@ -17,6 +17,7 @@ import sys
 from math import log as _mlog, modf as _mmodf, ldexp as _mldexp, copysign as _mcopysign
 from itertools import chain, count
 from conversions import xrange, isint, isstr, gcd, bit_length
+from quaternion import quaternion
 
 if sys.version_info[0] < 3 :
 
@@ -187,7 +188,7 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rlshift__, __rshift__, __rrshift__,
-  __pow__, __rpow__, log, exp, cf, approximate, significate"""
+  __pow__, __rpow__, log, exp, cf, approximate, significate, realize"""
 
   def __new__(cls,a=0,b=1,_gcd_=True) :
     """Create a rational number equal to a/b; 0/0 is nan; a/0 is sgn(a)*inf, 0/-1 is -0
@@ -195,6 +196,7 @@ If a is a float (and b==1), return the simplest rational whose float is a
 If a is a rational, or an xrational with a.imag!=0, (and b==1), return a
 If a is an xrational with a.imag==0, (and b==1), return a.real
 If a is a qrational with a.i==a.j==a.k==0, (and b==1), return a.real
+If a is a quaternion, return rational(qrational(a.real,a.i,a.j,a.k))
 If a is a string (and b==1), it is interpreted in liberalized bstr() and/or str() format
 If a is iterable (and b==1), its elements, which must be numbers,
 are interpreted as the terms of a regular continued fraction
@@ -205,6 +207,8 @@ _gcd_ is intended only for internal use: not _gcd_ promises gcd(a,b) = 1"""
           return a if a.imag else a.real;
         if isinstance(a,qrational) :
           return a if a.i or a.j or a.k else a.real;
+        if isinstance(a,quaternion) :
+          return rational(qrational(a.real,a.i,a.j,a.k));
         if isstr(a) :
           return _parserat(a);
         try :
@@ -405,6 +409,10 @@ a following >> indicates division by the indicated power of the base"""
         return self._a == abs(self._b)*other;
       if isinstance(other,float) :
         return self == type(self)(other);
+      if isinstance(other,complex) :
+        return not other.imag and self == type(self)(other);
+      if isinstance(other,quaternion) :
+        return not other.i and not other.j and not other.k and self == type(self)(other);
       return NotImplemented;
     return self._a == other._a and abs(self._b) == abs(other._b) and other is not _nan;
 
@@ -416,6 +424,10 @@ a following >> indicates division by the indicated power of the base"""
         return self._a != abs(self._b)*other;
       if isinstance(other,float) :
         return self != type(self)(other);
+      if isinstance(other,complex) :
+        return other.imag or self != type(self)(other.real);
+      if isinstance(other,quaternion) :
+        return other.i or other.j or other.k or self != type(self)(other.real);
       return NotImplemented;
     return self._a != other._a or abs(self._b) != abs(other._b) or other is _nan;
 
@@ -848,6 +860,10 @@ Return x with least denominator such that |(1-x/self)*accuracy| <= 1"""
     """Return an approximation of self with set_significance()+extrabits precision"""
     return self.approximate(1<<max(0,_SIGNIFICANCE+extrabits));
 
+  def realize(self) :
+    """Return self as an int or float"""
+    return self._a if abs(self._b) == 1 else self.__float__();
+
 def _xrat(a,b,c,d) :
   """Return xrational given numerator and denominator of real and of imag"""
   return xrational(rational(a,b),rational(c,d));
@@ -866,7 +882,7 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__,
-  __pow__, __rpow__, log, exp, arg, approximate, significate"""
+  __pow__, __rpow__, log, exp, arg, approximate, significate, realize"""
 
   def __new__(cls,real=0,imag=0) :
     """Create a complex number equal to real+imag*i; real and imag are converted to rational
@@ -881,7 +897,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
         real,imag = real.real, real.i;
       if isinstance(real,complex) :
         real,imag = real.real, real.imag;
-      if isstr(real) :
+      if isstr(real) or isinstance(real,quaternion) :
         return xrational(rational(real));
     try :
       real = rational(real);
@@ -1210,6 +1226,10 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """Return result of applying rational.significate to real and imaginary parts"""
     return type(self)(self._a.significate(extrabits),self._b.significate(extrabits));
 
+  def realize(self) :
+    """Return self as an int, float, or complex"""
+    return self._a.realize() if not self._b else self.__complex__();
+
 def _qrat(a,b,c,d,e,f,g,h) :
   """Return qrational given numerator and denominator of real and of i,j,k"""
   return qrational(rational(a,b),rational(c,d),rational(e,f),rational(g,h));
@@ -1231,7 +1251,7 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__, __div__, __rdiv__,
   __truediv__, __rtruediv__, __floordiv__, __rfloordiv__, __mod__, __rmod__,
   __divmod__, __rdivmod__, __lshift__, __rshift__,
-  __pow__, __rpow__, log, exp, approximate, significate"""
+  __pow__, __rpow__, log, exp, approximate, significate, realize"""
 
   def __new__(cls,*args) :
     """Create a quaternion, internally a tuple of 4 rationals
@@ -1250,7 +1270,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
     if len(args) == 1 :
       if isinstance(args[0],qrational) :
         return args[0];
-      if isstr(args[0]) :
+      if isstr(args[0]) or isinstance(args[0],quaternion) :
         return qrational(rational(args[0]));
       args = (args[0].real,args[0].imag);
     for a in args :
@@ -1688,6 +1708,12 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def significate(self,extrabits=0) :
     """Return result of applying rational.significate to each component of self"""
     return type(self)(*(a.significate(extrabits) for a in self.__v));
+
+  def realize(self) :
+    """Return self as an int, float, complex, or quaternion"""
+    return self.__v[0].realize() if not any(self.__v[1:]) else \
+      complex(*self.__v[:2]) if not any(self.__v[2:]) else \
+      quaternion(*map(rational.realize,self.__v));
 
 _0=rational(0);
 _1=rational(1);

@@ -6,7 +6,7 @@ from __future__ import division
 
 __all__ = ['quaternion']
 
-from conversions import isstr, isint, isreal, iscomplex, xrange
+from conversions import isstr, isint, isreal, iscomplex, xrange, intfloat
 
 import math    # exp, log, cos, sin, acos
 
@@ -67,8 +67,15 @@ quaternion(string) is the quaternion represented by that string"""
           args = tuple(v);
         except Exception :
           raise ValueError('invalid literal for quaternion()')
-      elif iscomplex(args[0]) :
-        args = (args[0].real,args[0].imag);
+      else :
+        try :
+          args = (intfloat(args[0].real),intfloat(args[0].imag),0,0);
+        except Exception :
+          try :
+            args = (intfloat(args[0].real),intfloat(args[0].i),
+                    intfloat(args[0].j),intfloat(args[0].k));
+          except Exception :
+            pass;
     if all(map(isreal,args)) :
       if len(args) == 2 :
         self.__v = (args[0],args[1],0,0);
@@ -115,7 +122,7 @@ quaternion(string) is the quaternion represented by that string"""
       return self.__v[0] == other.real and self.__v[1] == other.imag and \
           self.__v[2] == 0 and self.__v[3] == 0;
     else :
-      return False;
+      return NotImplemented;
 
   def __ne__(self,other) :
     """Return True iff self != other"""
