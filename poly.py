@@ -35,12 +35,23 @@ def nzpolymul(f,g) :
 def nzpolypow(b,e,m=None) :
   n = (1 << (bit_length(e)-1)) >> 1;
   if m :
+    types = set();
+    for c in chain(b,m) :
+      types.add(type(c));
+    if types <= COMPLEX and not types <= XRATIONAL :
+      b = lmap(rational,b);
+      m = lmap(rational,m);
+      t = realize;
+    else :
+      t = None;
     x = b = nzpolymod(b,m);
     while n :
       x = nzpolymod(nzpolymul(x,x),m);
       if e&n :
         x = nzpolymod(nzpolymul(x,b),m);
       n >>= 1;
+      if t :
+        x = tuple(map(t,x));
   else :
     x = b;
     while n :
@@ -50,22 +61,24 @@ def nzpolypow(b,e,m=None) :
       n >>= 1;
   return x;
 
-def nzpolymod(f,g) :
-  """Return the remainder from dividing polynomial f by polynomial g"""
+def nzpolymod(f,g,t=False) :
+  """Divide polynomial f by polynomial g to return remainder;
+     if t, and coeffs are all numbers, rationalize args and realize result"""
   dr = len(f)-1;
   dg = len(g)-1;
   if dr < dg :
     return f;
-  types = set();
-  for c in chain(f,g) :
-    types.add(type(c));
-  if types <= COMPLEX and not types <= XRATIONAL :
-    f = lmap(rational,f);
-    g = lmap(rational,g);
-    m = realize;
-  else :
-    m = None;
-  r = f if m else list(f);
+  if t :
+    types = set();
+    for c in chain(f,g) :
+      types.add(type(c));
+    if types <= COMPLEX and not types <= XRATIONAL :
+      f = lmap(rational,f);
+      g = lmap(rational,g);
+      t = realize;
+    else :
+      t = None;
+  r = f if t else list(f);
   x = 1/g[0];
   for i in xrange(dr+1-dg) :
     if r[i] :
@@ -76,25 +89,27 @@ def nzpolymod(f,g) :
     if r[i] : break;
   else :
     return ();
-  return tuple(map(m,r[i:]) if m else r[i:]);
+  return tuple(map(t,r[i:]) if t else r[i:]);
 
-def nzpolydivrem(f,g) :
-  """Return the quotient and remainder from dividing polynomial f by polynomial g"""
+def nzpolydivrem(f,g,t=False) :
+  """Divide polynomial f by polynomial g; return quotient and remainder;
+     if t, and coeffs are all numbers, rationalize args and realize results"""
   dr = len(f)-1;
   dg = len(g)-1;
   if dr < dg :
     return (),f;
   q = [];
-  types = set();
-  for c in chain(f,g) :
-    types.add(type(c));
-  if types <= COMPLEX and not types <= XRATIONAL :
-    f = lmap(rational,f);
-    g = lmap(rational,g);
-    m = realize;
-  else :
-    m = None;
-  r = f if m else list(f);
+  if t :
+    types = set();
+    for c in chain(f,g) :
+      types.add(type(c));
+    if types <= COMPLEX and not types <= XRATIONAL :
+      f = lmap(rational,f);
+      g = lmap(rational,g);
+      t = realize;
+    else :
+      t = None;
+  r = f if t else list(f);
   x = 1/g[0];
   for i in xrange(dr+1-dg) :
     q.append(r[i]*x);
@@ -104,9 +119,9 @@ def nzpolydivrem(f,g) :
   for i in xrange(dr+1-dg,dr+1) :
     if r[i] : break;
   else :
-    return tuple(map(m,q) if m else q),();
-  return (tuple(map(m,q) if m else q),
-          tuple(map(m,r[i:]) if m else r[i:]));
+    return tuple(map(t,q) if t else q),();
+  return (tuple(map(t,q) if t else q),
+          tuple(map(t,r[i:]) if t else r[i:]));
 
 # evaluate a univariate polynomial (an iterable of coefficients), at a point
 def evaluate(p,x) :
@@ -123,6 +138,8 @@ a zero polynomial has an empty sequence of coefficients
 
 Instance variables:
   degree: the degree of the polynomial [-inf for a zero polynomial, 0 for a constant]
+  numerator (aka a): the polynomial itself
+  denominator (aka b): the constant polynomial 1 
   
 Methods:
   __init__, __hash__, __repr__, __str__,
@@ -131,7 +148,8 @@ Methods:
   __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__,
   __truediv__, __rtruediv__, __div__, __rdiv__, __floordiv__, __rfloordiv__,
   __divmod__, __mod__, __rmod__, __pow__, __lshift__, __rshift__,
-  mapcoeffs, derivative, gcd, xgcd, isirreducible, factor, @staticmethod unfactor"""
+  mapcoeffs, realize, derivative, gcd, xgcd,
+  isirreducible, isprimitive, factor, @staticmethod unfactor"""
 
   def __init__(self,*p) :
     """Create a polynomial from a sequence of coefficients, constant term last"""
@@ -303,7 +321,7 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
       else :
         other = type(self)(other);
     if not self._p : return self;
-    return type(self)(*(nzpolydivrem(self._p,other._p)[0]));
+    return type(self)(*(nzpolydivrem(self._p,other._p,True)[0]));
 
   def __rfloordiv__(self,other) :
     """Return the quotient other//self"""
@@ -344,7 +362,7 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
         other = other._a;
       else :
         other = type(self)(other);
-    q,r = nzpolydivrem(self._p,other._p);
+    q,r = nzpolydivrem(self._p,other._p,True);
     return type(self)(*q),type(self)(*r);
 
   def __rdivmod__(self,other) :
@@ -364,7 +382,7 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
         return _zero;
       else :
         other = type(self)(other);
-    return type(self)(*(nzpolymod(self._p,other._p)));
+    return type(self)(*(nzpolymod(self._p,other._p,True)));
 
   def __rmod__(self,other) :
     """Return the remainder when dividing other by self"""
@@ -429,12 +447,12 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
     if types <= COMPLEX and not types <= XRATIONAL :
       p = p.mapcoeffs(rational);
       q = q.mapcoeffs(rational);
-      m = realize;
+      t = realize;
     else :
-      m = None;
+      t = None;
     while q :
       p,q = q, p%q;
-    return p and (p/p._p[0]).mapcoeffs(m);
+    return p and (p/p._p[0]).mapcoeffs(t);
 
   def xgcd(p,q) :
     """Return (g,u,v), where g = gcd of p and q, and g=up+vq"""
@@ -446,15 +464,15 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
     if types <= COMPLEX and not types <= XRATIONAL :
       p = p.mapcoeffs(rational);
       q = q.mapcoeffs(rational);
-      m = realize;
+      t = realize;
     else :
-      m = None;
+      t = None;
     u,v,u1,v1 = _one,_zero,_zero,_one;
     while q :
-      l,r = divmod(p,q);
-      p,u,v,q,u1,v1 = q,u1,v1,r,u-l*u1,v-l*v1;
+      m,r = divmod(p,q);
+      p,u,v,q,u1,v1 = q,u1,v1,r,u-m*u1,v-m*v1;
     p0 = p._p[0] if p else 1;
-    return (p/p0).mapcoeffs(m),(u/p0).mapcoeffs(m),(v/p0).mapcoeffs(m);
+    return (p/p0).mapcoeffs(t),(u/p0).mapcoeffs(t),(v/p0).mapcoeffs(t);
 
   def isirreducible(self,q=0) :
     """Return True iff self is irreducible over a field;
@@ -726,6 +744,10 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
     """Apply f to each coefficient and return the resulting polynomial"""
     return type(self)(*map(f,self._p)) if f else self;
 
+  def realize(self) :
+    """Apply realize to each coefficient and return the resulting polynomial"""
+    return type(self)(*map(realize,self._p));
+
   @staticmethod
   def unfactor(facdict,p=None) :
     """Take a factorization as produced by factor() and return the product,
@@ -736,6 +758,21 @@ multiplied by p if specified"""
     return p;
 
 class rationalfunction(object) :
+  """rational function (ratio of polynomials) in one variable
+
+Instance variables:
+  degree: degree of numerator minus degree of denominator
+  numerator (aka a): the polynomial numerator
+  denominator (aka b): the polynomial denominator
+  
+Methods:
+  __new__, __init__, __hash__, __repr__, __str__,
+  __bool__, __nonzero__, __call__,
+  __lt__, __le__, __eq__, __ne__, __ge__, __gt__, __pos__, __neg__,
+  __add__, __radd__, __sub__, __rsub__, __mul__, __rmul__,
+  __truediv__, __rtruediv__, __div__, __rdiv__, __floordiv__, __rfloordiv__,
+  __pow__, __lshift__, __rshift__, derivative"""
+
   def __new__(cls,a,b=1) :
     if not b : raise ZeroDivisionError;
     a = rationalize(a);
@@ -908,6 +945,11 @@ class rationalfunction(object) :
   def __rshift__(self,k) :
     """Return self * x**-k"""
     return self.__lshift__(-k);
+
+  def derivative(self) :
+    """Return derivative of self"""
+    return type(self)(
+      self._a.derivative()*self._b-self._a*self._b.derivative(), self._b**2);
   
 def rationalize(p) :
   """If p is a python number, convert it to a rational or xrational;
