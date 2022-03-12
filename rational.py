@@ -40,6 +40,13 @@ def rint(x) :
   """If x is a rational integer, return x.numerator, else, return x"""
   return x.numerator if isinstance(x,rational) and abs(x.denominator)==1 else x;
 
+def realize(x) :
+  """If x has a realize attribute, return x.realize(), else return x"""
+  try :
+    return x.realize();
+  except Exception :
+    return x;
+
 _finf = float('inf');
 
 def sgn(x) :

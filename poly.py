@@ -7,8 +7,8 @@ import sys
 from itertools import chain, count
 from collections import defaultdict
 from matrix import product, bmatrix
-from rational import rational,xrational,inf
-from conversions import bit_length, xrange, isint, iteritems, isffield
+from rational import rational, xrational, inf, realize
+from conversions import bit_length, xrange, isint, iteritems, isffield, lmap
 from numfuns import factors, leastfactor, primepower, modpow, isirreducible, isprimitive, lcma, divisors
 from random import randrange,randint
 
@@ -24,11 +24,6 @@ COMPLEX = REAL | set((complex,xrational));
 XRATIONAL = set((rational,xrational));
 
 int_float = lambda x: x if isint(x) else x.a if abs(x.b)==1 else float(x);
-floatall = lambda x: x.mapcoeffs(int_float);
-complexall = lambda x: x.mapcoeffs(complex);
-identity = lambda x: x;
-
-# danger: division converts to floating point (unless we use rational coeffs)
 
 def nzpolymul(f,g) :
   fg = (len(f)+len(g)-1)*[0*f[0]];
@@ -61,7 +56,16 @@ def nzpolymod(f,g) :
   dg = len(g)-1;
   if dr < dg :
     return f;
-  r = list(f);
+  types = set();
+  for c in chain(f,g) :
+    types.add(type(c));
+  if types <= COMPLEX and not types <= XRATIONAL :
+    f = lmap(rational,f);
+    g = lmap(rational,g);
+    m = realize;
+  else :
+    m = None;
+  r = f if m else list(f);
   x = 1/g[0];
   for i in xrange(dr+1-dg) :
     if r[i] :
@@ -72,7 +76,7 @@ def nzpolymod(f,g) :
     if r[i] : break;
   else :
     return ();
-  return tuple(r[i:]);
+  return tuple(map(m,r[i:]) if m else r[i:]);
 
 def nzpolydivrem(f,g) :
   """Return the quotient and remainder from dividing polynomial f by polynomial g"""
@@ -81,7 +85,16 @@ def nzpolydivrem(f,g) :
   if dr < dg :
     return (),f;
   q = [];
-  r = list(f);
+  types = set();
+  for c in chain(f,g) :
+    types.add(type(c));
+  if types <= COMPLEX and not types <= XRATIONAL :
+    f = lmap(rational,f);
+    g = lmap(rational,g);
+    m = realize;
+  else :
+    m = None;
+  r = f if m else list(f);
   x = 1/g[0];
   for i in xrange(dr+1-dg) :
     q.append(r[i]*x);
@@ -91,8 +104,9 @@ def nzpolydivrem(f,g) :
   for i in xrange(dr+1-dg,dr+1) :
     if r[i] : break;
   else :
-    return tuple(q),();
-  return tuple(q),tuple(r[i:]);
+    return tuple(map(m,q) if m else q),();
+  return (tuple(map(m,q) if m else q),
+          tuple(map(m,r[i:]) if m else r[i:]));
 
 # evaluate a univariate polynomial (an iterable of coefficients), at a point
 def evaluate(p,x) :
@@ -412,19 +426,15 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
     types = set();
     for x in chain(p,q) :
       types.add(type(x));
-    if types <= REAL and not types <= RATIONAL :
+    if types <= COMPLEX and not types <= XRATIONAL :
       p = p.mapcoeffs(rational);
       q = q.mapcoeffs(rational);
-      mapping = floatall;
-    elif types <= COMPLEX and not types <= XRATIONAL :
-      p = p.mapcoeffs(xrational);
-      q = q.mapcoeffs(xrational);
-      mapping = complexall;
+      m = realize;
     else :
-      mapping = identity;
+      m = None;
     while q :
       p,q = q, p%q;
-    return mapping(p and p/p._p[0]);
+    return p and (p/p._p[0]).mapcoeffs(m);
 
   def xgcd(p,q) :
     """Return (g,u,v), where g = gcd of p and q, and g=up+vq"""
@@ -433,22 +443,18 @@ Note that [::-1] gives a tuple of coeffs with constant term last"""
     types = set();
     for x in chain(p,q) :
       types.add(type(x));
-    if set() < types <= REAL and not types <= RATIONAL :
+    if types <= COMPLEX and not types <= XRATIONAL :
       p = p.mapcoeffs(rational);
       q = q.mapcoeffs(rational);
-      mapping = floatall;
-    elif types <= COMPLEX and not types <= XRATIONAL :
-      p = p.mapcoeffs(xrational);
-      q = q.mapcoeffs(xrational);
-      mapping = complexall;
+      m = realize;
     else :
-      mapping = identity;
+      m = None;
     u,v,u1,v1 = _one,_zero,_zero,_one;
     while q :
-      m = p//q;
-      p,u,v,q,u1,v1 = q,u1,v1,p-m*q,u-m*u1,v-m*v1;
+      l,r = divmod(p,q);
+      p,u,v,q,u1,v1 = q,u1,v1,r,u-l*u1,v-l*v1;
     p0 = p._p[0] if p else 1;
-    return mapping(p/p0),mapping(u/p0),mapping(v/p0);
+    return (p/p0).mapcoeffs(m),(u/p0).mapcoeffs(m),(v/p0).mapcoeffs(m);
 
   def isirreducible(self,q=0) :
     """Return True iff self is irreducible over a field;
@@ -718,7 +724,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
 
   def mapcoeffs(self,f) :
     """Apply f to each coefficient and return the resulting polynomial"""
-    return type(self)(*map(f,self._p));
+    return type(self)(*map(f,self._p)) if f else self;
 
   @staticmethod
   def unfactor(facdict,p=None) :
