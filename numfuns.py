@@ -186,6 +186,9 @@ def primepower(q) :
 # if g != 0 f is reducible
 # else f is irreducible
 
+x = (1,0);
+one = (1,);
+
 def isirreducible(poly,q) :  # missing leading coefficient assumed to be 1
   """Run the deterministic Rabin test to see if poly is irreducible over GF(q);
 q must be a positive power of a prime p; poly is represented as a tuple of
@@ -197,9 +200,8 @@ without the leading coefficient, which is taken to be 1"""
   n = len(poly);
   if n <= 1 : return n==1;
   if not poly[-1] : return False;
-  f = (1,)+poly;
+  f = one+poly;
   if p == 2 : return isirreducible2(pack(2,f),k);
-  x = (1,0);
   for r in factors(n) :
     if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
   return not mpsub(p,mppow(p,x,q**n,f),x);
@@ -218,23 +220,10 @@ def isprimitive(g,p) :
   if q[1] != 1 or not g[-1] : return False;
   if n == 1 and g[0] == p-1 : return False;    # x-1
   o = p**n-1;
-  # simple algorithm:
-  #   for f in factors(o) :
-  #     d = (1,)*(o//f);    # (x**(o//f)-1)/(x-1)
-  #     if not mpmod(p,d,g) : return False;
-  #   return True;
-  # this instead tests all factors at once and with little memory:
-  d = [1]*(2*n);    # we concatenate 1s as we divide
-  i = 0;    # index (in d) of first nonzero coefficient
-  for _ in xrange(o//2-n) :    # implicitly check through o//2
-    q = d[i];    # leading coefficient of dividend
-    for j in xrange(n) :    # compute remainder so far
-      d[j] = (d[i+j+1]-q*g[j])%p;
-    for i in xrange(n) :
-      if d[i] : break;    # new leading coefficient
-    else :
-      return False;    # remainder was 0, so g divides x**m-1 for m < p**n-1
-  return True;    
+  og = one+g;
+  for f in factors(o) :
+    if mppow(p,x,o//f,og) == one : return False;
+  return True;
 
 def factors(n,maxfactor=None) :
   """Return the prime factors of n in increasing order as a generator"""
@@ -430,7 +419,7 @@ def mppow(p,b,e,m=None) :
     if len(m) < 2 :
       if m : return ();
       raise ZeroDivisionError;
-  if not e : return (1,);
+  if not e : return one;
   n = 1 << (bit_length(e)-1) >> 1;
   x = b;
   while n :
@@ -451,7 +440,7 @@ def mpgcd(p,f,g) :
 def xmpgcd(p,f,g) :
   """Return the monic gcd d of f and g, together with u,v such that d=uf+vg,
 all polynomials over GF(p); note that g**-1 mod f = xmpgcd(p,f,g)[2]"""
-  u0,v0,u1,v1 = (1,),(),(),(1,);
+  u0,v0,u1,v1 = one,(),(),one;
   f = lstrip(f);
   g = lstrip(g);
   while g :
@@ -568,23 +557,9 @@ def isprimitive2(g) :
   if not g&1 : return False;
   n = bit_length(g)-1;
   o = (1<<n)-1;
-  # simple algorithm:
-  # for f in factors(o) :
-  #   d = (1<<(o//f))|1;
-  #   if not m2mod(d,g) : return False;
-  #  return True;
-  # this instead tests all factors at once and with fewer bits:
-  for f in factors(o) :    # if o == 1, there are no factors; x+1 is primitive
+  for f in factors(o) :
     if f==o : break;    # o is prime; g is primitive
-    d = 0;
-    k = n+1;
-    c = o//f-n;
-    while c > 0:
-      d = ((d<<k)|((1<<k)-1))^g;
-      if not d : return False;    # g divides x**m-1 for m < 2**n-1
-      k = n+1-bit_length(d);
-      c -= k;
-    break;    # we've tried the smallest factor, so all of them in passing
+    if m2pow(2,o//f,g) == 1 : return False;
   return True;
 
 def mu(n) :
@@ -641,7 +616,7 @@ def irreducibleg(q,n) :
       poly.append(j%p);
       j //= p;
     poly = tuple(reversed(poly));
-    if isirreducible(poly,q) : yield (1,)+poly;
+    if isirreducible(poly,q) : yield one+poly;
 
 def phi(n) :
   """Return the Euler totient function of n"""

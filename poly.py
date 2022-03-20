@@ -560,19 +560,10 @@ if q is not specified, the field is inferred from self's coefficients"""
         return isprimitive(self.mapcoeffs(int)._p[1:],q);
       if not self._p[-1] or n == 1 and not (p0+self._p[1]) : return False; # wx or x-1
       o = q**n-1;
+      x = _x.mapcoeffs(F);
+      one = _one.mapcoeffs(F);
       for f in factors(o) :
-        break;
-      d = [1]*(2*n);
-      i = 0;
-      g = self._p[1:]
-      for _ in xrange((q**n-1)//f-n) :
-        q = d[i];
-        for j in xrange(n) :    # compute remainder so far
-          d[j] = d[i+j+1]-q*g[j];
-        for i in xrange(n) :
-          if d[i] : break;    # new leading coefficient
-        else :
-          return False;    # remainder was 0
+        if pow(x,o//f,self) == one : return False;
       return True;
     raise TypeError('implemented only for finite fields');
 
