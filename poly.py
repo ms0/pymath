@@ -9,7 +9,7 @@ from collections import defaultdict
 from matrix import product, bmatrix
 from rational import rational, xrational, inf, realize
 from conversions import bit_length, xrange, isint, iteritems, isffield, lmap
-from numfuns import factors, leastfactor, primepower, modpow, isirreducible, isprimitive, lcma, divisors
+from numfuns import factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, lcma, divisors
 from random import randrange,randint
 
 if sys.version_info>(3,) :
@@ -562,7 +562,7 @@ if q is not specified, the field is inferred from self's coefficients"""
       o = q**n-1;
       x = _x.mapcoeffs(F);
       one = _one.mapcoeffs(F);
-      for f in factors(o) :
+      for f in ffactors(o) :
         if pow(x,o//f,self) == one : return False;
       return True;
     raise TypeError('implemented only for finite fields');

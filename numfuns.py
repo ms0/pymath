@@ -221,24 +221,48 @@ def isprimitive(g,p) :
   if n == 1 and g[0] == p-1 : return False;    # x-1
   o = p**n-1;
   og = one+g;
-  for f in factors(o) :
+  for f in ffactors(o) :
     if mppow(p,x,o//f,og) == one : return False;
   return True;
 
+def ffactors(n) :
+  """Memoized and return the prime factors of n in increasing order as a generator"""
+  for p in ffactor(n) : yield p[0];
+
 def factors(n,maxfactor=None) :
-  """Return the prime factors of n in increasing order as a generator"""
+  """Return the prime factors of n in increasing order as a generator; but
+     the final factor may not be prime if > maxfactor"""
   for p in factor(n,maxfactor) : yield p[0];
 
 def leastfactor(n,maxfactor=None) :
+  """Return the smallest prime factor of n, or 1 if no prime factor; but
+     the factor returned max not be prime if > maxfactor"""
   for p in factors(n,maxfactor) :
     return p;
   return 1;
 
+_ffactorization = dict();    # full factorizations
+
+def ffactor(n) :
+  """Memoize and return the factorization of n as a tuple of (prime,exponent) pairs"""
+  try :
+    return _ffactorization[n];
+  except KeyError :
+    _ffactorization[n] = f = tuple(factor(n));
+    return f;    
+
 def factor(n,maxfactor=None) :
-  """Return prime factorization of n as generator of (prime,exponent) pairs"""
+  """Return prime factorization of n as generator of (prime,exponent) pairs; but
+     if the final factor has exponent 1, it may not be a prime if > maxfactor"""
   n = abs(n);
   if n <= 1 :
     return;
+  try :
+    for px in _ffactorization[n] :
+      yield px;
+    return;
+  except KeyError :
+    pass;
   if not n & 1:
     c = bit_length(n&-n)-1;
     n >>= c;
@@ -557,7 +581,7 @@ def isprimitive2(g) :
   if not g&1 : return False;
   n = bit_length(g)-1;
   o = (1<<n)-1;
-  for f in factors(o) :
+  for f in ffactors(o) :
     if f==o : break;    # o is prime; g is primitive
     if m2pow(2,o//f,g) == 1 : return False;
   return True;

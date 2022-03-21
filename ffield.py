@@ -15,7 +15,7 @@ from poly import polynomial
 
 from conversions import isint, isstr, isffield, xrange, lmap, bit_length, bit_reverse, bump_bits, zits, stradix, pack, unpack
 
-from numfuns import factors, primepower, isirreducible, isirreducible2, irreducibleg, isprimitive, isprimitive2, mpadd, mpmul, mppow, xmpgcd, m2mul, m2sq, m2pow, m2mod, xm2gcd
+from numfuns import factors, ffactors, primepower, isirreducible, isirreducible2, irreducibleg, isprimitive, isprimitive2, mpadd, mpmul, mppow, xmpgcd, m2mul, m2sq, m2pow, m2mod, xm2gcd
 
 def __init__(self,x) :
   """Create a finite field element given its polynomial representation, x
@@ -144,10 +144,10 @@ def field_tupoly(self) :
 @property
 def element_order(self) :
   """The multiplicative order of the field element"""
-  o = self._q-1;
   if self._x <= 1 :
     return self._x;
-  for p in factors(o) :
+  o = self._q-1;
+  for p in ffactors(o) :
     while not o%p :
       if (self**(o//p))._x != 1 : break;
       o //= p;
@@ -174,7 +174,7 @@ def generates(self) :
   o = self._q-1;
   if self._x <= 1 :
     return self._x==o;
-  for p in factors(o) :
+  for p in ffactors(o) :
     if (self**(o//p))._x == 1 : return False;
   return True;
 
@@ -610,14 +610,17 @@ Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __
 Descriptors: p, n, q, poly, fpoly, tupoly, ftupoly, id,
              polynomial [modulus of field], basefield,
              order [of field-{0}], generator [of field-{0}]
+WARNING: generator requires factoring q-1, so may take inordinately long
 
 Signatures:
   ffield(q) : q = p**n, a prime power; use least irreducible polynomial
   ffield(q,n,poly) : q, a prime; n, a positive int; poly, a la tupoly or poly
   ffield(q,n) : q, a prime; n, a positive int; use least irreducible polynomial
-  ffield(q,poly) : q, a prime power; poly, a la tupoly or poly
-  Note: if poly is specified and not poly, use least irreducible polynomial
-   unless p==2 in which case use least irreducible polynomial with fewest 1s
+  ffield(q,poly) : q = p**n, a prime power (n > 1); poly, a la tupoly or poly
+  Note: if poly is specified and not poly and q != p, then
+   if poly == (), use least primitive polynomial [WARNING: factors q-1]
+   if poly == 0 and p==2, use least irreducible polynomial with fewest 1s
+   else, use least irreducible polynomial
 
 Each instance of the created type is an element of the finite field:
 Instance variable (treat as read-only!):
@@ -628,11 +631,13 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __bool__, __nonzero__, __eq__, __ne__, __lt__, __gt__, __le__, __ge__
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
-         __pow__, log, minpoly, minpolynomial
+         __pow__, log, minpoly, minpolynomial,
          __reduce__
 Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
              [element representations:] x, tupoly, polynomial; leastfield
              order [of element], generator [True if element generates]
+WARNING: log, minpoly, minpolynomial, order and generator
+         require factoring q-1, so may take inordinately long
 """
 
   def __new__(cls,q,*args,**kwargs) :
@@ -669,14 +674,17 @@ Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
       raise ValueError('Bad power');
     q = p**n;
     if not poly and n > 1:    # pick least irreducible poly
+      notprimitive = poly != ();
       if p != 2 :
         d = p if (p-1)%product(factors(n),1 if n&3 else 2) else 0;
         for poly in xrange(1+d+q,q+q) :
-          if isirreducible(unpack(p,poly)[1:],p) : break;
+          g = unpack(p,poly)[1:];
+          if isirreducible(g,p) and (notprimitive or isprimitive(g,p)): break;
         poly -= q;
-      elif poly == None :
+      elif poly != 0 :
         for poly in xrange(3,q,2) :
-          if isirreducible2(poly|q) : break;
+          g = poly|q;
+          if isirreducible2(g) and (notprimitive or isprimitive2(g)) : break;
       else :    # with fewest possible bits
         poly = 3;    # first, special case 3 bits, for speed
         for _ in xrange(n>>1) :
@@ -708,6 +716,7 @@ Descriptors: [field parameters:] p, n, q, poly, fpoly, ftupoly;
           raise ValueError('Bad poly');
         poly = p*poly + c;
     else : raise ValueError('Bad poly');
+    if n == 1 : poly = 0;    # canonicalize GF(p)
     tupoly = unpack(p,poly);
     _nzi = -len(tupoly);
     _tupoly = (1,)+(n+_nzi)*(0,)+tupoly;
@@ -993,7 +1002,7 @@ def rgenerates(self) :
   if self._x < self._basefield._q :
     return False;
   o = self._q-1;
-  for p in factors(o) :
+  for p in ffactors(o) :
     if (self**(o//p))._x == 1 : return False;
   return True;
 
@@ -1222,6 +1231,7 @@ Methods: __new__, __init__, __hash__, __eq__, __ne__, __lt__, __le__, __ge__, __
 
 Descriptors: p, n, polynomial [modulus of field extension], basefield,
              order [of field-{0}], generator [of field-{0}], id
+WARNING: generator requires factoring q-1, so may take inordinately long
 
 Signatures:
   ffieldx(poly) : poly an irreducible monic poly with coefficients in some finite field
@@ -1231,11 +1241,13 @@ Methods: __init__, __hash__, __repr__, __str__, __int__,
          __bool__, __nonzero__, __eq__, __ne__, __lt__, __gt__, __le__, __ge__
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
-         __pow__
+         __pow__, log, minpoly, minpolynomial
 
 Descriptors: [field parameters:] p, n, q;
              [element representations:] x, tupoly, polynomial; leastfield,
              order [of element], generator [True if element generates]
+WARNING: log, minpoly, minpolynomial, order and generator
+         require factoring q-1, so may take inordinately long
 """
 
   def __new__(cls,poly) :
