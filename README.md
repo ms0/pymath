@@ -1,7 +1,7 @@
 pymath
 ======
 
-Python code for mathematical classes
+Python code for mathematical classes (packaged as msmath; see msmath repository)
 
 Classes to implement finite fields (ffield.py), rationals and complex rationals (rational.py),
 quaternions (quaternion.py), matrices (matrix.py) over any ring, and
