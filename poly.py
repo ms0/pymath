@@ -694,7 +694,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       if not self._p[-1] :    # self(0) == 0
         facdict[type(self)(self._p[0],self._p[-1])] += e;    # add x as factor
         self = type(self)(*self._p[:-1]);    # divide by x
-      if isinstance(self._p[0],rational) :
+      if all(isinstance(x,rational) for x in self._p) :
         m = lcma(map(lambda x:x.denominator,self._p));
         if m != 1 : facdict[type(self)(rational(1,m))] += e;
         self = self.mapcoeffs(lambda x:m*x);
