@@ -58,6 +58,32 @@ except Exception :
       x,y = y, x%y;
     return abs(x);
 
+def lcm(x,y) :
+  """Return the [positive] least common multiple of x and y"""
+  return abs(x//(gcd(x,y) or 1)*y);
+
+def lcma(*args) :
+  """Return the [positive] least common multiple of all the arguments"""
+  m = 1;
+  for a in args :
+    try :
+      m *= a//(gcd(m,a) or 1);
+    except Exception :
+      for i in a :
+        m *= i//(gcd(m,i) or 1);
+  return abs(m);
+
+def gcda(*args) :
+  """Return the [nonnegative] greatest common divisor of all the arguments"""
+  d = 0;
+  for a in args :
+    try :
+      d = gcd(d,a);
+    except Exception :
+      for i in a :
+        d = gcd(d,i);
+  return d;
+
 try :
   int.bit_length;
   bit_length = lambda n : n.bit_length();

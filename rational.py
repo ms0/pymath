@@ -880,6 +880,8 @@ class xrational(object) :
 Instance variables (read only):
   real: the real part, a rational
   imag: the imaginary part, a rational
+  denominator: the lcm of the denominators of real and imag
+  numerator: denominator*self
 Methods:
   __new__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
@@ -956,7 +958,7 @@ If real is a string (and imag==0), return xrational(rational(real))"""
 
   @property
   def denominator(self) :
-    """the lcm of real and imaginary denominators"""
+    """the lcm of real and imag denominators"""
     return lcm(self._a._b,self._b._b);
 
   @property
@@ -1259,6 +1261,8 @@ Instance variables (read only):
    i,j,k: the respective components of the vector part, each a rational
    imag: the imaginary part, but only if j and k components are zero
    sv or rv: (s,i,j,k), a tuple of rationals
+   denominator: the lcm of the denominators of sv
+   numerator: denominator*self
 Methods:
   __new__, __hash__, __repr__, __str__, bstr, __bool__, __nonzero__,
   __eq__, __ne__, __lt__, __le__, __ge__, __gt__,
@@ -1406,7 +1410,7 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
 
   @property
   def denominator(self) :
-    """the lcm of the components"""
+    """the lcm of the component's denominators"""
     return lcma(map(lambda x:x._b, self.__v));
 
   @property
@@ -2185,11 +2189,14 @@ def fmod(x,y) :
   return rational(x)%y;
 
 def floor(x) :
-  """Return the largest integer not greater than x, or x if not finite"""
+  """Return the largest integer not greater than x, or x if not finite;
+but if x is not real but complex, return the nearest Gaussian integer;
+but if x is not complex but quaternion, return the nearest Hurwitz integer"""
   return rational(x)//1;
 
 def ceil(x) :
-  """Return the smallest integer not less than x, or x if not finite"""
+  """Return the smallest integer not less than x, or x if not finite;
+  but if x is not real, return -floor(-x)"""
   return -(rational(-x)//1);
 
 def hypot(*x) :
