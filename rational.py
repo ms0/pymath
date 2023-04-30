@@ -16,7 +16,7 @@ import sys
 
 from math import log as _mlog, modf as _mmodf, ldexp as _mldexp, copysign as _mcopysign
 from itertools import chain, count
-from conversions import xrange, isint, isstr, gcd, bit_length
+from conversions import xrange, isint, isstr, gcd, bit_length, lcm, lcma
 from quaternion import quaternion
 
 if sys.version_info[0] < 3 :
@@ -954,6 +954,16 @@ If real is a string (and imag==0), return xrational(rational(real))"""
     """the imaginary part"""
     return self._b;
 
+  @property
+  def denominator(self) :
+    """the lcm of real and imaginary denominators"""
+    return lcm(self._a._b,self._b._b);
+
+  @property
+  def numerator(self) :
+    """self * self.denominator"""
+    return self*self.denominator;
+
   def __eq__(self,other) :
     """Return True iff self == other"""
     if isstr(other) :
@@ -1393,6 +1403,16 @@ If four args, the quaternion args[0] + i*args[1] + j*args[2] + k*args[3] is retu
   def v(self) :
     """the vector part as a tuple (i,j,k)"""
     return self.__v[1:];
+
+  @property
+  def denominator(self) :
+    """the lcm of the components"""
+    return lcma(map(lambda x:x._b, self.__v));
+
+  @property
+  def numerator(self) :
+    """self * self.denominator"""
+    return self*self.denominator;
 
   def __bool__(self) :
     return any(self.__v);
