@@ -148,6 +148,15 @@ quaternion(string) is the quaternion represented by that string"""
     return (self.__v[0]*self.__v[0]+self.__v[1]*self.__v[1]+
             self.__v[2]*self.__v[2]+self.__v[3]*self.__v[3])**.5;
 
+  def maxnorm(self) :
+    """Return max absolute value of components of self"""
+    return max(abs(a) for a in self.__v);
+
+  def abs2(self) :
+    """Return |self|**2"""
+    return (self.__v[0]*self.__v[0]+self.__v[1]*self.__v[1]+
+            self.__v[2]*self.__v[2]+self.__v[3]*self.__v[3]);    
+
   def versor(self) :
     """Return self/|self| or 1 if zero"""
     a = abs(self);
