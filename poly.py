@@ -714,7 +714,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               if r not in t :
                 t.add(r);
                 if not self(r) :
-                  f = type(self)(a,-b);
+                  f = type(self)(rational(a),rational(-b));
                   facdict[f] += e;
                   self /= f;
                   break;
@@ -722,7 +722,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
               if r not in t :
                 t.add(r);
                 if not self(r) :
-                  f = type(self)(a,b);
+                  f = type(self)(rational(a),rational(b));
                   facdict[f] += e;
                   self /= f;
                   break;
