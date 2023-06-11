@@ -716,7 +716,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
             facs = poly.factor();
             if len(facs) == 1: break;    # irreducible
             for fac in facs :
-              for d in divisors(self[-1]) :
+              for d in divisors(int(self[-1])) :
                 g = (d*fac).mapcoeffs(lambda x:p-x.x if p>>1 < x.x else x.x);
                 if not self[0]%g[0] and not self%g :
                   facdict[g] += e;
