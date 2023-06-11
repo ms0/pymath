@@ -42,6 +42,7 @@ Instance variables:
     x = x(p);
   except Exception :
     pass;
+  x = rint(x);
   if isint(x) :
     if -q < x < q :
       if x < 0 :
@@ -86,6 +87,7 @@ Instance variables:
       raise TypeError('uninterpretable arg');
     x = 0;
     for i in c :
+      i = rint(i);
       if not isint(i) :
         raise TypeError('iterable elements must be integers');
       if not -p < i < p :
