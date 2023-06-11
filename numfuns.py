@@ -43,6 +43,11 @@ def oplist11(m) : # oplist, but starting at 11
   for i in xrange(210,m,210) if m else count(210,210):    # give up after m
     for d in Z210 : yield i+d;
 
+def nextprime(x) :
+  """Return smallest prime > x"""
+  for p in primes(int(x)+1) :
+    return p;
+
 def primes(start=2,stop=None) :
   """Generator for primes"""
   if stop is None :
