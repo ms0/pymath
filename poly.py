@@ -7,9 +7,9 @@ import sys
 from itertools import chain, count
 from collections import defaultdict
 from matrix import product, bmatrix
-from rational import rational, xrational, inf, realize
+from rational import rational, xrational, inf, realize, exp
 from conversions import bit_length, xrange, isint, iteritems, isffield, lmap
-from numfuns import factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, lcma, divisors
+from numfuns import factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, lcma, divisors, primes
 from random import randrange,randint
 
 if sys.version_info>(3,) :
@@ -694,7 +694,7 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
       if not self._p[-1] :    # self(0) == 0
         facdict[type(self)(self._p[0],self._p[-1])] += e;    # add x as factor
         self = type(self)(*self._p[:-1]);    # divide by x
-      if all(isinstance(x,rational) for x in self._p) :
+      if all(isinstance(x,rational) for x in self._p) :    # Q[x] factorization
         m = lcma(map(lambda x:x.denominator,self._p));
         if m != 1 : facdict[type(self)(rational(1,m))] += e;
         self = self.mapcoeffs(lambda x:m*x);
@@ -706,30 +706,57 @@ Nonconstant factors will be square-free but not necessarily irreducible."""
             m *= f._p[0]**k;
         for f in i : del facdict[f];
         if m != 1 : facdict[type(self)(m)] += 1;
-        t = set();        # look for linear factors
-        while self.degree > 1 :
-          for a in divisors(int(self._p[0])) :
-            for b in divisors(int(self._p[-1])) :
-              r = rational(b,a);
-              if r not in t :
-                t.add(r);
-                if not self(r) :
-                  f = type(self)(rational(a),rational(-b));
-                  facdict[f] += e;
-                  self /= f;
+        from ffield import ffield
+        if self.degree > 1 :
+          c = self.degree<<4;    # eventually give up
+          for p in primes(int(max(map(lambda x:abs(x),self))*exp(self.degree))+1) :
+            F = ffield(p);
+            poly = self.mapcoeffs(F);    # map to GF(p)
+            poly /= poly[-1];    # make monic
+            facs = poly.factor();
+            if len(facs) == 1: break;    # irreducible
+            for fac in facs :
+              for d in divisors(self[-1]) :
+                g = (d*fac).mapcoeffs(lambda x:p-x.x if p>>1 < x.x else x.x);
+                if not self[0]%g[0] and not self%g :
+                  facdict[g] += e;
+                  self //= g;
                   break;
-              r = rational(-b,a);
-              if r not in t :
-                t.add(r);
-                if not self(r) :
-                  f = type(self)(rational(a),rational(b));
-                  facdict[f] += e;
-                  self /= f;
-                  break;
-            else : continue;
-            break;
-          else : break;
-      facdict[self] += e;
+              else :    # this GF(p) factor unproductive
+                c -= 1;
+            if self.degree <= 1 or c <= 0 : break;
+        if self != 1 :
+          facdict[self] += e;
+  
+  # Q[x] factoring algorithm:
+  # First, extract lcm of coefficient denominators,
+  #  and factor resulting Z[x] polynomial ...
+  # Given a Z[x] polynomial of degree > 1 with nonzero constant term and with
+  #  integer coefficients whose gcd is 1,
+  # set counter c as function of degree (to assume irreducible on expiration)
+  # for each prime p > max abs coefficient * exp(degree) :
+  #   mapcoeffs to ffield(p) and divide by leading coefficient to make monic
+  #   factor resutling GF(p) polynomial
+  #   if irreducible, original poly is irreducible
+  #   for each factor f : (note: f is monic with nonzero constant term)
+  #     for each (positive) divisor d of high order coefficient of self :
+  #       multiply coeffs by d
+  #       map coeffs back to SIGNED integers, getting polynomial g
+  #       if constant term of g is divisor of constant term of self and
+  #         if self % g is 0, append that factor, self //= g, break
+  #       (possible optimization: if there were only 2 factors,
+  #        the other one is irreducible as well and we're done)
+  #     else (if not factor g), decrement c
+  #   if self.degree <= 1 or c <= 0, assume remaining self is irreducible
+
+  # NOTE: we need to try multiple primes because some irreducible factors mod p
+  #       may not translate to Z[x] factors.
+  #  example: (x^2+5)(x^2+7) = (x-6)(x-9)(x+6)(x+9) mod 43
+  # Although sometimes, after handling all the factors mod p,
+  #  the remaining polynomial will be irreducible,
+  #  in this example we end up with a reducible polynomial.
+  # Why do we need counter c? Some irreducible Z[x] polys are reducible mod p
+  #   for all p. Smallest example: x^4+1
 
   def mapcoeffs(self,f) :
     """Apply f to each coefficient and return the resulting polynomial"""
