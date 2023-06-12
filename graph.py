@@ -4,6 +4,7 @@ import sys
 from collections import defaultdict
 from itertools import permutations,product
 from conversions import range, xrange, lmap, long
+from matrix import matrix
 
 class graph(object) :
   """Undirected graph
@@ -15,6 +16,7 @@ class graph(object) :
   degrees: a list indexed by node number, giving the degree of each node
   components: a list indexed by node number, giving the set of nodes comprising
     the connected component containing the node; connected nodes share their set
+  laplacian: the laplacian matrix
  Methods:  __init__,__hash__,__repr__,__eq__,__ne__,
            __bool__, __nonzero__,__len__,__invert__,__and__,__or__,__xor__,
            complement,__iand__,__ior__,__ixor__
@@ -106,6 +108,8 @@ class graph(object) :
   @property
   def degrees(self) :
     """list of degrees of vertices"""
+    n = self.__n;
+    e = self.__e;
     a = [0 for i in xrange(n)];
     for j in xrange(1,n) :
       for i in xrange(j) :
@@ -117,6 +121,8 @@ class graph(object) :
   @property
   def components(self) :
     """list of connected components of vertices"""
+    n = self.__n;
+    e = self.__e;
     d = lmap(lambda x:set([x]),xrange(n));
     for j in xrange(1,n) :
       for i in xrange(j) :
@@ -127,6 +133,20 @@ class graph(object) :
             d[a] |= d[b];
             for v in d[b] : d[v] = d[a];
     return d;
+
+  @property
+  def laplacian(self) :
+    """laplacian matrix"""
+    n = self.__n;
+    e = self.__e;
+    m = matrix(n,n);
+    for j in xrange(1,n) :
+      for i in xrange(j) :
+        if 1 & (e >> (i+j*(j-1)//2)) :
+          m[i,j] = m[j,i] = -1;
+          m[i,i] += 1;
+          m[j,j] += 1;
+    return m;
 
   def __ne__(self,other) :
     """Return False if self and other are the same graph, True otherwise"""
