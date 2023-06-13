@@ -21,6 +21,7 @@ MINDEGREE = 1    # min degree of polynomials to be tested
 MAXDEGREE = 10   # max degree of polynomials to be tested
 OPREPEATS = 10   # number of times to repeat operation tests
 FREPEATS = 100   # number of times to repeat factoring tests
+RFREPEATS = 1000 # number of times to repeat rational factoring tests
 
 def error(*args,**kwargs) :
   print(file=sys.stderr);
@@ -126,6 +127,12 @@ def factest(F) :
     testf(polynomial(*(F(randrange(F.order+1))
                        for j in range(randint(1+MINDEGREE,1+MAXDEGREE)))));
 
+def rfactest(cmax) :
+  dotprint('\nQ ');
+  for i in range(RFREPEATS) :
+    testf(polynomial(*(randint(-cmax,cmax)
+                       for j in range(randint(1+MINDEGREE,1+MAXDEGREE)))));
+
 def factests() :
   GF2 = ffield(2);
   GF3 = ffield(3);
@@ -144,6 +151,7 @@ def factests() :
   GF32 = ffield(32);
   for F in (GF729,GF64,GF32) :
     factest(F);
+  rfactest(64);
 
 def optests() :
   for i in range(OPREPEATS) :

@@ -522,7 +522,36 @@ if q is not specified, the field is inferred from self's coefficients"""
           if self.gcd(y-x).degree != 0 : return False;
         else :
           return not (y-x)%self;
-    raise TypeError('implemented only for finite fields');
+    if types <= COMPLEX and complex in types :
+      return False;    # only linear polys are irreducible over C
+    if types <= REAL and not float in types :
+      if not self[0] : return False;    # multiple of x
+      if self.gcd(self.derivative()).degree > 0 :
+        return False;
+      m = lcma(map(lambda x:x.denominator,self._p));
+      poly = self = self.mapcoeffs(lambda x:int(m*x));
+      for p in primes(int(max(map(lambda x:abs(x),self))*exp(self.degree))+1) :
+        p0 = poly._p[0];
+        if p0 != 1 :    # make monic
+          i = modpow(p0,p-2,p);
+          poly = self.mapcoeffs(lambda x: x*i%p);
+        if isirreducible(poly._p[1:],p) :
+          return True;
+        from ffield import ffield
+        F = ffield(p);
+        poly = poly.mapcoeffs(F);    # map to GF(p)
+        facs = poly.factor();
+        if sum(facs.values()) > len(facs) :    # not square free
+          continue;
+        for c in xrange(1,(len(facs)>>1)+1) :
+          for facc in combinations(facs,c) :
+            fac = product(facc);
+            for d in divisors(self._p[0]) :
+              g = (d*fac).mapcoeffs(lambda x:x.x-p if p>>1 < x.x else x.x);
+              if not self._p[-1]%g._p[-1] and not self%g :
+                return False;
+        return True;
+    raise TypeError('not implemented for these coefficient types');
 
   def isprimitive(self,q=0) :
     """Return True iff self (assumed irreducible) is primitive over a field;
@@ -569,11 +598,13 @@ if q is not specified, the field is inferred from self's coefficients"""
 
   def factor(self,facdict=None,e=1) :
     """Return a factorization of polynomial self as a defaultdict(int);
-keys are factors, and values are positive integer exponents;
-if the leading coefficient is real (i.e., int or float),
+keys are factors, and values are positive integer exponents.
+If the coefficients are all real (i.e., int or float),
 the coefficients are converted to rationals before factoring
-and the result's coefficients are converted to ints if integers else floats.
-Nonconstant factors will be square-free and irreducible over the rationals."""
+and the result's coefficients are converted to ints if integers else floats;
+nonconstant factors will be square-free and irreducible over the rationals.
+If some coefficients are complex (i.e., xrational or complex),
+factors will be square-free but not necessarily irreducible."""
     if not isinstance(facdict,defaultdict) : facdict = defaultdict(int);
     if self.degree < 1 :
       if not self or self._p[0]**2 != self._p[0] :
@@ -716,12 +747,12 @@ Nonconstant factors will be square-free and irreducible over the rationals."""
             if sum(facs.values()) > len(facs) :    # not square free
               continue;
             c = 1;    # number of factors to combine
-            while self.degree > 1 and c < len(facs) :
+            while self.degree > 1 and c <= len(facs)>>1 :
               for facc in combinations(facs,c) :
                 fac = product(facc)
-                for d in divisors(int(self[-1])) :
+                for d in divisors(int(self._p[0])) :
                   g = (d*fac).mapcoeffs(lambda x:x.x-p if p>>1 < x.x else x.x);
-                  if not self[0]%g[0] and not self%g :
+                  if not self._p[-1]%g._p[-1] and not self%g :
                     facdict[g] += e;
                     self //= g;
                     for fac in facc :
@@ -733,8 +764,8 @@ Nonconstant factors will be square-free and irreducible over the rationals."""
               else :
                 c += 1;
             break;    # GF(p) factorization successfully uplifted
-        if self != 1 :
-          facdict[self] += e;
+      if self != 1 :
+        facdict[self] += e;
   
   # Q[x] factoring algorithm:
   # First, extract lcm of coefficient denominators,
@@ -746,7 +777,7 @@ Nonconstant factors will be square-free and irreducible over the rationals."""
   #   factor resutling GF(p) polynomial
   #   if not square free, continue to next prime
   #   set c = 1 (c is the number of factors to combine into a trial factor)
-  #   while self.degree > 1 and c < number of factors :
+  #   while self.degree > 1 and 2c <= number of factors :
   #     for each combination of c factors :
   #       trial factor is product of those c factors
   #       for each (positive) divisor d of high order coefficient of self :
