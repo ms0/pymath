@@ -9,7 +9,7 @@ from collections import defaultdict
 from matrix import product, bmatrix
 from rational import rational, xrational, inf, realize, exp
 from conversions import bit_length, xrange, isint, iteritems, isffield, lmap
-from numfuns import factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, lcma, divisors, primes
+from numfuns import factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, gcda, lcma, divisors, primes
 from random import randrange,randint
 
 if sys.version_info>(3,) :
@@ -526,10 +526,11 @@ if q is not specified, the field is inferred from self's coefficients"""
       return False;    # only linear polys are irreducible over C
     if types <= REAL and not float in types :
       if not self[0] : return False;    # multiple of x
+      m = lcma(map(lambda x:x.denominator,self._p));
+      d = gcda(map(lambda x:x.numerator,self._p));
+      poly = self = self.mapcoeffs(lambda x:int(m*x/d));
       if self.gcd(self.derivative()).degree > 0 :
         return False;
-      m = lcma(map(lambda x:x.denominator,self._p));
-      poly = self = self.mapcoeffs(lambda x:int(m*x));
       for p in primes(int(max(map(lambda x:abs(x),self))*exp(self.degree))+1) :
         p0 = poly._p[0];
         if p0 != 1 :    # make monic
@@ -637,7 +638,7 @@ factors will be square-free but not necessarily irreducible."""
       return facdict;
     if self._p[0]**2 != self._p[0] :
       facdict[type(self)(self._p[0])] += e;
-      self /= self._p[0];
+      self /= self._p[0];    # make monic
     g = self.gcd(self.derivative());
     self //= g
     # now self is square-free, but might have factor in common with g
@@ -727,8 +728,9 @@ factors will be square-free but not necessarily irreducible."""
         self = type(self)(*self._p[:-1]);    # divide by x
       if all(isinstance(x,rational) for x in self._p) :    # Q[x] factorization
         m = lcma(map(lambda x:x.denominator,self._p));
-        if m != 1 : facdict[type(self)(rational(1,m))] += e;
-        self = self.mapcoeffs(lambda x:m*x);
+        if m != 1 :
+          facdict[type(self)(rational(1,m))] += e;
+          self = self.mapcoeffs(lambda x:m*x);
         m = 1;    # combine constant factors
         i = [];
         for f,k in facdict.items() :
