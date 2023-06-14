@@ -160,7 +160,7 @@ Methods:
     self._p = ();
 
   def __hash__(self) :
-    return hash(self._p if len(self._p) > 1 else self[0]);
+    return hash(self._p if len(self._p) > 1 else len(self._p) and self._p[0]);
 
   @property
   def degree(self) :
@@ -749,9 +749,14 @@ factors will be square-free but not necessarily irreducible."""
             if sum(facs.values()) > len(facs) :    # not square free
               continue;
             c = 1;    # number of factors to combine
+            t = set();   # combinations already tried and failed
+            v = set();   # combinations to avoid
             while self.degree > 1 and c <= len(facs)>>1 :
               for facc in combinations(facs,c) :
-                fac = product(facc)
+                # facc = set(facc);  # to make order-independent
+                if facc in v :
+                  continue;
+                fac = product(facc);
                 for d in divisors(int(self._p[0])) :
                   g = (d*fac).mapcoeffs(lambda x:x.x-p if p>>1 < x.x else x.x);
                   if not self._p[-1]%g._p[-1] and not self%g :
@@ -759,12 +764,17 @@ factors will be square-free but not necessarily irreducible."""
                     self //= g;
                     for fac in facc :
                       del facs[fac];
+                    v |= t;
+                    t.clear();
                     break;
                 else :
+                  t.add(facc);
                   continue;
                 break;
               else :
                 c += 1;
+                t.clear();
+                v.clear();
             break;    # GF(p) factorization successfully uplifted
       if self != 1 :
         facdict[self] += e;
