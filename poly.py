@@ -7,7 +7,7 @@ import sys
 from itertools import chain, count, combinations
 from collections import defaultdict
 from matrix import product, bmatrix
-from rational import rational, xrational, inf, realize, exp
+from rational import rational, xrational, inf, realize
 from conversions import bit_length, xrange, isint, iteritems, isffield, lmap
 from numfuns import factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, gcda, lcma, divisors, primes
 from random import randrange,randint
@@ -531,7 +531,7 @@ if q is not specified, the field is inferred from self's coefficients"""
       poly = self = self.mapcoeffs(lambda x:int(m*x/d));
       if self.gcd(self.derivative()).degree > 0 :
         return False;
-      for p in primes(int(max(map(lambda x:abs(x),self))*exp(self.degree))+1) :
+      for p in primes(int(max(map(abs,self))<<(self.degree-1))+1) :
         p0 = poly._p[0];
         if p0 != 1 :    # make monic
           i = modpow(p0,p-2,p);
@@ -540,9 +540,8 @@ if q is not specified, the field is inferred from self's coefficients"""
           return True;
         from ffield import ffield
         F = ffield(p);
-        poly = poly.mapcoeffs(F);    # map to GF(p)
-        facs = poly.factor();
-        if sum(facs.values()) > len(facs) :    # not square free
+        facs = poly.mapcoeffs(F).factor();    # map to GF(p) and factor
+        if sum(facs.values()) > len(facs) :   # not square free
           continue;
         for c in xrange(1,(len(facs)>>1)+1) :
           for facc in combinations(facs,c) :
@@ -741,7 +740,7 @@ factors will be square-free but not necessarily irreducible."""
         if m != 1 : facdict[type(self)(m)] += 1;
         from ffield import ffield
         if self.degree > 1 :
-          for p in primes(int(max(map(lambda x:abs(x),self))*exp(self.degree))+1) :
+          for p in primes(int(max(map(abs,self))<<(self.degree-1))+1) :
             F = ffield(p);
             poly = self.mapcoeffs(F);    # map to GF(p)
             poly /= poly[-1];    # make monic
