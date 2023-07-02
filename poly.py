@@ -7,10 +7,19 @@ import sys
 from itertools import chain, count, combinations
 from collections import defaultdict
 from matrix import product, bmatrix
-from rational import rational, xrational, inf, realize
+from rational import rational, xrational, inf, realize, sqrt
 from conversions import bit_length, xrange, isint, iteritems, isffield, lmap
-from numfuns import factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, gcda, lcma, divisors, primes
+from numfuns import factor, factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, gcda, lcma, divisors, primes
 from random import randrange,randint
+
+def select(a,b) :
+  """Given iterable object a and bitmap b (a nonnegative int),
+  return those elements of a corresponding to 1s in b, as a generator"""
+  for i,x in enumerate(a) :
+    if not b : return;
+    if b&1 :
+      yield x;
+    b >>= 1;
 
 if sys.version_info>(3,) :
   INT = set((int,));
@@ -531,7 +540,7 @@ if q is not specified, the field is inferred from self's coefficients"""
       poly = self = self.mapcoeffs(lambda x:int(m*x/d));
       if self.gcd(self.derivative()).degree > 0 :
         return False;
-      for p in primes(int(max(map(abs,self))<<(self.degree-1))+1) :
+      for p in primes(self.twicemaxfactorheight+1) :
         p0 = poly._p[0];
         if p0 != 1 :    # make monic
           i = modpow(p0,p-2,p);
@@ -740,7 +749,12 @@ factors will be square-free but not necessarily irreducible."""
         if m != 1 : facdict[type(self)(m)] += 1;
         from ffield import ffield
         if self.degree > 1 :
-          for p in primes(int(max(map(abs,self))<<(self.degree-1))+1) :
+          if self._p[0] == 1 and self._p[-1] == -1 and not any(self._p[1:-1]) :
+            # special case x^n-1
+            for d in divisors(self.degree) :
+              facdict[self.cyclotomic(d)] += e;
+            return;
+          for p in primes(self.twicemaxfactorheight+1) :
             F = ffield(p);
             poly = self.mapcoeffs(F);    # map to GF(p)
             poly /= poly[-1];    # make monic
@@ -812,6 +826,12 @@ factors will be square-free but not necessarily irreducible."""
     """Apply realize to each coefficient and return the resulting polynomial"""
     return type(self)(*map(realize,self._p));
 
+  @property
+  def twicemaxfactorheight(self) :
+    """Return twice max possible height of any irreducible factor of Z[x] poly
+    using K.Mahler's version of Gelfond formula for any factor's max height"""
+    return int((max(map(abs,self))*sqrt(self.degree+1))<<self.degree);
+
   @staticmethod
   def unfactor(facdict,p=None) :
     """Take a factorization as produced by factor() and return the product,
@@ -819,6 +839,34 @@ multiplied by p if specified"""
     if p == None : p = _one;
     for f,e in iteritems(facdict) :
       p *= f**e;
+    return p;
+
+  @staticmethod
+  def xnm1(n,o=1) :
+    """Return polynomial ox^n-o; coefficients all type(o)"""
+    z = o-o;    # zero of same type as o
+    return polynomial(*(z if 0<i<n else -o if i else o for i in range(n+1)));
+
+  @staticmethod
+  def cyclotomic(n) :
+    """Return nth cyclotomic polynomial"""
+    if not n : return _one;    # optimization required n==0 special case
+    xnm1 = polynomial.xnm1;
+    # f = tuple(factors(n));   # optimization replaces this with ...
+    fe = tuple(factor(n));          # make n square free ...
+    f = tuple(f[0] for f in fe);    #  tuple(factors(n))
+    p = product(f);                 #  product of prime factors (new n)
+    m,n = n//p, p;                  #  multiplier, new n
+    p = xnm1(n);               # vanilla computation of cyclotomic(n)
+    for b in range((1<<len(f))-1,0,-1) :    # order matters!
+      s = tuple(select(f,b));
+      d = product(s);    # divisor d with mu(d) != 0
+      if len(s)&1 :
+        p //= xnm1(n//d);    # mu(d) == -1
+      else :
+        p *= xnm1(n//d);     # mu(d) == 1
+    if m > 1 :   # finalize optimization: replace x with x^m
+      p = polynomial(*(0 if i%m else p._p[i//m] for i in range(m*p.degree+1)));
     return p;
 
 class rationalfunction(object) :
