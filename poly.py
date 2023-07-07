@@ -639,9 +639,11 @@ factors will be square-free but not necessarily irreducible."""
           facdict[type(self)(int_float(f))] += 1;
         return facdict;
     elif types <= COMPLEX and not types <= XRATIONAL :
-      for k,v in iteritems(self.mapcoeffs(xrational).factor()) :
-        facdict[k.mapcoeffs(complex)] += v;
-      return facdict;
+      self = self.mapcoeffs(xrational);
+      if float in types or complex in types :
+        for k,v in iteritems(self.factor()) :
+          facdict[k.mapcoeffs(complex)] += v;
+        return facdict;
     if self._p[0]**2 != self._p[0] :
       facdict[type(self)(self._p[0])] += e;
       self /= self._p[0];    # make monic
