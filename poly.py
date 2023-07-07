@@ -623,9 +623,10 @@ factors will be square-free but not necessarily irreducible."""
     for x in self :
       types.add(type(x));
     if set() < types <= REAL and not types <= RATIONAL :
+      self = self.mapcoeffs(rational);
       if float in types :
         f = 1;
-        for k,v in iteritems(self.mapcoeffs(rational).factor()) :
+        for k,v in iteritems(self.factor()) :
           if not k.degree :
             f *= k._p[0]**v;
           elif k.degree > 0 :
@@ -636,7 +637,7 @@ factors will be square-free but not necessarily irreducible."""
             facdict[k.mapcoeffs(int_float)] += v;
         if f != 1 :
           facdict[type(self)(int_float(f))] += 1;
-      return facdict;
+        return facdict;
     elif types <= COMPLEX and not types <= XRATIONAL :
       for k,v in iteritems(self.mapcoeffs(xrational).factor()) :
         facdict[k.mapcoeffs(complex)] += v;
