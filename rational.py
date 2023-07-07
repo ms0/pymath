@@ -16,8 +16,8 @@ import sys
 
 from math import log as _mlog, modf as _mmodf, ldexp as _mldexp, copysign as _mcopysign
 from itertools import chain, count
-from . conversions import xrange, isint, isstr, gcd, bit_length, lcm, lcma
-from . quaternion import quaternion
+from conversions import xrange, isint, isstr, gcd, bit_length, lcm, lcma
+from quaternion import quaternion
 
 if sys.version_info[0] < 3 :
 
@@ -54,7 +54,7 @@ def sgn(x) :
   return -1 if x < 0 else 1 if x > 0 else _nan if x else 0;
 
 def root(a,n) :
-  """Return the nth root of a, where a and n are positive integers"""
+  """Return int within 1 of nth root of a, where a and n are positive integers"""
   try :
     l = _mlog(a,2)/n;
   except OverflowError :
