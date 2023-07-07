@@ -6,10 +6,10 @@ import sys
 
 from itertools import chain, count, combinations
 from collections import defaultdict
-from matrix import product, bmatrix
-from rational import rational, xrational, inf, realize, sqrt
-from conversions import bit_length, xrange, isint, iteritems, isffield, lmap
-from numfuns import factor, factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, gcda, lcma, divisors, primes
+from . matrix import product, bmatrix
+from . rational import rational, xrational, inf, realize, sqrt
+from . conversions import bit_length, xrange, isint, iteritems, isffield, lmap
+from . numfuns import factor, factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, gcda, lcma, divisors, primes
 from random import randrange,randint
 
 def select(a,b) :
@@ -547,7 +547,7 @@ if q is not specified, the field is inferred from self's coefficients"""
           poly = self.mapcoeffs(lambda x: x*i%p);
         if isirreducible(poly._p[1:],p) :
           return True;
-        from ffield import ffield
+        from . ffield import ffield
         F = ffield(p);
         facs = poly.mapcoeffs(F).factor();    # map to GF(p) and factor
         if sum(facs.values()) > len(facs) :   # not square free
@@ -747,7 +747,7 @@ factors will be square-free but not necessarily irreducible."""
             m *= f._p[0]**k;
         for f in i : del facdict[f];
         if m != 1 : facdict[type(self)(m)] += 1;
-        from ffield import ffield
+        from . ffield import ffield
         if self.degree > 1 :
           if self._p[0] == 1 and self._p[-1] == -1 and not any(self._p[1:-1]) :
             # special case x^n-1

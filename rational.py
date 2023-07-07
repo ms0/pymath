@@ -16,8 +16,8 @@ import sys
 
 from math import log as _mlog, modf as _mmodf, ldexp as _mldexp, copysign as _mcopysign
 from itertools import chain, count
-from conversions import xrange, isint, isstr, gcd, bit_length, lcm, lcma
-from quaternion import quaternion
+from . conversions import xrange, isint, isstr, gcd, bit_length, lcm, lcma
+from . quaternion import quaternion
 
 if sys.version_info[0] < 3 :
 
