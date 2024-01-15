@@ -74,8 +74,8 @@ def iicsa(s) :
 
 def shares(s,n,k) :
   """Given a secret s in some finite field or other numeric class such as
-rational, int, float, or complex (or an up-to-21-character printable ASCII
-secret string which is interpreted as a field element of GF_138),
+rational, int, float, or complex (or an up-to-56-character printable ASCII
+secret string which is interpreted as a field element of GF2_368),
 a number of shares n, and the required number of shares k,
 return a list of n pairs (sharer,share)
 any k of which can recover the secret.
