@@ -1060,10 +1060,14 @@ Methods:
     """Return self * x**-k"""
     return self.__lshift__(-k);
 
-  def derivative(self) :
-    """Return derivative of self"""
-    return type(self)(
-      self._a.derivative()*self._b-self._a*self._b.derivative(), self._b**2);
+  def derivative(self,k=1) :
+    """Return the kth derivative of self"""
+    if not (isint(k) and k >= 0) :
+      raise TypeError('kth derivative only defined for k nonegative integer');
+    for _ in xrange(k) :
+      self = type(self)(
+        self._a.derivative()*self._b-self._a*self._b.derivative(), self._b**2);
+    return self;
   
 def rationalize(p) :
   """If p is a python number, convert it to a rational or xrational;
