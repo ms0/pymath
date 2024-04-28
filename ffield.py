@@ -223,12 +223,12 @@ __le__ = __ge__ = __eq__;
 __lt__ = __gt__ = lambda x,y:False;
 
 def __bool__(self) :
-  return self._x != 0;
+  return bool(self._x);
 
 __nonzero__ = __bool__
 
 def __abs__(self) :
-  return int(self._x != 0);
+  return int(bool(self._x));
 
 def __int__(self) :
   """Return self._x if < self._p, else raise TypeError"""
