@@ -227,6 +227,9 @@ def __bool__(self) :
 
 __nonzero__ = __bool__
 
+def __abs__(self) :
+  return int(self._x != 0);
+
 def __int__(self) :
   """Return self._x if < self._p, else raise TypeError"""
   if self._x < self._p :
@@ -629,7 +632,7 @@ Instance variable (treat as read-only!):
   _x: the value at _p of the polynomial representing the element
 
 Methods: __init__, __hash__, __repr__, __str__, __int__,
-         __pos__, __neg__,
+         __pos__, __neg__, __abs__,
          __bool__, __nonzero__, __eq__, __ne__, __lt__, __gt__, __le__, __ge__
          __add__, __radd__, __sub__, __rsub__,
          __mul__, __rmul__, __div__, __rdiv__, __truediv__, __rtruediv__,
@@ -748,6 +751,7 @@ WARNING: log, minpoly, minpolynomial, order and generator
              __ge__=__ge__,
              __bool__ = __bool__,
              __nonzero__=__nonzero__,
+             __abs__ = __abs__,
              __neg__=__neg__,
              __pos__=__pos__,
              __add__=__add__,

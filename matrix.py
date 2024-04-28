@@ -16,7 +16,7 @@ def altabs(x) :
   try :
     return abs(x);
   except Exception :
-    return 1 if x else 0;
+    return int(bool(x));
 
 class ParameterError(Exception) :
   pass
