@@ -6,7 +6,7 @@ random.seed();
 from itertools import chain, count
 from matrix import matrix, product
 from conversions import isint, gcd, gcda, lcm, lcma, xrange, bit_length, bit_count, pack
-from rational import root, rint
+from rational import root, rint, xgcd
 
 def modpow(b,x,p) :    # b**x mod p
   """Compute b**x%p"""

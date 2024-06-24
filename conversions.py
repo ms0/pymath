@@ -58,9 +58,12 @@ except Exception :
       x,y = y, x%y;
     return abs(x);
 
-def lcm(x,y) :
-  """Return the [positive] least common multiple of x and y"""
-  return abs(x//(gcd(x,y) or 1)*y);
+try :
+  from math import lcm
+except Exception :
+  def lcm(x,y) :
+    """Return the [positive] least common multiple of x and y"""
+    return abs(x//(gcd(x,y) or 1)*y);
 
 def lcma(*args) :
   """Return the [positive] least common multiple of all the arguments"""
