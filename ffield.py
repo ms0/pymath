@@ -862,6 +862,11 @@ WARNING: log, minpoly, minpolynomial, order and generator
           if e._x <= 1 : break;
     return g(self(1));
 
+  def __dir__(self) :
+    d = sorted(self.__dict__.keys());
+    d.remove('generator');    # so help doesn't hang
+    return d;
+
   p = field_p;
   n = field_n;
   q = field_q;
@@ -1410,6 +1415,11 @@ WARNING: log, minpoly, minpolynomial, order and generator
           e *= x;
           if e._x <= 1 : break;
     return g(self(1));
+
+  def __dir__(self) :
+    d = sorted(self.__dict__.keys());
+    d.remove('generator');    # so help doesn't hang
+    return d;
 
   p = field_p;
   n = field_n;
