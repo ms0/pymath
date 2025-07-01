@@ -34,10 +34,20 @@ def poly2bitstring(p,n=None) :
 
 p2b = poly2bitstring;
 
+zero = GF2(0);
+one = GF2(1);
+
+
+def xnp1(n) :    # generate coeffs of x**n+1, but of x+1 if n is zero
+  yield one;
+  for _ in range(n-1) : yield zero;
+  yield one;
+  return
+
 def polyconv(a,b,n=0) :
-  """Return a*b%(x^n-1), with n = max(n,1+a.degree,1+b.degree) """
+  """Return a*b%(x**n+1), with n = max(n,1+a.degree,1+b.degree) """
   n = max(n,1+a.degree,1+b.degree);
-  return a*b%(poly(1,*(0 for _ in range(n-1)),-1).mapcoeffs(GF2));
+  return a*b%(poly(*xnp1(n)));
 
 pc = polyconv;
 
