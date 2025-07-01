@@ -906,12 +906,13 @@ def __ipow__(self,e) :
     if e <= 1 :
       if e <= 0 :
         if e :
-          g,u,v = xm2gcd((1<<l)+1,int(self._x)) ; # + not | to handle l == 0
+          g,u,v = xm2gcd((1<<l)+1,int(self)) ; # + not | to handle l == 0
           if g != 1 :
             raise ZeroDivisionError('base has no inverse');
-          v = (v>>2) | ((v&3)<<(l-2));    # convert lsb 0 -> msb 0
+          if l > 2 :
+            v = (v>>2) | ((v&3)<<(l-2));    # convert lsb 0 -> msb 0
         else :
-          v = (l<<1)>>1;    # in case l==0
+          v = (1<<l)>>1;    # in case l==0
         if l <= B :
           self._x = v;
         else :

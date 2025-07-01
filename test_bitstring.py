@@ -77,6 +77,19 @@ def test1(bs) :
   ceq('v[0]*-1==v[0][::-1]',b);
   ceq('v[0]*0==type(v[0])()',b);
   ceq('len(v[0]*3)==len(v[0]*-3)==len(v[0])*3',b);
+  ceq('v[0]**1==v[0]',b);
+  ceq('v[0]**2==v[0]*v[0]',b);
+  ceq('v[0]**3==v[0]*v[0]*v[0]',b);  
+  o = bs(1<<(l-1),l) if l else bs();
+  ceq('v[0]**0==v[1]',b,o);
+  try :
+    c = 1/b;
+    ceq('v[0]**-1==v[1]',b,c);
+    ceq('v[0]/v[0]==v[1]',b,o);
+    ceq('v[1]*v[0]/v[1]==v[0]',b,c);
+    ceq('v[0]*v[0]**-2==v[1]',b,c);
+  except ZeroDivisionError :
+    pass;
   i = randint(1,64);
   ceq('len(v[0].split(v[1]))==(v[2]+v[1]-1)//v[1]',b,i,l);
   ceq('len(v[0].split(-v[1]))==(v[2]+v[1]-1)//v[1]',b,i,l);
@@ -118,6 +131,12 @@ def test1(bs) :
   ceq('int(v[0]+v[1])==v[2]',b,c,(x+y)&m);
   ceq('int(v[0]-v[1])==v[2]',b,c,(x-y)&m);
   ceq('v[0]*v[1]==v[2]',b,c,bm(b,c));
+  try :
+    1/c;
+    ceq('v[0]/v[1]*v[1]==v[0]',b,c);
+    ceq('v[0]*v[1]/v[1]==v[0]',b,c);
+  except ZeroDivisionError :
+    pass;
 
 def test2(b1,b2) :
   """test pairs of bitstring types"""
