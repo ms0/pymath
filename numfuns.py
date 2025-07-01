@@ -551,7 +551,7 @@ def m2gcd(a,b) :
 
 def xm2gcd(a,b) :
   """Return the gcd of a and b, together with u,v such that d=uf+vg,
-all packed GF(2) polynomials; not that b**-1 mod a = xm2gcd(a,b)[2]"""
+all packed GF(2) polynomials; note that b**-1 mod a = xm2gcd(a,b)[2]"""
   u0,v0,u1,v1 = 1,0,0,1;
   while b :
     q,r = m2divrem(a,b);
