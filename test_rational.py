@@ -6,6 +6,7 @@ from __future__ import division
 # NOTE: test_poly.py also tests rational.py functionality
 
 from conversions import xrange, isint, isreal, iscomplex
+from numfuns import primes
 from random import Random
 from rational import *
 from timeit import timeit, default_timer
@@ -51,10 +52,11 @@ def ceq(c,v=()) :
   if not eval(c) : print(c,v);
 
 def roottest(numbers=None,roots=(2,3),nbits=(32,64)) :
-  """Test calculation of square and cube roots used in sha.py"""
+  """Test calculation of square and cube roots; default: as used in sha2.py"""
   if not numbers :
-    from sha2 import P
-    numbers = P;
+    nprimes = 80;
+    p = primes();
+    numbers = [next(p) for _ in xrange(nprimes)];
   iroot = lambda x,r,b: int(rational(x<<(r*b))**rational(1,r));
   ipow = lambda x,r,b: (x**r)>>(r*b);
   for n in numbers :
