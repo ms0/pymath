@@ -862,15 +862,21 @@ def __imul__(self,n) :
         self.iconcat(y);
     return self;
   elif isinstance(type(n),bitstrings) :
-    if self._l != n._l :
+    l = self._l;
+    if l != n._l :
       raise TypeError('bitstrings must have same length');
-    m = type(self)(self);
-    if n is self :
-      n = type(self)(n);
-    self &= 0;
-    for i in range(self._l) :
-      if n[i] : self ^= m;
-      m >>= 1;
+    if l :
+      B = self._B;
+      k = l-1;
+      s = __int__(self);
+      x = s if n[0] else 0;
+      for i in xrange(1,l) :
+        s = (s>>1) | ((s&1) << k);
+        if n[i] : x ^= s;
+      if l <= B :
+        self._x = x;
+      else :
+        self._x = _chunkify(x,l,B);
     return self;
   return NotImplemented;
 
