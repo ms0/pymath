@@ -869,8 +869,8 @@ def __imul__(self,n) :
       B = self._B;
       k = l-1;
       s = __int__(self);
-      x = s if n[0] else 0;
-      for i in xrange(1,l) :
+      x = s if n[k] else 0;
+      for i in xrange(k) :
         s = (s>>1) | ((s&1) << k);
         if n[i] : x ^= s;
       if l <= B :
@@ -915,10 +915,8 @@ def __ipow__(self,e) :
           g,u,v = xm2gcd((1<<l)+1,int(self)) ; # + not | to handle l == 0
           if g != 1 :
             raise ZeroDivisionError('base has no inverse');
-          if l > 2 :
-            v = (v>>2) | ((v&3)<<(l-2));    # convert lsb 0 -> msb 0
         else :
-          v = (1<<l)>>1;    # in case l==0
+          v = l and 1;
         if l <= B :
           self._x = v;
         else :

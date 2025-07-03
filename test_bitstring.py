@@ -22,21 +22,20 @@ from poly import polynomial as poly
 GF2 = ffield(2);
 
 def bitstring2poly(b) :
-  """Return GF(2) polynomial representing bitstring, p[i] = b[i]"""
-  return poly(*b[::-1]).mapcoeffs(GF2);
+  """Return GF(2) polynomial representing bitstring, """
+  return poly(*b).mapcoeffs(GF2);
 
 b2p = bitstring2poly;
 
 def poly2bitstring(p,n=None) :
-  """Return |n|-bit bitstring representing GF(2) polynomial, b[i] becomes p[i],
-  if n is 0, len(b) = max(0,p.degree+1), if n is negative, b[i+n] becomes p[i]"""
-  return bitstring(p.mapcoeffs(int)(2),-(n or max(0,p.degree+1)));
+  """Return |n|-bit bitstring representing GF(2) polynomial, 1 is rightmost bit
+  if n is 0, len(b) = max(0,p.degree+1), if n is negative, reverse bit order"""
+  return bitstring(p.mapcoeffs(int)(2),(n or max(0,p.degree+1)));
 
 p2b = poly2bitstring;
 
 zero = GF2(0);
 one = GF2(1);
-
 
 def xnp1(n) :    # generate coeffs of x**n+1, but of x+1 if n is zero
   yield one;
@@ -90,7 +89,7 @@ def test1(bs) :
   ceq('v[0]**1==v[0]',b);
   ceq('v[0]**2==v[0]*v[0]',b);
   ceq('v[0]**3==v[0]*v[0]*v[0]',b);  
-  o = bs(1<<(l-1),l) if l else bs();
+  o = bs(1,l) if l else bs();
   ceq('v[0]**0==v[1]',b,o);
   try :
     c = 1/b;
