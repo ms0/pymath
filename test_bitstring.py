@@ -22,7 +22,7 @@ from poly import polynomial as poly
 GF2 = ffield(2);
 
 def bitstring2poly(b) :
-  """Return GF(2) polynomial representing bitstring, """
+  """Return GF(2) polynomial representing bitstring, 1 is rightmost bit"""
   return poly(*b).mapcoeffs(GF2);
 
 b2p = bitstring2poly;
