@@ -1001,7 +1001,7 @@ Methods:
     if not isinstance(other,rationalfunction) :
       other = rationalfunction(other);
       if isinstance(other,polynomial) :
-        return rational_function(self._a-self._b*other,self._b);
+        return rationalfunction(self._a-self._b*other,self._b);
     return rationalfunction(self._a*other._b-self._b*other._a,self._b*other._b);
 
   def __rsub__(self,other) :
@@ -1091,3 +1091,4 @@ _one = polynomial(1);
 _x = polynomial(1,0);
 
 RATFUN = (polynomial,rationalfunction);
+
