@@ -191,8 +191,8 @@ def primepower(q) :
 # if g != 0 f is reducible
 # else f is irreducible
 
-x = (1,0);
-one = (1,);
+_x = (1,0);
+_one = (1,);
 
 def isirreducible(poly,q) :  # missing leading coefficient assumed to be 1
   """Run the deterministic Rabin test to see if poly is irreducible over GF(q);
@@ -205,11 +205,11 @@ without the leading coefficient, which is taken to be 1"""
   n = len(poly);
   if n <= 1 : return n==1;
   if not poly[-1] : return False;
-  f = one+poly;
+  f = _one+poly;
   if p == 2 : return isirreducible2(pack(2,f),k);
   for r in factors(n) :
-    if len(mpgcd(p,f,mpsub(p,mppow(p,x,q**(n//r),f),x))) != 1 : return False;
-  return not mpsub(p,mppow(p,x,q**n,f),x);
+    if len(mpgcd(p,f,mpsub(p,mppow(p,_x,q**(n//r),f),_x))) != 1 : return False;
+  return not mpsub(p,mppow(p,_x,q**n,f),_x);
 
 # An irreducible polynomial f(x) of degree m over GF(p), where p is prime,
 # is a primitive polynomial iff the smallest positive integer n such that
@@ -225,9 +225,9 @@ def isprimitive(g,p) :
   if q[1] != 1 or not g[-1] : return False;
   if n == 1 and g[0] == p-1 : return False;    # x-1
   o = p**n-1;
-  og = one+g;
+  og = _one+g;
   for f in ffactors(o) :
-    if mppow(p,x,o//f,og) == one : return False;
+    if mppow(p,_x,o//f,og) == _one : return False;
   return True;
 
 def ffactors(n) :
@@ -448,7 +448,7 @@ def mppow(p,b,e,m=None) :
     if len(m) < 2 :
       if m : return ();
       raise ZeroDivisionError;
-  if not e : return one;
+  if not e : return _one;
   n = 1 << (bit_length(e)-1) >> 1;
   x = b;
   while n :
@@ -469,7 +469,7 @@ def mpgcd(p,f,g) :
 def xmpgcd(p,f,g) :
   """Return the monic gcd d of f and g, together with u,v such that d=uf+vg,
 all polynomials over GF(p); note that g**-1 mod f = xmpgcd(p,f,g)[2]"""
-  u0,v0,u1,v1 = one,(),(),one;
+  u0,v0,u1,v1 = _one,(),(),_one;
   f = lstrip(f);
   g = lstrip(g);
   while g :
@@ -645,7 +645,7 @@ def irreducibleg(q,n) :
       poly.append(j%p);
       j //= p;
     poly = tuple(reversed(poly));
-    if isirreducible(poly,q) : yield one+poly;
+    if isirreducible(poly,q) : yield _one+poly;
 
 def phi(n) :
   """Return the Euler totient function of n"""
