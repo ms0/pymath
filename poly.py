@@ -6,7 +6,7 @@ import sys
 
 from itertools import chain, count, combinations
 from collections import defaultdict
-from matrix import product, bmatrix
+from matrix import product
 from rational import rational, xrational, inf, realize, root
 from conversions import bit_length, xrange, isint, iteritems, isffield, lmap
 from numfuns import factor, factors, leastfactor, ffactors, primepower, modpow, isirreducible, isprimitive, gcda, lcma, divisors, primes
@@ -1091,4 +1091,5 @@ _one = polynomial(1);
 _x = polynomial(1,0);
 
 RATFUN = (polynomial,rationalfunction);
+
 
