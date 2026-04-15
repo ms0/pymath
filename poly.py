@@ -633,7 +633,7 @@ factors will be square-free but not necessarily irreducible."""
             c = k._p[0];
             if c != 1 :
               f *= c**v;
-              k /= c;
+              k /= rational(c);
             facdict[k.mapcoeffs(int_float)] += v;
         if f != 1 :
           facdict[type(self)(int_float(f))] += 1;
