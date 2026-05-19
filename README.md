@@ -7,6 +7,7 @@ Classes to implement finite fields (ffield.py), rationals and complex rationals 
 quaternions (quaternion.py), matrices (matrix.py) over any ring, and
 single-variable polynomials and rational functions (poly.py) with coefficients in any field.
 Also, a class to implement undirected graphs (graph.py).
+Also, a class to implement conic sections (conic.py).
 
 Test programs for the various classes are included:
 test_ffield.py primarily tests ffield.py, but also uses matrix.py and poly.py
