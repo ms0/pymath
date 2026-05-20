@@ -235,11 +235,26 @@ if no args, use center coords, or vertex coords if no center"""
     # For parabola, place focus at origin, directrix quarter away (512/4 = 128)
     # For ellipse or hyperbola, center at origin,
     #  foci and intersection of axis and directrix inside window
-    tkroot = tk.Tk()
+    try :
+      self.tkroot.destroy()
+    except Exception :
+      pass
+    self.tkroot = tkroot = tk.Tk()
+    tkroot.title(str(self))
     canvas = tk.Canvas(tkroot, width=512, height=512, bg='white')
     canvas.pack()
     drawdict[self.classification.split()[0]](self,canvas)
-    tkroot.mainloop()
+    tkroot.update()
+
+  def kill(self) :
+    """Kill drawing"""
+    try :
+      self.tkroot.destroy()
+      del self.tkroot
+    except Exception :
+      pass
+
+  __del__ = kill
 
 v2 = sqrt(2)
 
