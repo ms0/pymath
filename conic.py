@@ -1,6 +1,7 @@
 __all__ = ['conic','easeyes','testconic','testconics']
 
 from msmath.rational import *
+from msmath.numfuns import gcda,lcma
 import tkinter as tk
 
 zero = rational(0)
@@ -225,6 +226,14 @@ if no args, use center coords, or vertex coords if no center"""
       x,y = -x,-y
     return conic(a,b,c,d-2*a*x-b*y,e-b*x-2*c*y,f+a*x*x+b*x*y+c*y*y-d*x-e*y)
 
+  def astr(self) :
+    """Return representative string with (denormalized) integer coeffs"""
+    m = lcma(*tuple(map(lambda x: x.denominator,self.coeffs)))
+    coeffs = tuple(map(lambda x: int(x*m),self.coeffs))
+    d = gcda(*coeffs) or 1
+    coeffs = tuple(map(lambda x: x//d,coeffs))
+    return 'conic(%s,%s,%s,%s,%s,%s)'%(coeffs)
+
   def draw(self) :  # use sin,cos, or sinh, cosh, or y=ax^2
     """Draw conic with tkinter, centered and scaled but unrotated"""
     # We must translate and scale to fit picture in window
@@ -240,7 +249,7 @@ if no args, use center coords, or vertex coords if no center"""
     except Exception :
       pass
     self.tkroot = tkroot = tk.Tk()
-    tkroot.title(str(self))
+    tkroot.title(self.astr())
     canvas = tk.Canvas(tkroot, width=512, height=512, bg='white')
     canvas.pack()
     drawdict[self.classification.split()[0]](self,canvas)
