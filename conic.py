@@ -1,4 +1,4 @@
-__all__ = ['conic','easeyes','testconic','testconics']
+__all__ = ['conic','easeyes','disease','testconic','testconics','drawconics']
 
 from msmath.rational import *
 from msmath.numfuns import gcda,lcma
@@ -6,6 +6,10 @@ import tkinter as tk
 
 zero = rational(0)
 one = rational(1)
+
+xrepr = xrational.__repr__    # save old values for disease
+rrepr = rational.__repr__
+rstr = rational.__str__
 
 def intersect(l1,l2) :    # return intersection of two lines
   # ax + by = -c   [a b] [x] = [-c]    [x] = __1__ [q -b] [-c] =  __1__ [br-qc]
@@ -267,6 +271,9 @@ if no args, use center coords, or vertex coords if no center"""
 
 v2 = sqrt(2)
 
+cs = ();    # cos, sin table
+csh = ();   # cosh, sinh table 
+
 def tofloat(*args) :
   """Convert rational args to a tuple of floats"""
   return tuple(map(float,args))
@@ -326,6 +333,7 @@ def drawcircle(c,canvas) :
 def drawellipse(c,canvas) :
   # translate center to 0,0
   # scale so distance from directrix to center is 500/2 = 250
+  global cs
   d = distance(*c.ad)  # distance between directrices
   scale = 500/d
   for i in range(2) :
@@ -338,8 +346,10 @@ def drawellipse(c,canvas) :
   k = 250*g
   m,n = k, k*sqrt(1-g*g)
   x0,y0 = m,0
-  for t in range(1,257) :
-    x,y = m*cos(tau*t/1024), n*sin(tau*t/1024)
+  if not cs :
+    cs = tuple((cos(tau*t/1024),sin(tau*t/1024)) for t in range(1,257))
+  for t in range(256) :
+    x,y = m*cs[t][0], n*cs[t][1]
     for r in (-1,1) :
       for s in (-1,1) :
         a,b = r*dx*x0+s*dy*y0, r*dy*x0-s*dx*y0
@@ -370,6 +380,7 @@ def drawparabola(c,canvas) :
 def drawhyperbola(c,canvas) :
   # translate center to 0,0
   # scale so distance from focus to center is 512/4 = 128
+  global csh
   foci = c.foci
   d = distance(*foci)
   scale = 250/d
@@ -385,8 +396,10 @@ def drawhyperbola(c,canvas) :
   k = 125/g
   m,n = k, k*sqrt(g*g-1)
   x0,y0 = m,0
-  for t in range(1,257) :
-    x,y = m*cosh(t/128), n*sinh(t/128)
+  if not csh :
+    csh = tuple((cosh(t/128),sinh(t/128)) for t in range(1,257))
+  for t in range(256) :
+    x,y = m*csh[t][0], n*csh[t][1]
     for r in (-1,1) :
       for s in (-1,1) :
         a,b = r*dx*x0+s*dy*y0, r*dy*x0-s*dx*y0
@@ -428,7 +441,13 @@ assume lines are in canonical form: sum of squares of x and y coeffs = 1"""
 def easeyes() :
   """Make rationals easier to read"""
   xrational.__repr__ = xrational.__str__
-  rational.__repr__ = rational.__str__ = lambda x:str(x.numerator) if x.denominator==1 else x.bstr()
+  rational.__repr__ = rational.__str__ = lambda x:str(x.numerator) if abs(x.denominator)==1 else x.bstr()
+
+def disease() :
+  """Undo easeyes"""
+  xrational.__repr__ = xrepr
+  rational.__repr__ = rrepr
+  rational.__str__ = rstr
 
 from random import randint
 
@@ -485,3 +504,14 @@ def testconics(cnt) :
     c = testconic()
     d.add(c.classification)
   return d
+
+def drawconics() :
+  """Continually testconic() and draw and wait for input, break if nonempty"""
+  easeyes()
+  while True :
+    c=testconic()
+    c.draw()
+    i = input()
+    c.kill()
+    if i : break
+  disease()
