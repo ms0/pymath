@@ -128,9 +128,9 @@ Instance variables:
         else :
           self.asymptotes = ((one,zero,-s),(zero,one,-t))
     else :
-      r = fm/dpeq
+      r = fm/(dpeq or 1)
     u,v = self.focus = (-d/2-p*r,-e/2-q*r)
-    h = hypot(p,q) or sgn(r)
+    h = hypot(p,q) or sgn(r) or 1
     p /= h
     q /= h
     r /= h
@@ -161,8 +161,9 @@ Instance variables:
       if rad :
         self.classification = 'empty'
       elif ggm1 :
-        del self.axis
-        del self.axes
+        if gg :
+          del self.axis
+          del self.axes
         if ggm1 < 0 :
           self.classification = 'point'
           self.point = self.center
